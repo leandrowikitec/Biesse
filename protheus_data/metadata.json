@@ -1,0 +1,20 @@
+{
+    "stages":[
+        {   "stageName":"masterMetaData",
+            "stageMetaData":"1",
+            "stageCFG":"0",
+            "stageERP":"0"
+        },
+        {   "stageName":"homolog",
+            "stageMetaData":"0",
+            "stageCFG":"1",
+            "stageERP":"1"
+        },
+        {   "stageName":"producao",
+            "stageMetaData":"0",
+            "stageCFG":"1",
+            "stageERP":"1"
+        }
+
+    ]
+}
