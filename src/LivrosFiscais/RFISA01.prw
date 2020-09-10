@@ -1,5 +1,5 @@
 #INCLUDE "PROTHEUS.CH"
-#INCLUDE 'DIRECTRY.CH'
+// #INCLUDE 'DIRECTRY.CH'
 
 /*
 ‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹
