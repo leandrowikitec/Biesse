@@ -927,6 +927,8 @@ Static Function ReportDef(aArray, aHeader)
 
 Local cTitulo		:= "Relatório de consistências"									//Titulo do relatorio
 
+Local nI			:= 0
+
 Local aOrder		:= {}															//Array com as ordens possiveis no relatorio
 
 Local oReport		:= Nil															//Objejto com propriedades do relatorio
