@@ -147,9 +147,7 @@ Return aRet
 
 Static Function IniMonitor(aArquivos, bProcesso)
 
-//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-//³Declaracao de variaveis                                                      ³
-//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+// Declaracao de variaveis
 Local aTamDlg	:= GetScreenRes()									//Dimensoes da resolucao da tela
 Local aButtons  := {}												//Array contendo os botoes a serem adicionados nos Acoes Relacionadas
 
