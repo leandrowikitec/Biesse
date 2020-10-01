@@ -148,10 +148,13 @@ Return aRet
 Static Function IniMonitor(aArquivos, bProcesso)
 
 // Declaracao de variaveis
-Local aTamDlg	:= GetScreenRes()									//Dimensoes da resolucao da tela
+// Local aTamDlg	:= GetScreenRes()									//Dimensoes da resolucao da tela
+Local aSize		:= MsAdvSize()										//Dimensoes da resolucao da tela
 Local aButtons  := {}												//Array contendo os botoes a serem adicionados nos Acoes Relacionadas
 
 Local bCancel	:= {|| IIf(Aviso("Aviso","Deseja encerrar o processamento ?",{"Sim","Não"},,"Atenção:",,"BMPPERG")== 1,(oDlg:End()),) }		//Bloco de codigo ao cancelar dialog
+
+Local oTPnlHead	:= Nil												// Objeto TPanel para regua
 
 Private nMeter      := 0											//Variavel de controle da regua
 
@@ -182,24 +185,32 @@ aAdd(aButtons, {"RELATORIO"	, {|| GerRelLstBox(oListBox) }	, "Imp. Relatório"	, 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 //³Monta a tela de controle das threads                                         ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-DEFINE MSDIALOG oDlg TITLE "Monitor de processamento" From 0,0 To aTamDlg[2] * 0.52/*29*/, aTamDlg[1] * 0.5 /*90*/ OF oMainWnd STYLE DS_MODALFRAME
+DEFINE MSDIALOG oDlg FROM aSize[7],00 TO aSize[6], aSize[5] PIXEL TITLE "Monitor de processamento"
 	oDlg:lEscClose := .F.
 	oDlg:lMaximized := .T. 
 
-	oSayMeter	:= TSay():New(002,010,{|| ""},oDlg,,,,,,.T.,CLR_GREEN,CLR_WHITE,aTamDlg[1] * 0.463, 15)
-	oMeter		:= TMeter():New(012,010,{|u|if(Pcount()>0,nMeter:=u,nMeter)},108,oDlg,aTamDlg[1] * 0.463, 7,,.T.) // cria a régua
+	//Painel da regua para fixar no inicio da pagina
+	oTPnlHead := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aSize[6] * 0.033,.T.,.F.)
+
+	//Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
+	oTPnlHead:Align := CONTROL_ALIGN_TOP
+
+	oSayMeter	:= TSay():New(012,010,{|| ""},oTPnlHead,,,,,,.T.,CLR_GREEN,CLR_WHITE,aSize[5] * 0.47, 15)
+	oMeter		:= TMeter():New(022,010,{|u|if(Pcount()>0,nMeter:=u,nMeter)},108,oTPnlHead,aSize[5] * 0.47, 7,,.T.) // cria a régua
   
-	@25,05 LISTBOX oListBox VAR cListBox Fields ;
+	@55,05 LISTBOX oListBox VAR cListBox Fields ;
 			HEADER  "",;
 				OemtoAnsi("A Importar"),;
 				OemtoAnsi("Importado"),;
 				OemtoAnsi("Motivo erro"),;
-	            SIZE aTamDlg[1] * 0.477,aTamDlg[2] * 0.37  PIXEL//NOSCROLL
+	            SIZE aSize[5] * 0.477,aSize[6] * 0.37  PIXEL//NOSCROLL
 	oListBox:SetArray(aLista)
 	oListBox:bLine := { || {	IIf(ValType(aLista[oListBox:nAt,1]) == "C",oAway,If(aLista[oListBox:nAt,1],oOk,oErro)),;
 								aLista[oListBox:nAt,2],;
 								aLista[oListBox:nAt,3],;
 								aLista[oListBox:nAt,4] }}
+
+	oListBox:Align := CONTROL_ALIGN_ALLCLIENT
 
 ACTIVATE MSDIALOG oDlg CENTERED ON INIT EnchoiceBar(oDlg, bProcesso/*bOk*/ , bCancel,,aButtons)
 
