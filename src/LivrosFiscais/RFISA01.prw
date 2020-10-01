@@ -415,14 +415,22 @@ If Len(aParams) > 0
 						If Alltrim(aRetDad[nLoop,1]) == "_PROD"
 							aDados2 := ClassDataArr(aRetDad[nLoop,2])
 							If Len(aDados2) > 0
-								aAdd(aDados,{aDados2[04,02]:TEXT,;			//Cod.Produto
-											 aDados2[14,02]:TEXT,;			//Descricao
-											 Upper(aDados2[09,02]:TEXT),;	//UM
-											 aDados2[06,02]:TEXT,;			//NCM
-											 aDados2[03,02]:TEXT,;			//CFOP
-											 Val(aDados2[07,02]:TEXT),;		//Quantidade
-											 Val(aDados2[12,02]:TEXT),;		//Preco
-											 Val(aDados2[11,02]:TEXT) })	//Total
+								// aAdd(aDados,{aDados2[04,02]:TEXT,;			//Cod.Produto
+								// 			 aDados2[14,02]:TEXT,;			//Descricao
+								// 			 Upper(aDados2[09,02]:TEXT),;	//UM
+								// 			 aDados2[06,02]:TEXT,;			//NCM
+								// 			 aDados2[03,02]:TEXT,;			//CFOP
+								// 			 Val(aDados2[07,02]:TEXT),;		//Quantidade
+								// 			 Val(aDados2[12,02]:TEXT),;		//Preco
+								// 			 Val(aDados2[11,02]:TEXT) })	//Total
+								aAdd(aDados,{aDados2[FindTag(aDados2		, "_CPROD"),02]:TEXT,;		//01-Cod.Produto
+											 aDados2[FindTag(aDados2		, "_XPROD"),02]:TEXT,;		//02-Descricao
+											 Upper(aDados2[FindTag(aDados2	, "_UCOM"),02]:TEXT),;		//03-UM
+											 aDados2[FindTag(aDados2		, "_NCM"),02]:TEXT,;		//04-NCM
+											 aDados2[FindTag(aDados2		, "_CFOP"),02]:TEXT,;		//05-CFOP
+											 Val(aDados2[FindTag(aDados2	, "_QCOM"),02]:TEXT),;		//06-Quantidade
+											 Val(aDados2[FindTag(aDados2	, "_VUNCOM"),02]:TEXT),;	//07-Preco
+											 Val(aDados2[FindTag(aDados2	, "_VPROD"),02]:TEXT) })	//08-Total
 							EndIf
 						EndIf
 					Next nLoop
@@ -433,14 +441,22 @@ If Len(aParams) > 0
 							If Alltrim(aRetDad[nX,1]) == "_PROD"
 								aDados2 := ClassDataArr(aRetDad[nX,2])
 								If Len(aDados2) > 0 .AND. aScan(aDados, {|x| x[1] == aDados2[4][2]:TEXT}) == 0
-									aAdd(aDados,{aDados2[04,02]:TEXT,;			//01-Cod.Produto
-												 aDados2[14,02]:TEXT,;			//02-Descricao
-												 Upper(aDados2[09,02]:TEXT),;	//03-UM
-												 aDados2[06,02]:TEXT,;			//04-NCM
-												 aDados2[03,02]:TEXT,;			//05-CFOP
-												 Val(aDados2[07,02]:TEXT),;		//06-Quantidade
-												 Val(aDados2[12,02]:TEXT),;		//07-Preco
-												 Val(aDados2[11,02]:TEXT) })	//08-Total
+									// aAdd(aDados,{aDados2[04,02]:TEXT,;		//01-Cod.Produto
+									// 			 aDados2[14,02]:TEXT,;			//02-Descricao
+									// 			 Upper(aDados2[09,02]:TEXT),;	//03-UM
+									// 			 aDados2[06,02]:TEXT,;			//04-NCM
+									// 			 aDados2[03,02]:TEXT,;			//05-CFOP
+									// 			 Val(aDados2[07,02]:TEXT),;		//06-Quantidade
+									// 			 Val(aDados2[12,02]:TEXT),;		//07-Preco
+									// 			 Val(aDados2[11,02]:TEXT) })	//08-Total
+									aAdd(aDados,{aDados2[FindTag(aDados2	, "_CPROD"),02]:TEXT,;		//01-Cod.Produto
+												aDados2[FindTag(aDados2		, "_XPROD"),02]:TEXT,;		//02-Descricao
+												Upper(aDados2[FindTag(aDados2, "_UCOM"),02]:TEXT),;		//03-UM
+												aDados2[FindTag(aDados2		, "_NCM"),02]:TEXT,;		//04-NCM
+												aDados2[FindTag(aDados2		, "_CFOP"),02]:TEXT,;		//05-CFOP
+												Val(aDados2[FindTag(aDados2	, "_QCOM"),02]:TEXT),;		//06-Quantidade
+												Val(aDados2[FindTag(aDados2	, "_VUNCOM"),02]:TEXT),;	//07-Preco
+												Val(aDados2[FindTag(aDados2	, "_VPROD"),02]:TEXT) })	//08-Total
 								EndIf
 							EndIf
 						Next nX
@@ -1083,3 +1099,6 @@ If !Empty(cArqLog) .AND. File(cPath + cArqLog)
 EndIf
 
 Return aAutoErro
+
+Static Function FindTag(aDados2, cTagXML)
+Return aScan(aDados2, {|x| Upper(AllTrim(x[1])) == cTagXML })
