@@ -393,15 +393,17 @@ If Len(aParams) > 0
 				cCNPJCPF := If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST, "_CNPJ" ), oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_CNPJ:TEXT,;
 									If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST, "_CPF" ), oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_CPF:TEXT, ""))
 
-				lEstrang := If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_ENDERDEST, "_UF" ), AllTrim(oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_ENDERDEST:TEXT) == "EX", .F.)
+				lEstrang := If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_ENDERDEST, "_UF" ), AllTrim(oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_ENDERDEST:_UF:TEXT) == "EX", .F.)
 
 				// Se CNPJ estiver preenchido ou for nota de exportacao, permito busca de cliente
 				If !Empty(cCNPJCPF) .AND. ValType(cCNPJCPF) == "C" .OR. lEstrang
-					If !SA1->(DbSeek(xFilial("SA1") + cCNPJCPF)) .OR. (lEstrang .AND. !PosSA1Estrang(oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_ENDERDEST))
+					If !SA1->(DbSeek(xFilial("SA1") + cCNPJCPF)) .OR. (lEstrang .AND. !PosSA1Estrang(oXML:_NFEPROC:_NFE:_INFNFE:_DEST))
 //Cadastra cliente se nao encontrar - Removido, pois usuario ira' cadastrar manualmente - alinhado com Rafael
 //						CriaCli(oXML:_NFEPROC:_NFE:_INFNFE:_DEST, @aErros)
 						aAdd(aErros, "Cliente não cadastrado. O cliente do CNPJ/CPF " + cCNPJCPF + " não está " +;
 									"cadastrado no sistema.")
+						aAdd(aErros, "Se o cliente for estrangeiro, por favor, verifique se o cadastro existe e se o Bairro ou o CEP " +;
+									"foram preenchidos.")
 					EndIf
 
 					cCodCli := SA1->A1_COD 
@@ -1123,49 +1125,55 @@ Return aScan(aDados2, {|x| Upper(AllTrim(x[1])) == cTagXML })
 Razao Social, Bairro (se vier) e CEP (se vier))
 @author Renato Calabro'
 @since 04/10/2020
-@param oEndDest, object, (Parde do XML contendo os dados de Endereco do Destinatario)
+@param oDestinatario, object, (Parde do XML contendo os dados do Destinatario)
 @return lRet, logic, (.T. - Cliente - SA1 - posicionado / .F. - Cliente nao encontrado)
 @see (links_or_references)
 /*/
 
-Static Function PosSA1Estrang(oEndDest)
+Static Function PosSA1Estrang(oDestinatario)
 
 Local cQuery	:= ""
 Local cAlias	:= GetNextAlias()
-Local cPrimNome	:= AllTrim(Left(oEndDest:_XNOME:TEXT, At(" ", oEndDest:_XNOME:TEXT)))
+Local cPrimNome	:= AllTrim(Left(oDestinatario:_XNOME:TEXT, At(" ", oDestinatario:_XNOME:TEXT)))
 
-cQuery := "SELECT "
-cQuery += CRLF + " SA1.R_E_C_N_O_ RECSA1 "
-cQuery += CRLF + "  FROM "+ RetSqlTab("SA1")
-cQuery += CRLF + " WHERE SA1.A1_FILIAL = '" + xFilial("SA1") + "' "
-cQuery += CRLF + "   AND SA1.A1_NOME LIKE '%" + cPrimNome + "%' "
-cQuery += CRLF + "   AND ( "
-// Adiciono condicao de busca de bairro
-If !Empty(oEndDest:_XBAIRRO:TEXT)
-	cQuery += CRLF + "   SA1.A1_BAIRRO = '" + AllTrim(oEndDest:_XNOME:TEXT) + "' "
-EndIf
-// Adiciono condicao de busca de CEP
-If !Empty(oEndDest:_CEP:TEXT)
-	If !Empty(oEndDest:_XBAIRRO:TEXT)
-		cQuery += CRLF + "   OR "
+// Se primeiro nome vier preenchido, efeuto a busca
+// Senao, efetuo um Seek na SA1 com ZZZ para o tamanho da filial
+If !Empty(cPrimNome)
+	cQuery := "SELECT "
+	cQuery += CRLF + " SA1.R_E_C_N_O_ RECSA1 "
+	cQuery += CRLF + "  FROM "+ RetSqlTab("SA1")
+	cQuery += CRLF + " WHERE SA1.A1_FILIAL = '" + xFilial("SA1") + "' "
+	cQuery += CRLF + "   AND SA1.A1_NOME LIKE '%" + cPrimNome + "%' "
+	cQuery += CRLF + "   AND ( "
+	// Adiciono condicao de busca de bairro
+	If !Empty(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT)
+		cQuery += CRLF + "   SA1.A1_BAIRRO = '" + AllTrim(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT) + "' "
 	EndIf
-	cQuery += CRLF + "   SA1.A1_CEP = '" + AllTrim(oEndDest:_CEP:TEXT) + "' "
+	// Adiciono condicao de busca de CEP
+	If !Empty(oDestinatario:_ENDERDEST:_CEP:TEXT)
+		If !Empty(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT)
+			cQuery += CRLF + "   OR "
+		EndIf
+		cQuery += CRLF + "   SA1.A1_CEP = '" + AllTrim(oDestinatario:_ENDERDEST:_CEP:TEXT) + "' "
+	EndIf
+
+	// Se nem bairro nem CEP estiverem preenchidos no XML, desconsidero busca por esses termos
+	If Empty(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT) .AND. Empty(oDestinatario:_ENDERDEST:_CEP:TEXT)
+		cQuery += CRLF + " TRUE "
+	EndIf
+	cQuery += CRLF + "   ) "
+
+	If Select(cAlias) > 0
+		DbSelectArea(cAlias)
+		(cAlias)->(DbCloseArea())
+	EndIf
+
+	DbUseArea(.T., 'TOPCONN', TCGenQry(,,cQuery), cAlias, .F., .T.)
+
+	DbSelectArea("SA1")
+	DbGoTo((cAlias)->RECSA1)
+Else
+	SA1->(DbSeek(Repl("Z", Len(cFilant))))
 EndIf
-
-// Se nem bairro nem CEP estiverem preenchidos no XML, desconsidero busca por esses termos
-If Empty(oEndDest:_XBAIRRO:TEXT) .AND. Empty(oEndDest:_CEP:TEXT)
-	cQuery += CRLF + " TRUE "
-EndIf
-cQuery += CRLF + "   ) "
-
-If Select(cAlias) > 0
-	DbSelectArea(cAlias)
-	(cAlias)->(DbCloseArea())
-EndIf
-
-DbUseArea(.T., 'TOPCONN', TCGenQry(,,cQuery), cAlias, .F., .T.)
-
-DbSelectArea("SA1")
-DbGoTo((cAlias)->RECSA1)
 
 Return SA1->(!EOF())
