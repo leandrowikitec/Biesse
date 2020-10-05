@@ -1145,12 +1145,12 @@ If !Empty(cPrimNome)
 	cQuery += CRLF + " WHERE SA1.A1_FILIAL = '" + xFilial("SA1") + "' "
 	cQuery += CRLF + "   AND SA1.A1_NOME LIKE '%" + cPrimNome + "%' "
 	cQuery += CRLF + "   AND ( "
-	// Adiciono condicao de busca de bairro
-	If !Empty(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT)
+	// Adiciono condicao de busca de bairro se tag existir
+	If AttIsMemberOf( oDestinatario:_ENDERDEST, "_XBAIRRO" ) .AND. !Empty(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT)
 		cQuery += CRLF + "   SA1.A1_BAIRRO = '" + AllTrim(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT) + "' "
 	EndIf
-	// Adiciono condicao de busca de CEP
-	If !Empty(oDestinatario:_ENDERDEST:_CEP:TEXT)
+	// Adiciono condicao de busca de CEP se tag existir
+	If AttIsMemberOf( oDestinatario:_ENDERDEST, "_CEP" ) .AND. !Empty(oDestinatario:_ENDERDEST:_CEP:TEXT)
 		If !Empty(oDestinatario:_ENDERDEST:_XBAIRRO:TEXT)
 			cQuery += CRLF + "   OR "
 		EndIf
