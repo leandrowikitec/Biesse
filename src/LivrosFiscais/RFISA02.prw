@@ -81,42 +81,32 @@ aAdd(aParamBox,{6,;
 
 aAdd(aParamBox,{1,;
 				"TES",;
-				Space(TamSX3("D2_TES")[1]),;
+				Space(TamSX3("D1_TES")[1]),;
 				"@!",;
-				"ExistCpo('SF4',MV_PAR02) .AND. MV_PAR02 >= '501'",;
+				"ExistCpo('SF4',MV_PAR02) .AND. MaAvalTes('E',MV_PAR02) .AND. MV_PAR02 < '501'",;
 				"SF4",;
 				"",;
-				TamSX3("D2_TES")[1],;
+				TamSX3("D1_TES")[1],;
 				.T. } )
 
-/*aAdd(aParamBox,{1,;
-				"Serie",;
-				Space(TamSX3("F2_SERIE")[1]),;
-				"@!",;
-				"!Empty(Posicione('SX5',1,cFilant+'01'+MV_PAR03,'X5_DESCRI'))",;
-				"DVO",;
-				"",;
-				TamSX3("F2_SERIE")[1],;
-				.T. } )
-*/
 aAdd(aParamBox,{1,;
 				"Espécie",;
-				Space(TamSX3("F2_ESPECIE")[1]),;
+				Space(TamSX3("F1_ESPECIE")[1]),;
 				"@!",;
 				"ExistCpo('SX5','42'+MV_PAR03)",;
 				"42",;
 				"",;
-				TamSX3("F2_ESPECIE")[1],;
+				TamSX3("F1_ESPECIE")[1],;
 				.T. } )
 
 aAdd(aParamBox,{1,;
 				"Cond.Pagto",;
-				Space(TamSX3("F2_COND")[1]),;
+				Space(TamSX3("F1_COND")[1]),;
 				"@!",;
 				"ExistCpo('SE4',MV_PAR04)",;
 				"SE4",;
 				"",;
-				TamSX3("F2_COND")[1],;
+				TamSX3("F1_COND")[1],;
 				.T. } )
 
 ParamBox(aParamBox, cTitulo, @aRet,,,,,,,, .T., .T.)
@@ -148,10 +138,12 @@ Return aRet
 Static Function IniMonitor(aArquivos, bProcesso)
 
 // Declaracao de variaveis
-Local aTamDlg	:= GetScreenRes()									//Dimensoes da resolucao da tela
+Local aSize		:= MsAdvSize()										//Dimensoes da resolucao da tela
 Local aButtons  := {}												//Array contendo os botoes a serem adicionados nos Acoes Relacionadas
 
 Local bCancel	:= {|| IIf(Aviso("Aviso","Deseja encerrar o processamento ?",{"Sim","Não"},,"Atenção:",,"BMPPERG")== 1,(oDlg:End()),) }		//Bloco de codigo ao cancelar dialog
+
+Local oTPnlHead	:= Nil												// Objeto TPanel para regua
 
 Private nMeter      := 0											//Variavel de controle da regua
 
@@ -182,24 +174,33 @@ aAdd(aButtons, {"RELATORIO"	, {|| GerRelLstBox(oListBox) }	, "Imp. Relatório"	, 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 //³Monta a tela de controle das threads                                         ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-DEFINE MSDIALOG oDlg TITLE "Monitor de processamento" From 0,0 To aTamDlg[2] * 0.52/*29*/, aTamDlg[1] * 0.5 /*90*/ OF oMainWnd STYLE DS_MODALFRAME
+DEFINE MSDIALOG oDlg FROM aSize[7],00 TO aSize[6], aSize[5] PIXEL TITLE "Monitor de processamento"
 	oDlg:lEscClose := .F.
 	oDlg:lMaximized := .T. 
 
-	oSayMeter	:= TSay():New(002,010,{|| ""},oDlg,,,,,,.T.,CLR_GREEN,CLR_WHITE,aTamDlg[1] * 0.463, 15)
-	oMeter		:= TMeter():New(012,010,{|u|if(Pcount()>0,nMeter:=u,nMeter)},108,oDlg,aTamDlg[1] * 0.463, 7,,.T.) // cria a régua
+	//Painel da regua para fixar no inicio da pagina
+	oTPnlHead := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aSize[6] * 0.033,.T.,.F.)
+
+	//Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
+	oTPnlHead:Align := CONTROL_ALIGN_TOP
+
+	oSayMeter	:= TSay():New(012,010,{|| ""},oTPnlHead,,,,,,.T.,CLR_GREEN,CLR_WHITE,aSize[5] * 0.47, 15)
+	oMeter		:= TMeter():New(022,010,{|u|if(Pcount()>0,nMeter:=u,nMeter)},108,oTPnlHead,aSize[5] * 0.47, 7,,.T.) // cria a régua
   
-	@25,05 LISTBOX oListBox VAR cListBox Fields ;
+	@55,05 LISTBOX oListBox VAR cListBox Fields ;
 			HEADER  "",;
 				OemtoAnsi("A Importar"),;
 				OemtoAnsi("Importado"),;
 				OemtoAnsi("Motivo erro"),;
-	            SIZE aTamDlg[1] * 0.477,aTamDlg[2] * 0.37  PIXEL//NOSCROLL
+				SIZE aSize[5] * 0.477,aSize[6] * 0.37  PIXEL//NOSCROLL
+
 	oListBox:SetArray(aLista)
 	oListBox:bLine := { || {	IIf(ValType(aLista[oListBox:nAt,1]) == "C",oAway,If(aLista[oListBox:nAt,1],oOk,oErro)),;
 								aLista[oListBox:nAt,2],;
 								aLista[oListBox:nAt,3],;
 								aLista[oListBox:nAt,4] }}
+
+	oListBox:Align := CONTROL_ALIGN_ALLCLIENT
 
 ACTIVATE MSDIALOG oDlg CENTERED ON INIT EnchoiceBar(oDlg, bProcesso/*bOk*/ , bCancel,,aButtons)
 
@@ -257,7 +258,7 @@ For nLoop := 1 to Len(aArquivos)
 	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 	//³Processa o arquivo                                 ³
 	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-	lRetorno := GerNfSaida(cArq, aParams, lRetorno, @aErros)
+	lRetorno := GerNfEntr(cArq, aParams, lRetorno, @aErros)
 	AtuMonitor(cArq, lRetorno, aErros)
 
 Next nLoop
@@ -270,56 +271,75 @@ oMeter:Refresh()
 
 Return Nil
 
-/*
-ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
-±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
-±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
-±±ºPrograma  ³GerNfSaidaº Autor ³ Renato Calabro'    º Data ³  07/25/16   º±±
-±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
-±±ºDesc.     ³ Rotina que gera notas de saida a partir dos arquivos XML   º±±
-±±º          ³ informados                                                 º±±
-±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
-±±ºParametros³ aExp1 - Array contendo os arquivos XML a serem processados º±±
-±±º          ³ aExp2 - Parametros informados pelo usuario                 º±±
-±±º          ³ lExp3 - Variavel de controle de retorno da funcao          º±±
-±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
-±±ºRetorno   ³ lExpR - .T.-Gerada nota com sucesso / .F. - Falhou         º±±
-±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
-±±ºUso       ³ GEN                                                        º±±
-±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
-±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
-ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
-*/
+/*/{Protheus.doc} GerNfEntr
+(Rotina que gera notas de entrada a partir dos arquivos XML informados)
+@author Renato Calabro'
+@since 14/10/2020
+@param cArq, character, (Nome do arquivo a ser processado)
+@param aParams, array, (Parametros informados pelo usuario)
+@param lRetorno, logic, (Variavel de controle de retorno da funcao)
+@param aErro, array, (Array com erros gerados no retorno, se houver)
+@return lRetorno, logic, (.T.-Gerada nota com sucesso / .F. - Falhou)
+@see (links_or_references)
+/*/
 
-Static Function GerNfSaida(cArq, aParams, lRetorno, aErros)
+Static Function GerNfEntr(cArq, aParams, lRetorno, aErros)
 
-Local cDir		:= ""					//Diretorio origem dos arquivos XML 
-Local cError	:= ""					//Erros encontrados no XmlParserFile
-Local cWarning	:= ""					//Avisos encontrados no XML
-Local cNumDoc	:= ""					//Numero do documento de saida
-Local cSerDoc	:= ""					//Serie do documento de saida
-Local cErros	:= ""					//Variavel para adicionar erros encontrados 
-Local cRootPath	:= "\RFISA01\"			//Pasta a ser utilizada para processamento de arquivos
-Local cCodCli	:= ""					//Codigo do cliente
-Local cCodLj	:= ""					//Loja do cliente
-Local cCNPJCPF	:= ""					//Tag para identificar se o cliente e' juridico/fisico
+Local cDir			:= ""					//Diretorio origem dos arquivos XML 
+Local cError		:= ""					//Erros encontrados no XmlParserFile
+Local cWarning		:= ""					//Avisos encontrados no XML
+Local cNumDoc		:= ""					//Numero do documento de saida
+Local cSerDoc		:= ""					//Serie do documento de saida
+Local cErros		:= ""					//Variavel para adicionar erros encontrados 
+Local cRootPath		:= "\RFISA02\"			//Pasta a ser utilizada para processamento de arquivos
+Local cCodFor		:= ""					//Codigo do fornecedor
+Local cCodLj		:= ""					//Loja do fornecedor
+Local cCNPJCPF		:= ""					//Tag para identificar se o fornecedor e' juridico/fisico
+// Local cSeek			:= ""
+// Local cWhile		:= ""
 
-Local nLoop		:= 0					//Variavel de controle de loop
-Local nX		:= 0					//Variavel de controle de loop
-Local nResult	:= 0					//Resultado de criacao e gravacao de diretorio e arquivos
+Local nLoop			:= 0					//Variavel de controle de loop
+Local nX			:= 0					//Variavel de controle de loop
+Local nResult		:= 0					//Resultado de criacao e gravacao de diretorio e arquivos
 
-Local aCabec	:= {}					//Array de cabecalho de documento de saida
-Local aLinha	:= {}					//Array de suporte para criacao dos itens do documento de saida
-Local aItens	:= {}					//Array de itens de documento de saida
-Local aDados	:= {}					//Array de suporte com os dados dos itens do XML
-Local aDados2	:= {}					//Array de suporte com os dados dos itens do XML - situacao de mais de 1 item
-Local aRetDad	:= {}					//Array de suporte do retorno de funcao para converter objeto para array
-Local aAutoErro	:= {}					//Array contendo os erros de processamento de ExecAuto
+Local aCabec		:= {}					//Array de cabecalho de documento de saida
+Local aLinha		:= {}					//Array de suporte para criacao dos itens do documento de saida
+Local aItens		:= {}					//Array de itens de documento de saida
+Local aDados		:= {}					//Array de suporte com os dados dos itens do XML
+Local aDados2		:= {}					//Array de suporte com os dados dos itens do XML - situacao de mais de 1 item
+Local aRetDad		:= {}					//Array de suporte do retorno de funcao para converter objeto para array
+Local aAutoErro		:= {}					//Array contendo os erros de processamento de ExecAuto
+// Local aGetCpo		:= {	"D1_ITEM"   , "D1_COD"		,"D1_UM"		,"D1_QUANT"	,"D1_VUNIT"	,;	// Define Array contendo os campos do arquivo que deverao ser mostrados pela GetDados()
+// 							"D1_TOTAL"	,"D1_VALIPI"	,"D1_VALICM"	,"D1_TES"	,;
+// 							"D1_CF"		,"D1_VALICMR"	,"D1_PICM"		,"D1_SEGUM"	,;
+// 							"D1_QTSEGUM","D1_IPI"		,"D1_PESO"		,"D1_CONTA"	,;
+// 							"D1_DESC"	,"D1_NFORI"		,"D1_SERIORI"	,"D1_BASEICM",;
+// 							"D1_BRICMS"	,"D1_ICMSRET"	,"D1_LOCAL"		,"D1_ITEMORI",;
+// 							"D1_BASEIPI","D1_VALDESC"	,"D1_CLASFIS"	,"D1_CC", "D1_ALIQII",;
+// 							"D1_II", "D1_ITEMCTA", "D1_CLVL"}
 
-Local oXML		:= Nil					//Objeto de retorno do XML processado
+// Local l910Inclui	:= .T.
+// Local lRet			:= .T.
+
+Local oXML			:= Nil					//Objeto de retorno do XML processado
 
 Private lMsErroAuto	:= .F.				//Variavel necessaria para processamento de ExecAuto
 Private lMsHelpAuto	:= .T.				//Variavel necessaria para processamento de ExecAuto - apresenta Help
+
+// Private cNFiscal	:= ""
+// Private cSerie		:= ""
+// Private ca100For	:= ""
+// Private cLoja		:= ""
+// Private cTipo		:= ""
+// Private cFormul		:= ""
+// Private cEspecie	:= ""
+
+// Private N			:= 0
+
+// Private dDEmissao	:= CToD("")
+
+// Private aHeader		:= {}
+// Private aCols		:= {}
 
 Default cArq		:= ""
 
@@ -374,22 +394,22 @@ If Len(aParams) > 0
 			//³ XML                                               ³
 			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 			If AttIsMemberOf( oXML, "_NFEPROC" )
-				DbSelectArea("SA1")
-				DbSetOrder(3)			//A1_FILIAL+A1_CGC
+				DbSelectArea("SA2")
+				DbSetOrder(3)			//A2_FILIAL+A2_CGC
 
 				cCNPJCPF := If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST, "_CNPJ" ), oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_CNPJ:TEXT,;
 									If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST, "_CPF" ), oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_CPF:TEXT, ""))
 
 				If !Empty(cCNPJCPF) .AND. ValType(cCNPJCPF) == "C"
-					If !SA1->(DbSeek(xFilial("SA1") + cCNPJCPF))
-//Cadastra cliente se nao encontrar - Removido, pois usuario ira' cadastrar manualmente - alinhado com Rafael
-//						CriaCli(oXML:_NFEPROC:_NFE:_INFNFE:_DEST, @aErros)
-						aAdd(aErros, "Cliente não cadastrado. O cliente do CNPJ/CPF " + cCNPJCPF + " não está " +;
+					If !SA2->(DbSeek(xFilial("SA2") + cCNPJCPF))
+						// Cadastra cliente se nao encontrar
+						// CriaCli(oXML:_NFEPROC:_NFE:_INFNFE:_DEST, @aErros)
+						aAdd(aErros, "Fornecedor não cadastrado. O fornecedor do CNPJ/CPF " + cCNPJCPF + " não está " +;
 									"cadastrado no sistema.")
 					EndIf
 
-					cCodCli := SA1->A1_COD 
-					cCodLj := SA1->A1_LOJA
+					cCodFor := SA2->A2_COD 
+					cCodLj := SA2->A2_LOJA
 				Else
 					aAdd(aErros, "XML inválido. Não encontrado na estrutura de XML o CNPJ do destinatário.")
 				EndIf
@@ -404,14 +424,14 @@ If Len(aParams) > 0
 						If Alltrim(aRetDad[nLoop,1]) == "_PROD"
 							aDados2 := ClassDataArr(aRetDad[nLoop,2])
 							If Len(aDados2) > 0
-								aAdd(aDados,{aDados2[04,02]:TEXT,;			//Cod.Produto
-											 aDados2[14,02]:TEXT,;			//Descricao
-											 Upper(aDados2[09,02]:TEXT),;	//UM
-											 aDados2[06,02]:TEXT,;			//NCM
-											 aDados2[03,02]:TEXT,;			//CFOP
-											 Val(aDados2[07,02]:TEXT),;		//Quantidade
-											 Val(aDados2[12,02]:TEXT),;		//Preco
-											 Val(aDados2[11,02]:TEXT) })	//Total
+								aAdd(aDados,{	aDados2[FindTag(aDados2			, "_CPROD"),02]:TEXT,;		//01-Cod.Produto
+											 	aDados2[FindTag(aDados2			, "_XPROD"),02]:TEXT,;		//02-Descricao
+											 	Upper(aDados2[FindTag(aDados2	, "_UCOM"),02]:TEXT),;		//03-UM
+											 	aDados2[FindTag(aDados2			, "_NCM"),02]:TEXT,;		//04-NCM
+											 	aDados2[FindTag(aDados2			, "_CFOP"),02]:TEXT,;		//05-CFOP
+											 	Val(aDados2[FindTag(aDados2		, "_QCOM"),02]:TEXT),;		//06-Quantidade
+											 	Val(aDados2[FindTag(aDados2		, "_VUNCOM"),02]:TEXT),;	//07-Preco
+											 	Val(aDados2[FindTag(aDados2		, "_VPROD"),02]:TEXT) })	//08-Total
 							EndIf
 						EndIf
 					Next nLoop
@@ -422,14 +442,14 @@ If Len(aParams) > 0
 							If Alltrim(aRetDad[nX,1]) == "_PROD"
 								aDados2 := ClassDataArr(aRetDad[nX,2])
 								If Len(aDados2) > 0 .AND. aScan(aDados, {|x| x[1] == aDados2[4][2]:TEXT}) == 0
-									aAdd(aDados,{aDados2[04,02]:TEXT,;			//01-Cod.Produto
-												 aDados2[14,02]:TEXT,;			//02-Descricao
-												 Upper(aDados2[09,02]:TEXT),;	//03-UM
-												 aDados2[06,02]:TEXT,;			//04-NCM
-												 aDados2[03,02]:TEXT,;			//05-CFOP
-												 Val(aDados2[07,02]:TEXT),;		//06-Quantidade
-												 Val(aDados2[12,02]:TEXT),;		//07-Preco
-												 Val(aDados2[11,02]:TEXT) })	//08-Total
+									aAdd(aDados,{	aDados2[FindTag(aDados2			, "_CPROD"),02]:TEXT,;		//01-Cod.Produto
+													aDados2[FindTag(aDados2			, "_XPROD"),02]:TEXT,;		//02-Descricao
+													Upper(aDados2[FindTag(aDados2	, "_UCOM"),02]:TEXT),;		//03-UM
+													aDados2[FindTag(aDados2			, "_NCM"),02]:TEXT,;		//04-NCM
+													aDados2[FindTag(aDados2			, "_CFOP"),02]:TEXT,;		//05-CFOP
+													Val(aDados2[FindTag(aDados2		, "_QCOM"),02]:TEXT),;		//06-Quantidade
+													Val(aDados2[FindTag(aDados2		, "_VUNCOM"),02]:TEXT),;	//07-Preco
+													Val(aDados2[FindTag(aDados2		, "_VPROD"),02]:TEXT) })	//08-Total
 								EndIf
 							EndIf
 						Next nX
@@ -444,7 +464,7 @@ If Len(aParams) > 0
 				Next nLoop
 */
 				cNumDoc := StrZero(Val(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_nNF:TEXT),9)
-				cSerDoc := PadR(AllTrim(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_SERIE:TEXT), TamSX3("F2_SERIE")[1])
+				cSerDoc := PadR(AllTrim(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_SERIE:TEXT), TamSX3("F1_SERIE")[1])
 
 				If ValType("oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_MOD:TEXT") <> "U" .AND. !Empty(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_MOD:TEXT) .AND.;
 					oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_MOD:TEXT <> "55"
@@ -454,75 +474,124 @@ If Len(aParams) > 0
 				aAdd(aErros, "XML inválido. Não encontrado estrutura de XML compatível de nota fiscal para importação.")
 			EndIf
 
-			If SF2->( DbSeek(xFilial("SF2")+cNumDoc+cSerDoc+PadR(cCodCli, TamSX3("F2_CLIENTE")[1])+PadR(cCodLj, TamSX3("F2_LOJA")[1]) ))
+			If SF1->( DbSeek(xFilial("SF1")+cNumDoc+cSerDoc+PadR(cCodFor, TamSX3("F1_FORNECE")[1])+PadR(cCodLj, TamSX3("F1_LOJA")[1]) ))
 				aAdd(aErros, "Número/Serie da nota '" + cNumDoc + "/" + cSerDoc + "' já cadastrada no sistema.")
 			EndIf
 
 			If Len(aErros) == 0
 
-				aAdd(aCabec,{"F2_TIPO"		, "N"				, Nil })
-				aAdd(aCabec,{"F2_FORMUL"	, "N"				, Nil })
-				aAdd(aCabec,{"F2_DOC"		, cNumDoc			, Nil })
-				aAdd(aCabec,{"F2_SERIE"		, cSerDoc			, Nil })
-				aAdd(aCabec,{"F2_EMISSAO"	, dDataBase			, Nil })
-				aAdd(aCabec,{"F2_CLIENTE"	, cCodCli			, Nil }) 
-				aAdd(aCabec,{"F2_LOJA"		, cCodLj			, Nil })
-				aAdd(aCabec,{"F2_COND"		, aParams[4]		, Nil })
-				aAdd(aCabec,{"F2_ESPECIE"	, aParams[3]		, Nil })
+				// Carrega variaveis private do A910grava
+				// cNFiscal := cNumDoc //SF1->F1_DOC	
+				// cSerie := cSerDoc
+				// ca100For := cCodFor //SF1->F1_FORNECE
+				// cLoja := cCodLj //SF1->F1_LOJA
+				// dDEmissao := dDataBase //SF1->F1_EMISSAO
+				// cTipo := "N"//SF1->F1_TIPO
+				// cFormul := "N" //SF1->F1_FORMUL
+				// cEspecie := aParams[3] //SF1->F1_ESPECIE
+
+				aAdd(aCabec,{"F1_TIPO"		, "N"				, Nil })
+				aAdd(aCabec,{"F1_FORMUL"	, "N"				, Nil })
+				aAdd(aCabec,{"F1_DOC"		, cNumDoc			, Nil })
+				aAdd(aCabec,{"F1_SERIE"		, cSerDoc			, Nil })
+				aAdd(aCabec,{"F1_EMISSAO"	, dDataBase			, Nil })
+				aAdd(aCabec,{"F1_FORNECE"	, cCodFor			, Nil }) 
+				aAdd(aCabec,{"F1_LOJA"		, cCodLj			, Nil })
+				aAdd(aCabec,{"F1_COND"		, aParams[4]		, Nil })
+				aAdd(aCabec,{"F1_ESPECIE"	, aParams[3]		, Nil })
 				If ValType("oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VFRETE:TEXT") <> "U" .AND. !Empty(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VFRETE:TEXT)
-					aAdd(aCabec,{"F2_FRETE"		, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VFRETE:TEXT)			, Nil })
+					aAdd(aCabec,{"F1_FRETE"		, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VFRETE:TEXT)			, Nil })
 				Else
-					aAdd(aCabec,{"F2_FRETE"		, 0																		, Nil })
+					aAdd(aCabec,{"F1_FRETE"		, 0																		, Nil })
 				EndIf
 				If ValType("oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VSEG:TEXT") <> "U" .AND. !Empty(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VSEG:TEXT)
-					aAdd(aCabec,{"F2_SEGURO"	, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VSEG:TEXT)			, Nil })
+					aAdd(aCabec,{"F1_SEGURO"	, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VSEG:TEXT)			, Nil })
 				Else
-					aAdd(aCabec,{"F2_SEGURO"	, 0																		, Nil })
+					aAdd(aCabec,{"F1_SEGURO"	, 0																		, Nil })
 				EndIf
-				aAdd(aCabec,{"F2_DESPESA"		, 0																		, Nil }) 
-//				aAdd(aCabec,{"F2_TIPOCLI"	, SA1->A1_PESSOA	, Nil }) 
-//				aAdd(aCabec,{"F2_VALBRUT"		, oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VPROD:TEXT				, Nil }) 
-				aAdd(aCabec,{"F2_VALMERC"		, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VPROD:TEXT)			, Nil }) 
-//				aAdd(aCabec,{"F2_VALFAT"		, oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VPROD:TEXT				, Nil })
+				aAdd(aCabec,{"F1_DESPESA"		, 0																		, Nil }) 
+//				aAdd(aCabec,{"F1_TIPOCLI"	, SA2->A2_PESSOA	, Nil }) 
+//				aAdd(aCabec,{"F1_VALBRUT"		, oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VPROD:TEXT				, Nil }) 
+				aAdd(aCabec,{"F1_VALMERC"		, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VPROD:TEXT)			, Nil }) 
+//				aAdd(aCabec,{"F1_VALFAT"		, oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VPROD:TEXT				, Nil })
 				If ValType("oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VDESC:TEXT") <> "U" .AND. !Empty(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VDESC:TEXT)
-					aAdd(aCabec,{"F2_DESCONT"	, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VDESC:TEXT)			, Nil })
+					aAdd(aCabec,{"F1_DESCONT"	, Val(oXML:_NFEPROC:_NFE:_INFNFE:_TOTAL:_ICMSTOT:_VDESC:TEXT)			, Nil })
 				Else
-					aAdd(aCabec,{"F2_DESCONT"	, 0																		, Nil })
+					aAdd(aCabec,{"F1_DESCONT"	, 0																		, Nil })
 				EndIf
-//				aAdd(aCabec,{"F2_HORA"		, Time()							, Nil })
+				aAdd(aCabec,{"F1_HORA"		, Time()							, Nil })
 				If ValType("oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT") <> "U" .AND. !Empty(oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT)
-					aAdd(aCabec,{"F2_CHVNFE"	, oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT							, Nil })
+					// aAdd(aCabec,{"F1_CHVNFE"	, oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT							, Nil })
+					aAdd(aDanfe, oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT)	// F1_CHVNFE
+					aAdd(aDanfe,"")												// F1_TPFRETE
 				EndIf
+
+				// cSeek := xFilial("SD1")+cNumDoc+cSerDoc+cCodFor+cCodLj
+				// cWhile := "SD1->D1_FILIAL+SD1->D1_DOC+SD1->D1_SERIE+SD1->D1_FORNECE+SD1->D1_LOJA"
 
 				For nLoop := 1 To Len(aDados)
+
+					// Montagem do aHeader e aCols
+					// Sintaxe da FillGetDados(nOpcx,cAlias,nOrder,cSeekKey,bSeekWhile,uSeekFor,aNoFields,aYesFields,lOnlyYes,cQuery,bMontCols,lEmpty,aHeaderAux,aColsAux,bAfterCols,bBeforeCols,bAfterHeader,cAliasQry,bCriaVar,lUserFields)
+					// FillGetDados(3, "SD1",1,cSeek,{|| &cWhile },/*uSeekFor*/,/*aNoFields*/,aGetCpo,/*lOnlyYes*/,/*cQuery*/,/*bMontCols*/,l910Inclui,/*aHeaderAux*/,/*aColsAux*/,/*bAfterCols*/,/*bBeforeCols {|| IIF(l910Deleta .and. !SoftLock("SD1"),lContinua := .F.,.T.)}*/,/*bAfterHeader*/,/*cAliasQry*/,/*bCriaVar*/,.T.)
+
 					aLinha := {}
-					aAdd(aLinha,{"D2_ITEM"		, StrZero(nLoop, TamSX3("D2_ITEM")[1])	, Nil})
-					aAdd(aLinha,{"D2_COD"		, aDados[nLoop][1]						, Nil })
-					aAdd(aLinha,{"D2_QUANT"		, aDados[nLoop][6]						, Nil })
-					aAdd(aLinha,{"D2_PRCVEN"	, aDados[nLoop][7]						, Nil })
-					aAdd(aLinha,{"D2_TOTAL"		, aDados[nLoop][8]						, Nil })
-					aAdd(aLinha,{"D2_TES"		, aParams[2]							, Nil })
-					aAdd(aLinha,{"D2_CF"		, aDados[nLoop][5]						, Nil })
+					aAdd(aLinha,{"D1_ITEM"		, StrZero(nLoop, TamSX3("D1_ITEM")[1])	, Nil})
+					aAdd(aLinha,{"D1_COD"		, aDados[nLoop][1]						, Nil })
+					aAdd(aLinha,{"D1_QUANT"		, aDados[nLoop][6]						, Nil })
+					aAdd(aLinha,{"D1_VUNIT"		, aDados[nLoop][7]						, Nil })
+					aAdd(aLinha,{"D1_TOTAL"		, aDados[nLoop][8]						, Nil })
+					aAdd(aLinha,{"D1_TES"		, aParams[2]							, Nil })
+					aAdd(aLinha,{"D1_CF"		, aDados[nLoop][5]						, Nil })
 					aAdd(aItens, aLinha)
+
+					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_ITEM"})] := StrZero(nLoop, TamSX3("D1_ITEM")[1])
+					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_COD"})] := aDados[nLoop][1]
+					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_QUANT"})] := aDados[nLoop][6]
+					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_VUNIT"})] := aDados[nLoop][7]
+					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_TOTAL"})] := aDados[nLoop][8]
+					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_TES"})] := aParams[2]
+					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_CF"})] := aDados[nLoop][5]
+
+					// Declaracao da variavel private para analise do aCols
+					// N := nLoop
+					// Validacao da linha antes de prosseguir
+					// If !A910LinOk()
+					// 	aAdd(aErros, "Erro na linha " + cValToChar(nLoop) + " para o produto " + aDados[nLoop][1] + ". Verifique se quantidades, TES, valor total estão preenchidos e tente incluir manualmente para verificar mais opções.")
+					// 	lRet := .F.
+					// 	Exit
+					// EndIf
 				Next nLoop
 
-				lMsErroAuto := .F.
-				aAutoErro := {}
-				cErros := ""
-				MsgRun("Gerando Nota " + cNumDoc + "...","Processando", {|| lMsErroAuto := MSExecAuto({|x,y| mata920(x,y)},aCabec,aItens,3) }) //Inclusao
+				// If lRet
+				// 	// Validacao total do conteúdo
+				// 	If !A910Tudok()
+				// 		aAdd(aErros, "Erro na validação total da nota. Verifique o conteúdo de cabeçalho de nota, se existe algum produto ativo ou bloqueado ou tente incluir manualmente para verificar mais opções.")
+				// 		lRet := .F.
+				// 	EndIf
 
-				If !SF2->(DbSeek(xFilial("SF2")+cNumDoc+cSerDoc+cCodCli+cCodLj))
-					RollBackSX8()
-					DisarmTransaction()
-					MostraErro(cRootPath, FileNoExt(cArq) + ".log")
-					aAutoErro := MyGetAutoLog(cRootPath, FileNoExt(cArq) + ".log")
-					aEval(aAutoErro, {|x| cErros += x + "|" })
-					aAdd(aErros, cErros)
-				Else
-					ConfirmSX8()
-					lRetorno := .T.
-				EndIf
-			EndIf
+					// If lRet
+						lMsErroAuto := .F.
+						aAutoErro := {}
+						cErros := ""
+						// MsgRun("Gerando Nota " + cNumDoc + "...","Processando", {|| lMsErroAuto := MSExecAuto({|x,y| mata910(x,y)},aCabec,aItens,3) }) //Inclusao
+						// MsgRun("Gerando Nota " + cNumDoc + "...","Processando", {|| lMsErroAuto := A910Grava(.F./*lDeleta*/, {}/*aNFEletr*/, aDanfe, l910Inclui) }) //Inclusao
+						MsgRun("Gerando Nota " + cNumDoc + "...","Processando", {|| lMsErroAuto := MSExecAuto({|x,y| mata103(x,y)},aCabec,aItens,3) }) //Inclusao
+
+						If !SF1->(DbSeek(xFilial("SF1")+cNumDoc+cSerDoc+cCodFor+cCodLj))
+							RollBackSX8()
+							DisarmTransaction()
+							MostraErro(cRootPath, FileNoExt(cArq) + ".log")
+							aAutoErro := MyGetAutoLog(cRootPath, FileNoExt(cArq) + ".log")
+							aEval(aAutoErro, {|x| cErros += x + "|" })
+							aAdd(aErros, cErros)
+						Else
+							ConfirmSX8()
+							lRetorno := .T.
+						EndIf
+					EndIf
+			// 	EndIf
+			// EndIf
 		Else
 			aAdd(aErros, "Diretório + Arquivo " + cDir + cArq + " não localizado para processamento.")
 		EndIf
@@ -636,9 +705,9 @@ If Type(oCliente:_CNPJ:TEXT) <> "U" .AND. !Empty(oCliente:_CNPJ:TEXT)
 
 		cAlias := GetNextAlias()
 
-		cQuery := "SELECT A1_COD, MAX(A1_LOJA) NLOJA FROM "+ RetSqlName("SA1")
-		cQuery += " WHERE SUBSTR(A1_CGC,1,8) = SUBSTR('"+cCGC+"',1,8) "
-		cQuery += " GROUP BY A1_COD "
+		cQuery := "SELECT A2_COD, MAX(A2_LOJA) NLOJA FROM "+ RetSqlName("SA2")
+		cQuery += " WHERE SUBSTR(A2_CGC,1,8) = SUBSTR('"+cCGC+"',1,8) "
+		cQuery += " GROUP BY A2_COD "
 
 		If Select(cAlias) > 0
 			dbSelectArea(cAlias)
@@ -650,13 +719,13 @@ If Type(oCliente:_CNPJ:TEXT) <> "U" .AND. !Empty(oCliente:_CNPJ:TEXT)
 
 		//SE HOUVER CLIENTE CADASTRADO ELE ADICIONA LOJA
 		If (cAlias)->(EOF())
-			DbSelectArea("SA1")
+			DbSelectArea("SA2")
 			DbSetOrder(3)
-			If DbSeek(xFilial("SA1") + Substr(cCGC, 1, 8) )
-				cCodCli := (cAlias)->A1_COD
-				cLojCli := PadL(Soma1((cAlias)->NLOJA), TamSX3("A1_LOJA")[1], "0")
+			If DbSeek(xFilial("SA2") + Substr(cCGC, 1, 8) )
+				cCodCli := (cAlias)->A2_COD
+				cLojCli := PadL(Soma1((cAlias)->NLOJA), TamSX3("A2_LOJA")[1], "0")
 			Else
-				cLojCli := PadL("1", TamSX3("A1_LOJA")[1], "0")
+				cLojCli := PadL("1", TamSX3("A2_LOJA")[1], "0")
 			EndIf
 		EndIf
 		If Select(cAlias) > 0
@@ -670,70 +739,70 @@ If Type(oCliente:_CNPJ:TEXT) <> "U" .AND. !Empty(oCliente:_CNPJ:TEXT)
 	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 	aClient := {}
 	If !Empty(cCodCli)
-		aAdd(aClient,{"A1_COD"	,	cCodCli																						,Nil})
+		aAdd(aClient,{"A2_COD"	,	cCodCli																						,Nil})
 	EndIf
 
-	aAdd(aClient,{"A1_LOJA"		, cLojCli																						,Nil})
-	aAdd(aClient,{"A1_NOME"		, UPPER(AllTrim(oCliente:_XNOME:TEXT))														,Nil})
-	aAdd(aClient,{"A1_PESSOA"	, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "J", "F")												,Nil})
-	aAdd(aClient,{"A1_NREDUZ"	, Left(UPPER(oCliente:_XNOME:TEXT), TamSX3("A1_NREDUZ")[1])									,Nil})
-	aAdd(aClient,{"A1_CEP"		, oCliente:_ENDERDEST:_CEP:TEXT																,Nil})
-	aAdd(aClient,{"A1_END"		, Upper(NoAcento(oCliente:_ENDERDEST:_XLGR:TEXT))																,Nil})
-	aAdd(aClient,{"A1_XENDNUM"	, oCliente:_ENDERDEST:_XNRO:TEXT																,Nil}) //Numero do endereco
-//	aAdd(aClient,{"A1_COMPLEM"	, oCliente:_XNOME:TEXT								,Nil})
-	aAdd(aClient,{"A1_BAIRRO"	, Upper(NoAcento(oCliente:_ENDERDEST:_XBAIRRO:TEXT))															,Nil})
-	aAdd(aClient,{"A1_EST"		, oCliente:_ENDERDEST:_UF:TEXT																,Nil})
-	aAdd(aClient,{"A1_ESTADO"	, Posicione("SX5", 1, xFilial("SX5")+"12"+oCliente:_ENDERDEST:_UF:TEXT,"X5_DESCRI")			,Nil})
-	aAdd(aClient,{"A1_COD_MUN"	, Substr(oCliente:_ENDERDEST:_CMUN:TEXT, 3, TamSX3("CC2_CODMUN")[1])							,Nil})
-	aAdd(aClient,{"A1_MUN"		, Upper(NoAcento(oCliente:_ENDERDEST:_XMUN:TEXT))																,Nil})
-	aAdd(aClient,{"A1_DDD"		, Left(oCliente:_ENDERDEST:_FONE:TEXT, 2)														,Nil})
-//	aAdd(aClient,{"A1_DDI"		, (_cArqTmp)->A1_DDI										,Nil})
+	aAdd(aClient,{"A2_LOJA"		, cLojCli																						,Nil})
+	aAdd(aClient,{"A2_NOME"		, UPPER(AllTrim(oCliente:_XNOME:TEXT))														,Nil})
+	aAdd(aClient,{"A2_PESSOA"	, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "J", "F")												,Nil})
+	aAdd(aClient,{"A2_NREDUZ"	, Left(UPPER(oCliente:_XNOME:TEXT), TamSX3("A2_NREDUZ")[1])									,Nil})
+	aAdd(aClient,{"A2_CEP"		, oCliente:_ENDERDEST:_CEP:TEXT																,Nil})
+	aAdd(aClient,{"A2_END"		, Upper(NoAcento(oCliente:_ENDERDEST:_XLGR:TEXT))																,Nil})
+	aAdd(aClient,{"A2_XENDNUM"	, oCliente:_ENDERDEST:_XNRO:TEXT																,Nil}) //Numero do endereco
+//	aAdd(aClient,{"A2_COMPLEM"	, oCliente:_XNOME:TEXT								,Nil})
+	aAdd(aClient,{"A2_BAIRRO"	, Upper(NoAcento(oCliente:_ENDERDEST:_XBAIRRO:TEXT))															,Nil})
+	aAdd(aClient,{"A2_EST"		, oCliente:_ENDERDEST:_UF:TEXT																,Nil})
+	aAdd(aClient,{"A2_ESTADO"	, Posicione("SX5", 1, xFilial("SX5")+"12"+oCliente:_ENDERDEST:_UF:TEXT,"X5_DESCRI")			,Nil})
+	aAdd(aClient,{"A2_COD_MUN"	, Substr(oCliente:_ENDERDEST:_CMUN:TEXT, 3, TamSX3("CC2_CODMUN")[1])							,Nil})
+	aAdd(aClient,{"A2_MUN"		, Upper(NoAcento(oCliente:_ENDERDEST:_XMUN:TEXT))																,Nil})
+	aAdd(aClient,{"A2_DDD"		, Left(oCliente:_ENDERDEST:_FONE:TEXT, 2)														,Nil})
+//	aAdd(aClient,{"A2_DDI"		, (_cArqTmp)->A2_DDI										,Nil})
 	If Type("oCliente:_ENDERDEST:_FONE") <> "U" .AND. !Empty(oCliente:_ENDERDEST:_FONE)
-		aAdd(aClient,{"A1_TEL"	, Substr(oCliente:_ENDERDEST:_FONE:TEXT, 2, Len(oCliente:_FONE:TEXT) - 2 )					,Nil})
+		aAdd(aClient,{"A2_TEL"	, Substr(oCliente:_ENDERDEST:_FONE:TEXT, 2, Len(oCliente:_FONE:TEXT) - 2 )					,Nil})
 	EndIf
-//	aAdd(aClient,{"A1_FAX"		, (_cArqTmp)->A1_FAX										,Nil})
-	aAdd(aClient,{"A1_TIPO"		, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "J", "R")												,Nil})
-	aAdd(aClient,{"A1_PAIS"		, Upper(NoAcento(oCliente:_ENDERDEST:_XPAIS:TEXT))																,Nil})
-//	aAdd(aClient,{"A1_PAISDES"	, _cCodPs													,Nil})
-	aAdd(aClient,{"A1_CODPAIS"	, Left(oCliente:_ENDERDEST:_CPAIS:TEXT, 3)													,Nil})
-	aAdd(aClient,{"A1_CGC"		, cCGC																						,Nil})
-	aAdd(aClient,{"A1_ENDCOB"	, Upper(NoAcento(oCliente:_ENDERDEST:_XLGR:TEXT))																,Nil})
-//	aAdd(aClient,{"A1_CONTATO"	, (_cArqTmp)->A1_CONTATO									,Nil})
-	aAdd(aClient,{"A1_ENDENT"	, Upper(NoAcento(oCliente:_ENDERDEST:_XLGR:TEXT))																,Nil})
+//	aAdd(aClient,{"A2_FAX"		, (_cArqTmp)->A2_FAX										,Nil})
+	aAdd(aClient,{"A2_TIPO"		, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "J", "R")												,Nil})
+	aAdd(aClient,{"A2_PAIS"		, Upper(NoAcento(oCliente:_ENDERDEST:_XPAIS:TEXT))																,Nil})
+//	aAdd(aClient,{"A2_PAISDES"	, _cCodPs													,Nil})
+	aAdd(aClient,{"A2_CODPAIS"	, Left(oCliente:_ENDERDEST:_CPAIS:TEXT, 3)													,Nil})
+	aAdd(aClient,{"A2_CGC"		, cCGC																						,Nil})
+	aAdd(aClient,{"A2_ENDCOB"	, Upper(NoAcento(oCliente:_ENDERDEST:_XLGR:TEXT))																,Nil})
+//	aAdd(aClient,{"A2_CONTATO"	, (_cArqTmp)->A2_CONTATO									,Nil})
+	aAdd(aClient,{"A2_ENDENT"	, Upper(NoAcento(oCliente:_ENDERDEST:_XLGR:TEXT))																,Nil})
 	If Type("oCliente:_ENDERDEST:_IM") <> "U" .AND. !Empty(oCliente:_ENDERDEST:_IM)
-		aAdd(aClient,{"A1_INSCRM", oCliente:_ENDERDEST:_IM:TEXT									,Nil})
+		aAdd(aClient,{"A2_INSCRM", oCliente:_ENDERDEST:_IM:TEXT									,Nil})
 	EndIf
 	If Type("oCliente:_ENDERDEST:_IE") <> "U" .AND. !Empty(oCliente:_ENDERDEST:_IE)
-		aAdd(aClient,{"A1_INSCR", oCliente:_ENDERDEST:_IE:TEXT													,Nil})
+		aAdd(aClient,{"A2_INSCR", oCliente:_ENDERDEST:_IE:TEXT													,Nil})
 	EndIf
-//	aAdd(aClient,{"A1_TPESSOA"	, AllTrim((_cArqTmp)->A1_TPESSOA)							,Nil})
+//	aAdd(aClient,{"A2_TPESSOA"	, AllTrim((_cArqTmp)->A2_TPESSOA)							,Nil})
 	If Type("oCliente:_ENDERDEST:_EMAIL") <> "U" .AND. !Empty(oCliente:_ENDERDEST:_EMAIL)
-		aAdd(aClient,{"A1_EMAIL", oCliente:_ENDERDEST:_EMAIL:TEXT							,Nil})
+		aAdd(aClient,{"A2_EMAIL", oCliente:_ENDERDEST:_EMAIL:TEXT							,Nil})
 	EndIf
-//	aAdd(aClient,{"A1_MSBLQL"	, _cMsblq													,Nil})
-//	aAdd(aClient,{"A1_CONTA"	, AllTrim((_cArqTmp)->A1_CONTA)							,Nil})
+//	aAdd(aClient,{"A2_MSBLQL"	, _cMsblq													,Nil})
+//	aAdd(aClient,{"A2_CONTA"	, AllTrim((_cArqTmp)->A2_CONTA)							,Nil})
 
 	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 	//³ Os valores abaixo foram considerados dos dados passados pela     ³
 	//³ view (TT_I29A_PEDIDOS_SATELITES) de integracao da rotina de      ³
 	//³ carga GENI018                                                    ³
 	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-	aAdd(aClient,{"A1_RECPIS"	, "N"																							,Nil})
-	aAdd(aClient,{"A1_RECCSLL"	, "N"																							,Nil})
-	aAdd(aClient,{"A1_RECCOFI"	, "N"																							,Nil})
-	aAdd(aClient,{"A1_RECISS"	, "N"																							,Nil})
-//	aAdd(aClient,{"A1_XCLIPRE"	, cValToChar((_cArqTmp)->A1_XCLIPRE)						,Nil}) //Cliente Premium
-	aAdd(aClient,{"A1_XTIPCLI"	, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "001", "020")											,Nil}) //Tipo de Cliente (GEN)
-	aAdd(aClient,{"A1_XCANALV"	, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "1", "3")												,Nil}) //Canal de Venda
-	aAdd(aClient,{"A1_VEND"		, "000018"																					,Nil})
-	aAdd(aClient,{"A1_XTPDES"	, "2"																							,Nil}) //Tipo desconto
-	aAdd(aClient,{"A1_TRANSP"	, If(oCliente:_ENDERDEST:_UF:TEXT == "EX", "000291", "000373")								,Nil})
-	aAdd(aClient,{"A1_XCONDPG"	, "000"																						,Nil}) //Condicao Pagto (GEN)
-	aAdd(aClient,{"A1_COND"		, GetMv("GEN_FAT065")																			,Nil})
-	aAdd(aClient,{"A1_TABELA"	, GetMv("GEN_FAT064")																			,Nil})
-	aAdd(aClient,{"A1_LC"		, If(Len(oCliente:_CNPJCPF:TEXT) == 11 .OR. oCliente:_ENDERDEST:_UF:TEXT == "EX", 5000, 0)	,Nil}) //Limite de Crédito 
-	aAdd(aClient,{"A1_BLEMAIL"	, "1"																							,Nil}) //Boleto por Email
-	aAdd(aClient,{"A1_RISCO"	, GetMv("GEN_FAT066")																			,Nil}) //Limite de Crédito
+	aAdd(aClient,{"A2_RECPIS"	, "N"																							,Nil})
+	aAdd(aClient,{"A2_RECCSLL"	, "N"																							,Nil})
+	aAdd(aClient,{"A2_RECCOFI"	, "N"																							,Nil})
+	aAdd(aClient,{"A2_RECISS"	, "N"																							,Nil})
+//	aAdd(aClient,{"A2_XCLIPRE"	, cValToChar((_cArqTmp)->A2_XCLIPRE)						,Nil}) //Cliente Premium
+	aAdd(aClient,{"A2_XTIPCLI"	, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "001", "020")											,Nil}) //Tipo de Cliente (GEN)
+	aAdd(aClient,{"A2_XCANALV"	, If(Len(oCliente:_CNPJCPF:TEXT) > 11, "1", "3")												,Nil}) //Canal de Venda
+	aAdd(aClient,{"A2_VEND"		, "000018"																					,Nil})
+	aAdd(aClient,{"A2_XTPDES"	, "2"																							,Nil}) //Tipo desconto
+	aAdd(aClient,{"A2_TRANSP"	, If(oCliente:_ENDERDEST:_UF:TEXT == "EX", "000291", "000373")								,Nil})
+	aAdd(aClient,{"A2_XCONDPG"	, "000"																						,Nil}) //Condicao Pagto (GEN)
+	aAdd(aClient,{"A2_COND"		, GetMv("GEN_FAT065")																			,Nil})
+	aAdd(aClient,{"A2_TABELA"	, GetMv("GEN_FAT064")																			,Nil})
+	aAdd(aClient,{"A2_LC"		, If(Len(oCliente:_CNPJCPF:TEXT) == 11 .OR. oCliente:_ENDERDEST:_UF:TEXT == "EX", 5000, 0)	,Nil}) //Limite de Crédito 
+	aAdd(aClient,{"A2_BLEMAIL"	, "1"																							,Nil}) //Boleto por Email
+	aAdd(aClient,{"A2_RISCO"	, GetMv("GEN_FAT066")																			,Nil}) //Limite de Crédito
 
 	lMsErroAuto := .F.
 	lMsErroAuto := MSExecAuto({|x,y| Mata030(x,y)},aClient, 3)
@@ -747,7 +816,7 @@ If Type(oCliente:_CNPJ:TEXT) <> "U" .AND. !Empty(oCliente:_CNPJ:TEXT)
 	Else
 		ConfirmSX8()
 		//REMOVE ASPAS SIMPLES DO CADASTRO DE CLIENTE E FORNECEDOR
-		TcSqlExec("update SA1000 set A1_NOME = upper(replace(A1_NOME,'''',' ')), A1_NREDUZ = upper(replace(A1_NREDUZ,'''',' ')) where A1_NOME like '%''%' or A1_NREDUZ like '%''%'")
+		TcSqlExec("update SA2000 set A2_NOME = upper(replace(A2_NOME,'''',' ')), A2_NREDUZ = upper(replace(A2_NREDUZ,'''',' ')) where A2_NOME like '%''%' or A2_NREDUZ like '%''%'")
 	EndIf
 
 EndIf
@@ -1072,3 +1141,16 @@ If !Empty(cArqLog) .AND. File(cPath + cArqLog)
 EndIf
 
 Return aAutoErro
+
+/*/{Protheus.doc} FindTag
+(Funcao para buscar a tag presente no XML e informar sua posicao no array)
+@author Renato Calabro'
+@since 01/10/2020
+@param aDados2, array, (Array contendo os dados do XML)
+@param cTagXML, character, (Nome da Tag que deseja encontrar no array)
+@return nPos, numeric, (Numero do vetor da tag encontrada, se nao encontar, retorna 0)
+@see (links_or_references)
+/*/
+
+Static Function FindTag(aDados2, cTagXML)
+Return aScan(aDados2, {|x| Upper(AllTrim(x[1])) == cTagXML })
