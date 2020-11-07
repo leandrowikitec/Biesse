@@ -521,9 +521,9 @@ If Len(aParams) > 0
 				EndIf
 				aAdd(aCabec,{"F1_HORA"		, Time()							, Nil })
 				If ValType("oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT") <> "U" .AND. !Empty(oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT)
-					// aAdd(aCabec,{"F1_CHVNFE"	, oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT							, Nil })
-					aAdd(aDanfe, oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT)	// F1_CHVNFE
-					aAdd(aDanfe,"")												// F1_TPFRETE
+					aAdd(aCabec,{"F1_CHVNFE"	, oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT							, Nil })
+					// aAdd(aDanfe, oXML:_NFEPROC:_PROTNFE:_INFPROT:_CHNFE:TEXT)	// F1_CHVNFE
+					// aAdd(aDanfe,"")												// F1_TPFRETE
 				EndIf
 
 				// cSeek := xFilial("SD1")+cNumDoc+cSerDoc+cCodFor+cCodLj
