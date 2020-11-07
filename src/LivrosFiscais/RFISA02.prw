@@ -482,8 +482,8 @@ If Len(aParams) > 0
 			DbSelectArea("SA5")
 			DbSetOrder(14)		//A5_FILIAL+A5_FORNECE+A5_LOJA+A5_CODPRF
 			For nLoop := 1 To Len(aDados)
-				If !DbSeek(xFilial("SA5")+cCodFor+cCodLj+aDados2[nLoop][1])
-					aAdd(aErros, "Produto não cadastrado. O produto " + aDados2[nLoop][1] + " não foi cadastrado no relacionamento Produto x Fornecedor para o fornecedor" + cCodFor + ".")
+				If !DbSeek(xFilial("SA5")+cCodFor+cCodLj+aDados[nLoop][1])
+					aAdd(aErros, "Produto não cadastrado. O produto " + aDados[nLoop][1] + " não foi cadastrado no relacionamento Produto x Fornecedor para o fornecedor" + cCodFor + " - " + AllTrim(SA2->A2_NOME) + ".")
 				EndIf
 			Next nLoop
 
