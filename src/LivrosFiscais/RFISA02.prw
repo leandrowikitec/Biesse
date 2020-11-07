@@ -397,8 +397,8 @@ If Len(aParams) > 0
 				DbSelectArea("SA2")
 				DbSetOrder(3)			//A2_FILIAL+A2_CGC
 
-				cCNPJCPF := If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST, "_CNPJ" ), oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_CNPJ:TEXT,;
-									If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_DEST, "_CPF" ), oXML:_NFEPROC:_NFE:_INFNFE:_DEST:_CPF:TEXT, ""))
+				cCNPJCPF := If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_EMIT, "_CNPJ" ), oXML:_NFEPROC:_NFE:_INFNFE:_EMIT:_CNPJ:TEXT,;
+									If(AttIsMemberOf( oXML:_NFEPROC:_NFE:_INFNFE:_EMIT, "_CPF" ), oXML:_NFEPROC:_NFE:_INFNFE:_EMIT:_CPF:TEXT, ""))
 
 				If !Empty(cCNPJCPF) .AND. ValType(cCNPJCPF) == "C"
 					If !SA2->(DbSeek(xFilial("SA2") + cCNPJCPF))
