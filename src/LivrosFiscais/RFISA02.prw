@@ -478,6 +478,15 @@ If Len(aParams) > 0
 				aAdd(aErros, "Número/Serie da nota '" + cNumDoc + "/" + cSerDoc + "' já cadastrada no sistema.")
 			EndIf
 
+			// Verifica relacionamentos entre produto do fornecedor x produto da empresa
+			DbSelectArea("SA5")
+			DbSetOrder(14)		//A5_FILIAL+A5_FORNECE+A5_LOJA+A5_CODPRF
+			For nLoop := 1 To Len(aDados)
+				If !DbSeek(xFilial("SA5")+cCodFor+cCodLj+aDados2[nLoop][1])
+					aAdd(aErros, "Produto não cadastrado. O produto " + aDados2[nLoop][1] + " não foi cadastrado no relacionamento Produto x Fornecedor para o fornecedor" + cCodFor + ".")
+				EndIf
+			Next nLoop
+
 			If Len(aErros) == 0
 
 				// Carrega variaveis private do A910grava
