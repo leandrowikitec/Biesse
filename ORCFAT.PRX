@@ -21,9 +21,7 @@ SetPrvt("NTOTAL,TITULO,CDESC1,CDESC2,CDESC3,ARETURN")
 SetPrvt("NOMEPROG,CPERG,NLASTKEY,LCONTINUA,NLIN,WNREL")
 SetPrvt("CSTRING,NQTD,")
 
-//旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴커
-//� Define Variaveis Ambientais                                  �
-//읕컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴켸
+// Define Variaveis Ambientais
 cbTxt		:= ""
 cbCont	:= ""
 nOrdem 	:= 0
