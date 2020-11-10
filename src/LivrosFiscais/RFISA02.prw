@@ -555,7 +555,7 @@ If Len(aParams) > 0
 					aAdd(aLinha,{"D1_VUNIT"		, aDados[nLoop][7]						, Nil })
 					aAdd(aLinha,{"D1_TOTAL"		, aDados[nLoop][8]						, Nil })
 					aAdd(aLinha,{"D1_TES"		, aParams[2]							, Nil })
-					aAdd(aLinha,{"D1_CF"		, aDados[nLoop][5]						, Nil })
+					// aAdd(aLinha,{"D1_CF"		, aDados[nLoop][5]						, Nil })
 					aAdd(aItens, aLinha)
 
 					// aTail(aCols)[aScan(aHeader, {|x| AllTrim(x[2]) == "D1_ITEM"})] := StrZero(nLoop, TamSX3("D1_ITEM")[1])
