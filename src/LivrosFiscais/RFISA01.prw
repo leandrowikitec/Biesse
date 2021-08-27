@@ -319,6 +319,8 @@ Local nLoop		:= 0					//Variavel de controle de loop
 Local nX		:= 0					//Variavel de controle de loop
 Local nResult	:= 0					//Resultado de criacao e gravacao de diretorio e arquivos
 
+Local dDEmissao	:= CToD("")
+
 Local lEstrang	:= .F.
 
 Local aCabec	:= {}					//Array de cabecalho de documento de saida
@@ -479,6 +481,7 @@ If Len(aParams) > 0
 */
 				cNumDoc := StrZero(Val(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_nNF:TEXT),9)
 				cSerDoc := PadR(AllTrim(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_SERIE:TEXT), TamSX3("F2_SERIE")[1])
+				dDEmissao := StoD(StrTran(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_DHEMI:TEXT,'-'))
 
 				If ValType("oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_MOD:TEXT") <> "U" .AND. !Empty(oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_MOD:TEXT) .AND.;
 					oXml:_NFEPROC:_NFE:_INFNFE:_IDE:_MOD:TEXT <> "55"
@@ -498,7 +501,7 @@ If Len(aParams) > 0
 				aAdd(aCabec,{"F2_FORMUL"	, "N"				, Nil })
 				aAdd(aCabec,{"F2_DOC"		, cNumDoc			, Nil })
 				aAdd(aCabec,{"F2_SERIE"		, cSerDoc			, Nil })
-				aAdd(aCabec,{"F2_EMISSAO"	, dDataBase			, Nil })
+				aAdd(aCabec,{"F2_EMISSAO"	, dDEmissao			, Nil })
 				aAdd(aCabec,{"F2_CLIENTE"	, cCodCli			, Nil }) 
 				aAdd(aCabec,{"F2_LOJA"		, cCodLj			, Nil })
 				aAdd(aCabec,{"F2_COND"		, aParams[4]		, Nil })
