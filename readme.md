@@ -20,3 +20,4 @@ Sempre que um commit é realizado neste reposítorio ele será submetido à um *
 
 O projeto segue uma regra onde a atualização de ve ser total, ou seja, todos os fontes da branch são compilados, ou em caso de falha em algum deles, nenhum fonte é compilado.
 
+
