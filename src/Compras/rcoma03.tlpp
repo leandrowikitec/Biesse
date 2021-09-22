@@ -45,15 +45,10 @@ Return
 
 Static Function Importa()
 
-Local cNum 			:= "" as character
 
 Local nI 			:= 0 as integer
 Local nY 			:= 0 as integer
-Local nCampos		:= 0 as integer
-Local nContLin		:= 0 as integer
 Local nTotItens		:= GetMv("MV_NUMITEN",, 300) as numeric		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens do pedido de venda
-
-Local lCampo		:= .F. as logical
 
 Local aCabPC		:= {} as array
 Local aDetPC		:= {} as array

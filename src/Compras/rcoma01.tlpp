@@ -177,25 +177,25 @@ For nI := 1 to Len(aDet)
 			AAdd(aItem, {"D1_IPI"		, TrataDados("D1_IPI", aDet[nI][aScan(aCabec, {|x| "IPI" $ Upper(AllTrim(x)) })])				, Nil } )
 		EndIf
 
-		AAdd(aItem, {"D1_LOTEFOR"	, Substr(aDet[nI][nPosProdArq], At("LOTE:", aDet[nI][nPosProdArq])+6, 4) 							, Nil } )
+		// AAdd(aItem, {"D1_LOTEFOR"	, Substr(aDet[nI][nPosProdArq], At("LOTE:", aDet[nI][nPosProdArq])+6, 4) 							, Nil } )
 
 		// Tratamento para datas que o mes nao vem com dois digitos (4/2020, 8/2021)
-		cConteudo := Substr(aDet[nI][nPosProdArq], At("FABRICA", aDet[nI][nPosProdArq])+13, 12)
+		// cConteudo := Substr(aDet[nI][nPosProdArq], At("FABRICA", aDet[nI][nPosProdArq])+13, 12)
 		// Extraio data sem pontuacao e data no final Ex: DATA FABRICAÇÃO: 4/2020. DAT
-		cConteudo := AllTrim(Left(cConteudo, At(".", cConteudo)-1))
+		// cConteudo := AllTrim(Left(cConteudo, At(".", cConteudo)-1))
 		// Se conteudo tiver formatacao sem os dias mm/aaaa, adiciono dias para formatar a data
 		// Senao mantenho data original
-		cConteudo := If(Len(cConteudo) == 10, "", "01/") + If(Len(cConteudo) == 6, "0", "") + cConteudo
-		AAdd(aItem, {"D1_DFABRIC"	, LastDay(CToD(cConteudo))																			, Nil } )
+		// cConteudo := If(Len(cConteudo) == 10, "", "01/") + If(Len(cConteudo) == 6, "0", "") + cConteudo
+		// AAdd(aItem, {"D1_DFABRIC"	, LastDay(CToD(cConteudo))																			, Nil } )
 
 		// Tratamento para datas que o mes nao vem com dois digitos (4/2020, 8/2021)
-		cConteudo := Substr(aDet[nI][nPosProdArq], At("VALIDADE:", aDet[nI][nPosProdArq])+10, 12)
+		// cConteudo := Substr(aDet[nI][nPosProdArq], At("VALIDADE:", aDet[nI][nPosProdArq])+10, 12)
 		// Extraio data sem pontuacao e data no final Ex: DATA FABRICAÇÃO: 4/2020. DAT
-		cConteudo := AllTrim(Left(cConteudo, At(".", cConteudo)-1))
+		// cConteudo := AllTrim(Left(cConteudo, At(".", cConteudo)-1))
 		// Se conteudo tiver formatacao sem os dias mm/aaaa, adiciono dias para formatar a data
 		// Senao mantenho data original
-		cConteudo := If(Len(cConteudo) == 10, "", "01/") + If(Len(cConteudo) == 6, "0", "") + cConteudo
-		AAdd(aItem, {"D1_DTVALID"	, LastDay(CToD(cConteudo))																			, Nil } )
+		// cConteudo := If(Len(cConteudo) == 10, "", "01/") + If(Len(cConteudo) == 6, "0", "") + cConteudo
+		// AAdd(aItem, {"D1_DTVALID"	, LastDay(CToD(cConteudo))																			, Nil } )
 
 		AAdd(aItem, {"D1_XNADIC"	, TrataDados("D1_XNADIC", aDet[nI][aScan(aCabec, {|x| "ADICAO" $ Upper(AllTrim(x)) })])				, Nil } )
 		AAdd(aItem, {"D1_XSQADIC"	, TrataDados("D1_XSQADIC", aDet[nI][aScan(aCabec, {|x| "ITEM" $ Upper(AllTrim(x)) })])				, Nil } )

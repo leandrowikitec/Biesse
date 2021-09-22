@@ -17,7 +17,7 @@
 User Function RunAplica(cInternet)
 
 Local oBar
-Local cMenuBmp := GetMenuBmp()
+// Local cMenuBmp := GetMenuBmp()
 
 If Type("OMAINWND") != "O"
 
@@ -75,7 +75,7 @@ Return
 */
 Static Function AuxRunAplica(lRunEnv)
 
-Local bGet,oBkpDlg,oDlgRun,oResult,cResult
+Local bGet,oDlgRun,oResult,cResult
 Local cGet      := Space(255)
 Local cEmpRun   := "01"
 Local cFilRun   := "01"
@@ -379,8 +379,8 @@ Return
 */
 Static Function ProcImpEx(oMeter1,oMeter2,cHist,cDir,lNaoFoi,oGet2)
 
-Local aDir    := aArqs := Directory(cDir+"*.DBF")
 Local aArqs   := {}
+Local aDir    := aArqs := Directory(cDir+"*.DBF")
 Local aStru1  := {}
 Local aStru2  := {}
 Local nI      := 0
