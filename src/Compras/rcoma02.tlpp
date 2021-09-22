@@ -177,12 +177,12 @@ If lContinua
 							CD5->CD5_DTDES		:= SF1->F1_XDTDES
 							CD5->CD5_CODEXP		:= SF1->F1_FORNECE
 							CD5->CD5_LOJEXP		:= SD1->D1_LOJA
-							CD5->CD5_NADIC		:= SD1->D1__NADIC
-							CD5->CD5_SQADIC		:= SD1->D1__SQADIC
+							CD5->CD5_NADIC		:= SD1->D1_XNADIC
+							CD5->CD5_SQADIC		:= SD1->D1_XSQADIC
 							CD5->CD5_CODFAB		:= SD1->D1_FORNECE
 							CD5->CD5_LOJFAB		:= SD1->D1_LOJA
-							CD5->CD5_DSPAD		:= SD1->D1__DSPAD
-							CD5->CD5_VLRII		:= SD1->D1__VLRII
+							CD5->CD5_DSPAD		:= SD1->D1_XDSPAD
+							CD5->CD5_VLRII		:= SD1->D1_II
 							CD5->CD5_ITEM		:= SD1->D1_ITEM
 							CD5->CD5_VTRANS		:= cViaTransp
 							CD5->CD5_INTERM		:= cFormImp

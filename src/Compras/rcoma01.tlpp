@@ -143,15 +143,15 @@ For nI := 1 to Len(aDet)
 				Aadd(aCabNF, { "F1_TRANSP"	, aParam[NF1TRANSP]										, Nil })
 				Aadd(aCabNF, { "F1_VOLUME1"	, aParam[NF1VOLUME1]										, Nil })
 				Aadd(aCabNF, { "F1_ESPECI1"	, aParam[NF1ESPECI1]										, Nil })
-				Aadd(aCabNF, { "F1__NUMDI"	, aDet[nI][aScan(aCabec, {|x| " DI" $ Upper(AllTrim(x)) })]	, Nil })
+				Aadd(aCabNF, { "F1_XNUMDI"	, aDet[nI][aScan(aCabec, {|x| " DI" $ Upper(AllTrim(x)) })]	, Nil })
 				// Se ira preencher os dados automaticamente do complemento, adiciono campos parametrizados por usuario
 				If aParam[NPOSAUTCOMPL] == "1"
-					Aadd(aCabNF, { "F1__DTREG"	, aParam[NF1DTREG]										, Nil })
-					Aadd(aCabNF, { "F1__DTDES"	, aParam[NF1DTDES]										, Nil })
-					Aadd(aCabNF, { "F1__TPTIMP"	, aParam[NF1TPTIMP]										, Nil })
-					Aadd(aCabNF, { "F1__LOCSER"	, aParam[NF1LOCSER]										, Nil })
-					Aadd(aCabNF, { "F1__UFDES"	, aParam[NF1UFDES]										, Nil })
-					Aadd(aCabNF, { "F1__LOCDE"	, aParam[NF1LOCDE]										, Nil })
+					Aadd(aCabNF, { "F1_XDTREG"	, aParam[NF1DTREG]										, Nil })
+					Aadd(aCabNF, { "F1_XDTDES"	, aParam[NF1DTDES]										, Nil })
+					Aadd(aCabNF, { "F1_XTPTIMP"	, aParam[NF1TPTIMP]										, Nil })
+					Aadd(aCabNF, { "F1_XLOCSER"	, aParam[NF1LOCSER]										, Nil })
+					Aadd(aCabNF, { "F1_XUFDES"	, aParam[NF1UFDES]										, Nil })
+					Aadd(aCabNF, { "F1_XLOCDE"	, aParam[NF1LOCDE]										, Nil })
 				EndIf
 			Else
 				Aviso(	"Falha ao gerar arquivo!", "Tentativa de buscar nova numeração para nota fiscal para a série falhou." + CRLF +;
@@ -689,7 +689,7 @@ Aadd(aCabNF, { "F1_VALICM"	, nTotICMS									, Nil } )
 // Adiciono mensagem da nota como exemplo abaixo
 // DI:2103877844- VLR PIS 5.747,00 - VLR COFINS 26.408,84
 // DI 2106705734 - PIS=2.569,19 - COFINS=11.806,02 - SISCOMEX=244,00
-cMsgNota := "DI: " + aCabNf[AScan(aCabNF, {|x| x[1] == "F1__NUMDI"})][2]
+cMsgNota := "DI: " + aCabNf[AScan(aCabNF, {|x| x[1] == "F1_XNUMDI"})][2]
 cMsgNota += " - PIS=" + cValToChar(nTotPis)
 cMsgNota += " - COFINS=" + cValToChar(nTotCofins)
 cMsgNota += " - SISCOMEX=" + cValToChar(nTotTxSisco)
