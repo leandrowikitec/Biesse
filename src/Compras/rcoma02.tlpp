@@ -38,7 +38,7 @@ Local nPesoLiqui	:= SF1->F1_PLIQUI as numeric
 Local dDtRegDi		:= SF1->F1_XDTREG as date
 Local dDtDesemb		:= SF1->F1_XDTDES as date
 
-Local lContinua	:= .T. as logic
+Local lContinua	:= .T. as logical
 
 Local aAreas		:= {SD1->(GetArea()), GetArea()} as array
 
@@ -239,7 +239,7 @@ Static Function NewDlg1(nPesoLiqui	, nPesoBruto	, cNumDI	, cLocDes	, cUFDes,;
 						cAtualiz	, cViaTransp	, cFormImp	, cNumDoc	, cCNPJTerceiro,;
 						cUFTerceiro)
 
-Local lReturn	:= .F. as logic
+Local lReturn	:= .F. as logical
 
 Local oDlg3		:= Nil as object
 Local oCombo29	:= Nil as object
@@ -746,7 +746,7 @@ Return lReturn
 
 Static Function VldDadosCampo(cVariavel, cImpCompl)
 
-Local lContinua := .T. as logic
+Local lContinua := .T. as logical
 
 If cImpCompl == "2" .And. Empty(cVariavel)
 	MsgAlert("Este campo deve ser preenchido","ATENCAO")				
