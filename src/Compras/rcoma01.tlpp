@@ -28,20 +28,13 @@
 
 User Function RCOMA01()
 
-Local cNumNF		as char
+Local cNumNF		:= "" as character
 
-Local aParam		as array
-Local aResultado	as array
+Local aParam		:= {} as array
+Local aResultado	:= {} as array
 
-Private aCabec		as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
-Private aDet		as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
-
-cNumNF := ""
-
-aParam := {}
-
-aCabec := {}
-aDet := {}
+Private aCabec		:= {} as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
+Private aDet		:= {} as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
 
 aParam := MyPerg()
 
@@ -84,15 +77,15 @@ Return Nil
 
 Static Function Importa(aParam)
 
-Local cItem			:= Repl("0", TamSX3("D1_ITEM")[1]) as char
-Local cSerieId		:= "" as char
-Local cNumDoc		:= "" as char
+Local cItem			:= Repl("0", TamSX3("D1_ITEM")[1]) as character
+Local cSerieId		:= "" as character
+Local cNumDoc		:= "" as character
 
-Local nI 			:= 0 as numeric
-Local nTotItens		:= GetMv("MV_NUMITEN",, 300) as numeric		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens
-Local nPosProdArq	:= aScan(aCabec,{|x| "DESCRI" $ FwNoAccent(AllTrim(x))}) as numeric
-Local nPosProdQtd	:= aScan(aCabec,{|x| "QTDE" $ FwNoAccent(AllTrim(x))}) as numeric
-Local nPosProdCIF	:= aScan(aCabec,{|x| "CIF" $ FwNoAccent(AllTrim(x))}) as numeric
+Local nI 			:= 0 as integer
+Local nTotItens		:= GetMv("MV_NUMITEN",, 300) as integer		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens
+Local nPosProdArq	:= aScan(aCabec,{|x| "DESCRI" $ FwNoAccent(AllTrim(x))}) as integer
+Local nPosProdQtd	:= aScan(aCabec,{|x| "QTDE" $ FwNoAccent(AllTrim(x))}) as integer
+Local nPosProdCIF	:= aScan(aCabec,{|x| "CIF" $ FwNoAccent(AllTrim(x))}) as integer
 Local nPesoBruto	:= 0 as numeric
 Local nPesoLiquid	:= 0 as numeric
 Local nTotAFRMM		:= 0 as numeric
@@ -104,7 +97,7 @@ Local nTotIPI		:= 0 as numeric
 Local nTotBaseICMS	:= 0 as numeric
 Local nTotBaseIPI	:= 0 as numeric
 
-Local lUsaNewKey	:= TamSX3("F1_SERIE")[1] == 14 as logic		// Verifica se o novo formato de gravacao do Id nos campos _SERIE esta em uso
+Local lUsaNewKey	:= TamSX3("F1_SERIE")[1] == 14 as logical		// Verifica se o novo formato de gravacao do Id nos campos _SERIE esta em uso
 
 Local aCabNF		:= {} as array
 Local aDetNF		:= {} as array
@@ -300,17 +293,11 @@ Return aRetorno
 
 Static Function MyPerg()
 
-Local cTitulo		as char					//Titulo a ser apresentado no Parambox
+Local cTitulo		:= "Parâmetros para importar arquivo" as character					//Titulo a ser apresentado no Parambox
 
-Local aParambox 	as array				//Array com os tipos de Parambox
-Local aRet 			as array				//Array com o retorno do pergunte
-Local aAreaAtu 		as array				//Armazena array atual
-
-cTitulo	:= "Parâmetros para importar arquivo"
-
-aParambox := {}
-aRet := {}
-aAreaAtu := GetArea()
+Local aParambox 	:= {} as array					//Array com os tipos de Parambox
+Local aRet 			:= {} as array					//Array com o retorno do pergunte
+Local aAreaAtu 		:= GetArea() as array					//Armazena array atual
 
 // 1
 aAdd(aParamBox,{6,;
@@ -543,7 +530,7 @@ Return aRet
 
 Static Function TrataDados(cCampo, xValor)
 
-Local cTipoDado		as char
+Local cTipoDado		:= "" as character
 
 If !Empty(xValor)
 
@@ -582,18 +569,11 @@ Return xValor
 
 Static Function GravaNFEntrada(aCabNF, aDetNF, aAutoImp)
 
-Local cResult			as char
+Local cResult			:= "" as character
 
-Private lMsErroAuto		as logic
-Private lMsErroHelp		as logic
-Private	lAutoErrNoFile	as logic
-
-cResult := ""
-
-lMsErroAuto := .F.
-lMsErroHelp := .T.
-// lAutoErrNoFile := IsBlind()		// Se for job, gravo erro em array, senao mostro em tela
-lAutoErrNoFile := .T.		// Se for job, gravo erro em array, senao mostro em tela
+Private lMsErroAuto		:= .F. as logical
+Private lMsErroHelp		:= .T. as logical
+Private	lAutoErrNoFile	:= .T. as logical		// Se for job, gravo erro em array, senao mostro em tela
 
 begin transaction
 
@@ -643,8 +623,9 @@ Return cResult
 
 User Function RCOA01AddCompl(aResultado, aParam)
 
-Local cNumDoc	as char
-Local nX		as numeric
+Local cNumDoc	:= "" as character
+
+Local nX		:= 0 as integer
 
 Local aAreas	:= {SF1->(GetArea()), SD1->(GetArea()), GetArea()} as array
 
@@ -696,7 +677,7 @@ Return Nil
 Static Function AddCposCabec(	aCabNF		, nPesoBruto	, nPesoLiquid	, nTotTxSisco	, nTotPis	, nTotCofins,;
 								nTotAFRMM	, nTotICMS		, nTotBaseICMS	, nTotIPI		, nTotBaseIPI )
 
-Local cMsgNota		:= "" as char
+Local cMsgNota		:= "" as character
 
 // Se for incluir nota, adiciono campos calculados de pesos bruto e liquido
 Aadd(aCabNF, { "F1_PBRUTO"	, nPesoBruto								, Nil } )

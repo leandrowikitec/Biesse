@@ -16,24 +16,24 @@
 
 User Function RCOMA02(lExibeTela)
 
-Local cNumDI			:= SF1->F1_XNUMDI as char
-Local cLocDes			:= SF1->F1_XLOCDE as char
-Local cUFDes			:= SF1->F1_XUFDES as char
-Local cTpImp			:= SF1->F1_XTPTIMP as char
-Local cLocServ			:= SF1->F1_XLOCSER as char
-Local cImpCompl			:= "" as char
-Local cAtualiz			:= "" as char
-Local cViaTransp		:= "" as char
-Local cFormImp			:= "" as char
-Local cCNPJTerceiro		:= "" as char
-Local cUFTerceiro		:= "" as char
+Local cNumDI			:= SF1->F1_XNUMDI as character
+Local cLocDes			:= SF1->F1_XLOCDE as character
+Local cUFDes			:= SF1->F1_XUFDES as character
+Local cTpImp			:= SF1->F1_XTPTIMP as character
+Local cLocServ			:= SF1->F1_XLOCSER as character
+Local cImpCompl			:= "" as character
+Local cAtualiz			:= "" as character
+Local cViaTransp		:= "" as character
+Local cFormImp			:= "" as character
+Local cCNPJTerceiro		:= "" as character
+Local cUFTerceiro		:= "" as character
 
-Local nPosPro		:= 0 as numeric
-Local nPosQtd		:= 0 as numeric
+Local nPosPro		:= 0 as integer
+Local nPosQtd		:= 0 as integer
+Local nCont			:= 0 as integer
+Local nX			:= 0 as integer
 Local nPesoBruto	:= SF1->F1_PBRUTO as numeric
 Local nPesoLiqui	:= SF1->F1_PLIQUI as numeric
-Local nCont			:= 0 as numeric
-Local nX			:= 0 as numeric
 
 Local dDtRegDi		:= SF1->F1_XDTREG as date
 Local dDtDesemb		:= SF1->F1_XDTDES as date

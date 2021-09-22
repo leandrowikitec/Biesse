@@ -10,20 +10,13 @@
 
 User Function RCOMA03()
 
-Local cFile			as char
-Local cPedidos		as char
+Local cFile			:= cGetFile( '*.csv|*.csv' , 'Abrir arquivo', 0, 'c:\temp\', .F., , .T., .T.) as character
+Local cPedidos		:= "" as character
 
-Local aResultado	as array
+Local aResultado	:= {} as array
 
-Private aCabec		as array
-Private aDet		as array
-
-cFile	:= cGetFile( '*.csv|*.csv' , 'Abrir arquivo', 0, 'c:\temp\', .F., , .T., .T.)
-cPedidos := ""
-
-aResultado := {}
-aCabec := {}
-aDet := {}
+Private aCabec		:= {} as array
+Private aDet		:= {} as array
 
 If File(cFile)
 	Processa( { || LeArquivo(cFile) }, "Lendo arquivo, aguarde", "" )	
@@ -52,35 +45,20 @@ Return
 
 Static Function Importa()
 
-Local cNum 		as char
+Local cNum 			:= "" as character
 
-Local nI 		as numeric
-Local nY 		as numeric
-Local nCampos	as numeric
-Local nTotItens	as numeric
-Local nContLin	as numeric
+Local nI 			:= 0 as integer
+Local nY 			:= 0 as integer
+Local nCampos		:= 0 as integer
+Local nContLin		:= 0 as integer
+Local nTotItens		:= GetMv("MV_NUMITEN",, 300) as numeric		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens do pedido de venda
 
-Local lCampo	as logic
+Local lCampo		:= .F. as logical
 
-Local aCabPC	as array
-Local aDetPC	as array
-Local aItem		as array
-Local aRetorno		as array
-
-cNum := ""
-
-nI := 0
-nY := 0
-nCampos := 0
-nTotItens := GetMv("MV_NUMITEN",, 300)		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens do pedido de venda
-nContLin := 0
-
-lCampo := .F.
-
-aCabPC := {}
-aDetPC := {}
-aItem := {}
-aRetorno := {}
+Local aCabPC		:= {} as array
+Local aDetPC		:= {} as array
+Local aItem			:= {} as array
+Local aRetorno		:= {} as array
 
 ProcRegua(Len(aDet))
 
@@ -151,9 +129,9 @@ Return aRetorno
 @see https://tdn.totvs.com/display/framework/FWFileReader
 /*/
 
-Static function LeArquivo(cFile as char)
+Static function LeArquivo(cFile as character)
 
-Local cLinha	:= "" as char
+Local cLinha	:= "" as character
 
 Local oFile		:= Nil as object
 
@@ -196,7 +174,7 @@ Return Nil
 
 Static Function TrataDados(cCampo, xValor)
 
-Local cTipoDado		as char
+Local cTipoDado		:= "" as character
 
 If !Empty(xValor)
 
@@ -235,17 +213,11 @@ Return xValor
 
 Static Function GravaPedCom(aCabPC, aDetPC, nOpc)
 
-Local cResult			as char
+Local cResult			:= "" as character
 
-Private lMsErroAuto		as logic
-Private lMsErroHelp		as logic
-Private	lAutoErrNoFile	as logic
-
-cResult := ""
-
-lMsErroAuto := .F.
-lMsErroHelp := .T.
-lAutoErrNoFile := IsBlind()		// Se for job, gravo erro em array, senao mostro em tela
+Private lMsErroAuto		:= .F. as logical
+Private lMsErroHelp		:= .T. as logical
+Private	lAutoErrNoFile	:= IsBlind() as logical		// Se for job, gravo erro em array, senao mostro em tela
 
 begin transaction
 
