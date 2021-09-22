@@ -16,7 +16,7 @@
 
 User Function SF1100I()
 
-Local lExecAuto		:= IsInCallStack("MSEXECAUTO") as logic
+Local lExecAuto		:= IsInCallStack("MSEXECAUTO") as logical
 
 // Se for execucao automatica, se a nota for de importacao, se nota nao for devolucao ou beneficiamento
 // Verifica se variavel Private existe para checar se deve adicionar complemento da nota = 1
