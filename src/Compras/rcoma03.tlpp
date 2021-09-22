@@ -1,0 +1,283 @@
+#INCLUDE "PROTHEUS.CH"
+
+/*/{Protheus.doc} RCOMA01
+(Funcao para importar dados de arquivo CSV do despachante para arrays de cabecalho e itens)
+@author Renato Calabro'
+@since 22/09/2021
+@return Nil
+@see (links_or_references)
+/*/
+
+User Function RCOMA03()
+
+Local cFile			as char
+Local cPedidos		as char
+
+Local aResultado	as array
+
+Private aCabec		as array
+Private aDet		as array
+
+cFile	:= cGetFile( '*.csv|*.csv' , 'Abrir arquivo', 0, 'c:\temp\', .F., , .T., .T.)
+cPedidos := ""
+
+aResultado := {}
+aCabec := {}
+aDet := {}
+
+If File(cFile)
+	Processa( { || LeArquivo(cFile) }, "Lendo arquivo, aguarde", "" )	
+
+	Processa( { || aResultado := Importa() }, "Importando arquivo", "" )
+
+	If Len(aResultado) > 0
+		AEval(aResultado, {|x| cPedidos += x + CRLF})
+		Aviso(	"Arquivo processado!", "O arquivo foi processado." + CRLF +;
+				"Verifique o número dos pedidos ou inconsistências geradas:" + CRLF + cPedidos, {"&Ok"},3 )
+				// Varinfo("PC", aResultado,,.F.),{"OK"},3 )
+	EndIf
+Else
+	Alert("Nenhum arquivo selecionado.")
+EndIf
+
+Return
+
+/*/{Protheus.doc} Importa
+(Funcao para importar dados do arquivo CSV para arrays de cabecalho e itens)
+@author Pirolo
+@since 17/04/2020
+@return aRetorno, array (Array contendo o resultado de inclusão de pedidos com sucesso ou falha)
+@see (links_or_references)
+/*/
+
+Static Function Importa()
+
+Local cNum 		as char
+
+Local nI 		as numeric
+Local nY 		as numeric
+Local nCampos	as numeric
+Local nTotItens	as numeric
+Local nContLin	as numeric
+
+Local lCampo	as logic
+
+Local aCabPC	as array
+Local aDetPC	as array
+Local aItem		as array
+Local aRetorno		as array
+
+cNum := ""
+
+nI := 0
+nY := 0
+nCampos := 0
+nTotItens := GetMv("MV_NUMITEN",, 300)		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens do pedido de venda
+nContLin := 0
+
+lCampo := .F.
+
+aCabPC := {}
+aDetPC := {}
+aItem := {}
+aRetorno := {}
+
+ProcRegua(Len(aDet))
+
+// Analise de cada linha dos itens
+For nI := 1 to Len(aDet)
+
+	IncProc("Preparando linhas para gerar pedidos: " + cValToChar(nI) + "/" + cValToChar(Len(aDet)) )
+
+	// Se nY (primeiro registro) estiver vazio, ou se o codigo e loja do fornecedor estiverem diferentes do
+	// posionado anteriormente, adiciono dados de cabecalho
+	If nY == 0 .OR. ( Len(aCabPC) > 0 .AND. aCabPC[aScan(aCabPC, {|x| AllTrim(x[1]) == "C7_FORNECE" })][2] + aCabPC[aScan(aCabPC, {|x| AllTrim(x[1]) == "C7_LOJA" })][2] <>;
+					aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_FORNECE" })] + aDet[nY][aScan(aCabec, {|x| AllTrim(x) == "C7_LOJA" })] )
+
+		// Esvazio array de cabecalho para adicionar novo cabecalho de outro fornecedor
+		ASize(aCabPC,0)
+
+		AAdd(aCabPC,{'C7_FILIAL'	, TrataDados("C7_FILIAL", aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_FILIAL" })])		, Nil})		// Filial do pedido
+		AAdd(aCabPC,{'C7_EMISSAO'	, TrataDados("C7_EMISSAO", aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_EMISSAO" })])		, Nil})		// Data de Emissao
+		AAdd(aCabPC,{'C7_FORNECE'	, TrataDados("C7_FORNECE", aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_FORNECE" })])		, Nil})		// Fornecedor
+		AAdd(aCabPC,{'C7_LOJA'		, TrataDados("C7_LOJA", aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_LOJA" })])			, Nil})		// Loja do Fornecedor
+		AAdd(aCabPC,{'C7_COND'		, TrataDados("C7_COND", aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_COND" })])			, Nil})		// Condicao de Pagamento
+		AAdd(aCabPC,{'C7_CONTATO'	, TrataDados("C7_CONTATO", aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_CONTATO" })])		, Nil})		// Contato de Compras   
+		AAdd(aCabPC,{'C7_FILENT'	, TrataDados("C7_FILENT", aDet[nI][aScan(aCabec, {|x| AllTrim(x) == "C7_FILENT" })])		, Nil})		// Filial de Entrega
+	EndIf
+
+	// Analise de cada coluna do cabecalho
+	For nY := 1 to Len(aCabec)
+		// Se conteudo do cabecalho ja foi utilizado no array de cabecalho do pedido de compra,
+		// nao considero no array de itens do pedido de compra
+		If aScan(aCabPC, {|x| AllTrim(x[1]) == aCabec[nY] }) == 0
+			// Somente preenche se a informacao do detalhe estiver preenchido
+			// e se existir no dicionario de campos
+			If !Empty(aDet[nI][nY]) .AND. Len(TamSX3(aCabec[nY])) > 0
+				AAdd(aItem,	{aCabec[nY]	, TrataDados(aCabec[nY], aDet[nI][nY])							, Nil})
+			EndIf
+		EndIf
+	Next nY
+
+	// Adiciono todas as colunas da linha no array de item de pedido de compra
+	AAdd(aDetPC, aClone(aItem))
+
+	// Se o laco alcancar o numero maximo de itens para geracao da nota, gero o pedido
+	// e faco novo tratamento de proximos itens para um novo pedido de compra
+	If Mod(nI, nTotItens) == 0
+		// AEval(aDetPC,{|x| ADel(x,14), ASize(x, Len(x)-1) })
+
+		AAdd(aRetorno, GravaPedCom(aCabPC, aDetPC, 3))
+		// Esvazio array de itens do pedido de compra para proximo lote de itens
+		ASize(aDetPc,0)
+	EndIf
+
+	// Zero array aItem para proxima linha
+	ASize(aItem,0)
+Next nI
+
+// Se ultimo processamento nao foi executao no laco, executo o restante dos itens
+If Len(aDetPC) > 0
+	AAdd(aRetorno, GravaPedCom(aCabPC, aDetPC, 3))
+EndIf
+
+Return aRetorno
+
+/*/{Protheus.doc} LeArquivo
+//TODO Lê arquivo CSV para importação
+@author Pirolo
+@since 15/04/2020
+@return return, return_description
+@see https://tdn.totvs.com/display/framework/FWFileReader
+/*/
+
+Static function LeArquivo(cFile as char)
+
+Local cLinha	:= "" as char
+
+Local oFile		:= Nil as object
+
+oFile := FWFileReader():New(cFile)
+
+If (oFile:Open())
+
+	ProcRegua(oFile:getFileSize())
+
+	While (oFile:hasLine())
+
+		IncProc("Total de linhas: " + cValToChar(oFile:getBytesRead()))
+
+		cLinha := AllTrim(oFile:GetLine())
+
+		//Remove caractere especial adicionado pelo Excel
+		cLinha := replace(cLinha, "ï»¿", "")
+
+		If Len(aCabec) == 0
+			aCabec := StrToKarr2(cLinha, ";", .T.)
+		Else
+			Aadd(aDet, StrToKarr2(cLinha, ";", .T.))
+		EndIf
+
+	EndDo
+	oFile:Close()
+EndIf
+
+Return Nil
+
+/*/{Protheus.doc} TrataDados
+(Funcao para tratar conteudo de cada campo do arquivo CSV para numerico, data ou logico)
+@author Renato Calabro'
+@since 07/05/2021
+@param cCampo, character, (Nome do campo de referencia do SX3)
+@param xValor, special, (Conteudo enviado para ser convertido)
+@return xValor, special (Conteudo convertido para caracter, numerico, data ou logico)
+@see (links_or_references)
+/*/
+
+Static Function TrataDados(cCampo, xValor)
+
+Local cTipoDado		as char
+
+If !Empty(xValor)
+
+	 cTipoDado := TamSX3(cCampo)[3]
+
+	// Se tipo de dado for diferente de caracter, faco a conversao
+	// Senao, retorna o mesmo conteudo
+	If cTipoDado <> "C"
+		//Numerico
+		If cTipoDado == "N"
+			xValor	:= Replace(xValor, ".","")
+			xValor	:= Val(Replace(xValor, ",","."))
+
+		//Data
+		ElseIf cTipoDado == "D"
+			xValor	:= Stod(xValor)
+
+		//Logico
+		ElseIf cTipoDado == "L"
+			xValor := Upper(xValor) == "T" .OR. Upper(xValor) == ".T."  
+		EndIf
+	EndIf
+EndIf
+
+Return xValor
+
+/*/{Protheus.doc} GravaPedCom
+(Funcao para executar ExecAuto de pedido de compras)
+@author Renato Calabro'
+@since 07/05/2021
+@param aCabPC, array, (Array contendo o cabecalho a ser incluido para o pedido de compra)
+@param aDetPC, array, (Array contendo os itens a serem incluidos para o pedido de compra)
+@return cErro, character (Retorno de erro da funcao MATA120, caso ocorra)
+@see (links_or_references)
+/*/
+
+Static Function GravaPedCom(aCabPC, aDetPC, nOpc)
+
+Local cResult			as char
+
+Private lMsErroAuto		as logic
+Private lMsErroHelp		as logic
+Private	lAutoErrNoFile	as logic
+
+cResult := ""
+
+lMsErroAuto := .F.
+lMsErroHelp := .T.
+lAutoErrNoFile := IsBlind()		// Se for job, gravo erro em array, senao mostro em tela
+
+begin transaction
+
+	// Somente processa se houver cabecalho e itens preenchidos
+	If Len(aCabPC) * Len(aDetPC) > 0
+		MsExecAuto({|v,w,x,y,z| MATA120(v,w,x,y,z)}, 1, aCabPC, aDetPC, 3)							// 1 = Pedido de compra
+
+		If lMsErroAuto
+			If !__lSX8
+				RollBackSx8()
+			EndIf
+
+			If !IsBlind()
+				cResult := MostraErro()
+			Else
+				aAutoErro := GetAutoGrLog()
+				aEval(aAutoErro, {|x| cResult += x + "|" })
+				// Converto retorno de carro para "|"
+				cResult := StrTran(cResult, Chr(13)+Chr(10), "|")
+			EndIf
+			DisarmTransaction()
+		Else
+
+			cResult := "Pedido " + SC7->C7_NUM + " gerado com sucesso!"
+
+			While (GetSX8Len() > 0)
+				If __lSX8
+					ConfirmSx8()
+				EndIf
+			EndDo
+		EndIf
+	EndIf
+End Transaction
+
+Return cResult
