@@ -411,7 +411,7 @@ For nI := 1 To Len(aArqs)
 	oMeter1:Set(nI * 10)
 	cHist += "Appendando arquivo " + aArqs[nI] + CRLF
 	oGet2:Refresh()
-	DbUseArea(.T.,,cDir+aArqs[nI],"BASEX",.F.,.F.)
+	// DbUseArea(.T.,,cDir+aArqs[nI],"BASEX",.F.,.F.)
 	aStru1 := BASEX->(DbStruct())
 	aStru2 := {}
 	AEval(aStru1,{|x,y| Aadd(aStru2,{x[1],"BASEX->"+x[1]}) })
