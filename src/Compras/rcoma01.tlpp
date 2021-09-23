@@ -83,7 +83,7 @@ Local cNumDoc		:= "" as character
 
 Local nI 			:= 0 as integer
 Local nTotItens		:= GetMv("MV_NUMITEN",, 300) as integer		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens
-Local nPosProdArq	:= aScan(aCabec,{|x| "DESCRI" $ FwNoAccent(AllTrim(x))}) as integer
+// Local nPosProdArq	:= aScan(aCabec,{|x| "DESCRI" $ FwNoAccent(AllTrim(x))}) as integer
 Local nPosProdQtd	:= aScan(aCabec,{|x| "QTDE" $ FwNoAccent(AllTrim(x))}) as integer
 Local nPosProdCIF	:= aScan(aCabec,{|x| "CIF" $ FwNoAccent(AllTrim(x))}) as integer
 Local nPesoBruto	:= 0 as numeric
@@ -161,7 +161,7 @@ For nI := 1 to Len(aDet)
 		EndIf
 
 		AAdd(aItem, {"D1_ITEM"		, cItem := Soma1(cItem)																				, Nil } )
-		AAdd(aItem, {"D1_COD"		, Substr(aDet[nI][nPosProdArq], At("KOTA:", aDet[nI][nPosProdArq])+6, TamSX3("B1_COD")[1])			, Nil } )
+		AAdd(aItem, {"D1_COD"		, TrataDados("D1_COD", aDet[nI][aScan(aCabec, {|x| "CÓDIGO" $ Upper(AllTrim(x)) })])				, Nil } )
 		AAdd(aItem, {"D1_QUANT"		, TrataDados("D1_QUANT", aDet[nI][nPosProdQtd])														, Nil } )
 		AAdd(aItem, {"D1_VUNIT"		, TrataDados("D1_VUNIT", ( TrataDados("D1_VUNIT", aDet[nI][nPosProdCIF]) +;
 										TrataDados("D1_II", aDet[nI][aScan(aCabec, {|x| "II" $ Upper(AllTrim(x)) })]) ) /;
@@ -197,8 +197,12 @@ For nI := 1 to Len(aDet)
 		// cConteudo := If(Len(cConteudo) == 10, "", "01/") + If(Len(cConteudo) == 6, "0", "") + cConteudo
 		// AAdd(aItem, {"D1_DTVALID"	, LastDay(CToD(cConteudo))																			, Nil } )
 
-		AAdd(aItem, {"D1_XNADIC"	, TrataDados("D1_XNADIC", aDet[nI][aScan(aCabec, {|x| "ADICAO" $ Upper(AllTrim(x)) })])				, Nil } )
-		AAdd(aItem, {"D1_XSQADIC"	, TrataDados("D1_XSQADIC", aDet[nI][aScan(aCabec, {|x| "ITEM" $ Upper(AllTrim(x)) })])				, Nil } )
+		If SD1->(FieldPos("D1_XNADIC")) > 0
+			AAdd(aItem, {"D1_XNADIC"	, TrataDados("D1_XNADIC", aDet[nI][aScan(aCabec, {|x| "ADICAO" $ Upper(AllTrim(x)) })])				, Nil } )
+		EndIf
+		If SD1->(FieldPos("D1_XSQADIC")) > 0
+			AAdd(aItem, {"D1_XSQADIC"	, TrataDados("D1_XSQADIC", aDet[nI][aScan(aCabec, {|x| "ITEM" $ Upper(AllTrim(x)) })])				, Nil } )
+		EndIf
 		AAdd(aItem, {"D1_II"		, TrataDados("D1_II", aDet[nI][aScan(aCabec, {|x| "II" $ Upper(AllTrim(x)) })])						, Nil } )
 
 		If SD1->(FieldPos("D1_AFRMIMP")) > 0
