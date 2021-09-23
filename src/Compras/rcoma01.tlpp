@@ -161,7 +161,7 @@ For nI := 1 to Len(aDet)
 		EndIf
 
 		AAdd(aItem, {"D1_ITEM"		, cItem := Soma1(cItem)																				, Nil } )
-		AAdd(aItem, {"D1_COD"		, TrataDados("D1_COD", aDet[nI][aScan(aCabec, {|x| "CÓDIGO" $ Upper(AllTrim(x)) })])				, Nil } )
+		AAdd(aItem, {"D1_COD"		, TrataDados("D1_COD", aDet[nI][aScan(aCabec, {|x| "CODIGO" $ FwNoAccent(Upper(AllTrim(DecodeUTF8(x)))) })])	, Nil } )
 		AAdd(aItem, {"D1_QUANT"		, TrataDados("D1_QUANT", aDet[nI][nPosProdQtd])														, Nil } )
 		AAdd(aItem, {"D1_VUNIT"		, TrataDados("D1_VUNIT", ( TrataDados("D1_VUNIT", aDet[nI][nPosProdCIF]) +;
 										TrataDados("D1_II", aDet[nI][aScan(aCabec, {|x| "II" $ Upper(AllTrim(x)) })]) ) /;
