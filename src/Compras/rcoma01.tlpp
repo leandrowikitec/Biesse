@@ -44,7 +44,7 @@ If Len(aParam) > 0
 	If File(AllTrim(aParam[1]))
 
 		// Efetuo a leitura do arquivo selecionado
-		Processa({|| StaticCall(RCOMA03, LeArquivo, AllTrim(aParam[1])) },"Processando...", "Efetuando leitura do arquivo...")
+		Processa({|| U_RCO03LeArq(AllTrim(aParam[1])) },"Processando...", "Efetuando leitura do arquivo...")
 
 		// Somente prossegue se cabecalho e detalhes forem carregados
 		If Len(aCabec) * Len(aDet) > 0
@@ -167,7 +167,7 @@ For nI := 1 to Len(aDet)
 										TrataDados("D1_II", aDet[nI][aScan(aCabec, {|x| "II" $ Upper(AllTrim(x)) })]) ) /;
 										TrataDados("D1_QUANT", aDet[nI][nPosProdQtd]) )													, Nil } )
 
-		If !Empty(aDet[nI][aScan(aCabec, {|x| "TES" $ Upper(AllTrim(x)) })])
+		If aScan(aCabec, {|x| "TES" $ Upper(AllTrim(x)) }) > 0 .AND. !Empty(aDet[nI][aScan(aCabec, {|x| "TES" $ Upper(AllTrim(x)) })])
 			AAdd(aItem, {"D1_TES"		, TrataDados("D1_TES", aDet[nI][aScan(aCabec, {|x| "TES" $ Upper(AllTrim(x)) })])				, Nil } )
 		Else
 			AAdd(aItem, {"D1_TES"		, aParam[NPOSTES]																				, Nil } )

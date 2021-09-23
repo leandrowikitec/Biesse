@@ -124,7 +124,7 @@ Return aRetorno
 @see https://tdn.totvs.com/display/framework/FWFileReader
 /*/
 
-Static function LeArquivo(cFile as character)
+User function RCO03LeArq(cFile as character)
 
 Local cLinha	:= "" as character
 
