@@ -25,8 +25,8 @@ Local cImpCompl			:= "" as character
 Local cAtualiz			:= "" as character
 Local cViaTransp		:= "" as character
 Local cFormImp			:= "" as character
-Local cCNPJTerceiro		:= "" as character
-Local cUFTerceiro		:= "" as character
+Local cCNPJTerceiro		:= Space(14) as character
+Local cUFTerceiro		:= Space(2) as character
 
 Local nPosPro		:= 0 as integer
 Local nPosQtd		:= 0 as integer
@@ -268,6 +268,10 @@ Local oSay46	:= Nil as object
 Local oSay49	:= Nil as object
 Local oSay50	:= Nil as object
 Local oGet47	:= Nil as object
+Local oSay51	:= Nil as object
+Local oGet48	:= Nil as object
+Local oSay52	:= Nil as object
+Local oGet49	:= Nil as object
 Local oSBtn51	:= Nil as object
 Local oSBtn52	:= Nil as object
 
@@ -327,6 +331,38 @@ oCombo29:lVisibleControl := .T.
 oCombo29:aItems := { "1=Importar arquivo CSV","2=Informacoes digitadas nos Itens da NF"}
 oCombo29:nAt := 1
 
+oSay51 := TSAY():Create(oDlg3)
+oSay51:cName := "oSay51"
+oSay51:cCaption := "CNPJ Ter."
+oSay51:nLeft := 430
+oSay51:nTop := 40
+oSay51:nWidth := 58
+oSay51:nHeight := 17
+oSay51:lShowHint := .F.
+oSay51:lReadOnly := .F.
+oSay51:Align := 0
+oSay51:lVisibleControl := .T.
+oSay51:lWordWrap := .F.
+oSay51:lTransparent := .F.
+
+oGet48 := TGET():Create(oDlg3)
+oGet48:cName := "oGet48"
+oGet48:cCaption := "oGet48"
+oGet48:nLeft := 495
+oGet48:nTop := 40
+oGet48:nWidth := 153
+oGet48:nHeight := 21
+oGet48:lShowHint := .F.
+oGet48:lReadOnly := .F.
+oGet48:Align := 0
+oGet48:cVariable := "cCNPJTerceiro"
+oGet48:bSetGet := {|u| If(PCount()>0,cCNPJTerceiro:=u,cCNPJTerceiro) }
+oGet48:lVisibleControl := .T.
+oGet48:lPassword := .F.
+oGet48:Picture := "@R 99.999.999/9999-99"
+oGet48:lHasButton := .F.
+oGet48:bValid := {|| !Empty(cCNPJTerceiro) }
+
 oSay30 := TSAY():Create(oDlg3)
 oSay30:cName := "oSay30"
 oSay30:cCaption := "Tipo Doc Imp"
@@ -356,6 +392,39 @@ oCombo31:bSetGet := {|u| If(PCount()>0,cTpImp:=u,cTpImp) }
 oCombo31:lVisibleControl := .T.
 oCombo31:aItems := { "0=Declaracao de importacao","1=Declaracao simplificada de importacao","2=Recof - Declaracao de admissao","3=Outros"}
 oCombo31:nAt := 1
+
+oSay52 := TSAY():Create(oDlg3)
+oSay52:cName := "oSay52"
+oSay52:cCaption := "UF Terc."
+oSay52:nLeft := 430
+oSay52:nTop := 70
+oSay52:nWidth := 58
+oSay52:nHeight := 17
+oSay52:lShowHint := .F.
+oSay52:lReadOnly := .F.
+oSay52:Align := 0
+oSay52:lVisibleControl := .T.
+oSay52:lWordWrap := .F.
+oSay52:lTransparent := .F.
+
+oGet49 := TGET():Create(oDlg3)
+oGet49:cF3 := "12"
+oGet49:cName := "oGet49"
+oGet49:cCaption := "oGet49"
+oGet49:nLeft := 495
+oGet49:nTop := 70
+oGet49:nWidth := 53
+oGet49:nHeight := 21
+oGet49:lShowHint := .F.
+oGet49:lReadOnly := .F.
+oGet49:Align := 0
+oGet49:cVariable := "cUFTerceiro"
+oGet49:bSetGet := {|u| If(PCount()>0,cUFTerceiro:=u,cUFTerceiro) }
+oGet49:lVisibleControl := .T.
+oGet49:lPassword := .F.
+oGet49:Picture := "@!"
+oGet49:lHasButton := .F.
+oGet49:bValid := {|| ExistCpo("SX5","12"+cUFTerceiro) .AND. !Empty(cUFTerceiro) }
 
 oSay32 := TSAY():Create(oDlg3)
 oSay32:cName := "oSay32"
