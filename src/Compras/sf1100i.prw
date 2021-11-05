@@ -1,5 +1,5 @@
-#Include "Rwmake.ch"
-#Include "Protheus.ch"
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "PROTHEUS.CH"
 
 /*/{Protheus.doc} SF1100I
 	(Ponto de entrada apos gravação do documento de entrada)

@@ -27,7 +27,6 @@ If File(cFile)
 		AEval(aResultado, {|x| cPedidos += x + CRLF})
 		Aviso(	"Arquivo processado!", "O arquivo foi processado." + CRLF +;
 				"Verifique o número dos pedidos ou inconsistências geradas:" + CRLF + cPedidos, {"&Ok"},3 )
-				// Varinfo("PC", aResultado,,.F.),{"OK"},3 )
 	EndIf
 Else
 	Alert("Nenhum arquivo selecionado.")

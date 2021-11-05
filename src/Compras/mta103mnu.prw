@@ -19,7 +19,7 @@ aAdd(aSubRots,{"Relaciona Nf x Complem.", "U_RCOMA02()", 0, 40})
 aAdd(aSubRots,{"Vis. Complementos", "U_MyMT103Posicione()", 0, 38})
 aAdd(aSubRots,{"NFe SEFAZ", "SPEDNFE()", 0, 39})
 
-aAdd(aRotina, {"* Funções de Importação", aSubRots, , 0, 36} )
+aAdd(aRotina, {"* Funções de Importação", aSubRots, , 0, 36})
 
 Return Nil
 

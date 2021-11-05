@@ -277,7 +277,7 @@ For nI := 1 to Len(aDet)
 Next nI
 
 // Se ultimo processamento nao foi executao no laco, executo o restante dos itens
-If Len(aDetNF) > 0 //.AND. !Empty(cNumDoc)
+If Len(aDetNF) > 0
 	// Adiciono dados de campos de cabecalho que sao calculados com valores
 	AddCposCabec(	@aCabNF		, nPesoBruto	, nPesoLiquid	, nTotTxSisco	, nTotPis		, nTotCofins,;
 					nTotAFRMM	, nTotICMS		, nTotBaseICMS	, nTotIPI		, nTotBaseIPI )
