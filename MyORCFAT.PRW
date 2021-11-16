@@ -14,7 +14,7 @@
 ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
 /*/
-User Function ORCFAT()        // incluido por el asistente de conversión del AP6 IDE en 31/07/02
+User Function MyORCFAT()        // incluido por el asistente de conversión del AP6 IDE en 31/07/02
  
 SetPrvt("CBTXT,CBCONT,NORDEM,TAMANHO,LIMITE,CIMPRI")
 SetPrvt("NTOTAL,TITULO,CDESC1,CDESC2,CDESC3,ARETURN")
