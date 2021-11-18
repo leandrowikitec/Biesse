@@ -127,13 +127,14 @@ Private oFont18N	:= Nil as object
 
 cQuery := "SELECT "
 cQuery += "CJ_FILIAL, CJ_CLIENTE, CJ_LOJA, CJ_EMISSAO, CJ_NUM, CJ_STATUS, CJ_MOEDA, CJ_VALIDA, " +cRLF
-cQuery += "CJ_TPFRETE, CJ_TIPOCLI,  " +cRLF
+cQuery += "CJ_TPFRETE, CJ_TIPOCLI, CJ_CONDPAG, " +cRLF
 cQuery += "CK_FILIAL, CK_NUM, CK_PRODUTO, CK_ITEM, CK_CLIENTE, CK_LOJA, CK_UM, CK_QTDVEN, CK_PRCVEN, " +cRLF
 cQuery += "CK_VALOR, CK_TES, CK_VALDESC, CK_ENTREG, CK_CLASFIS, " +cRLF
 cQuery += "A1_COD, SUBSTRING(A1_NOME,1,35) AS A1_NOME, SUBSTRING(A1_END,1,35) AS A1_END, A1_CEP, " +cRLF
 cQuery += "A1_EST, A1_BAIRRO, A1_MUN, A1_CGC, A1_INSCR, A1_TEL, " +cRLF
 cQuery += "SUBSTRING(B1_DESC,1,30) AS B1_DESC, " +cRLF
-cQuery += "A3_NOME " +cRLF
+cQuery += "A3_NOME, " +cRLF
+cQuery += "E4_DESCRI " +cRLF
 
 cQuery += "FROM "+RetSqlName("SCJ")+" SCJ " +cRLF
 
@@ -159,6 +160,11 @@ cQuery += "LEFT OUTER JOIN "+RetSqlName("SA3")+" SA3 "+cRLF
 cQuery += "ON SA3.A3_FILIAL = '"+xFilial("SA3")+"' " +cRLF
 cQuery += "AND SA3.A3_COD = SA1.A1_VEND " +cRLF
 cQuery += "AND SA3.D_E_L_E_T_ <> '*' " +cRLF
+
+cQuery += "LEFT OUTER JOIN "+RetSqlName("SE4")+" SE4 "+cRLF
+cQuery += "ON SE4.E4_FILIAL = '"+xFilial("SE4")+"' " +cRLF
+cQuery += "AND SE4.E4_CODIGO = SCJ.CJ_CONDPAG " +cRLF
+cQuery += "AND SE4.D_E_L_E_T_ <> '*' " +cRLF
 
 cQuery += "WHERE SCJ.CJ_FILIAL = '"+xFilial("SCJ")+"' " +cRLF
 
@@ -387,10 +393,10 @@ oRpt:SayAlign(620	, 940	, AllTrim(TMP001->A1_INSCR)								, oFont12:oFont		, 50
 oRpt:SayAlign(620	, 1300	, "Vendedor:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
 oRpt:SayAlign(620	, 1500	, AllTrim(TMP001->A3_NOME)								, oFont12:oFont		, 650, 100,, 0, 0)
 
-If TMP001->A1_TEL <> ""
-	oRpt:SayAlign(660	, 500	, "Telefone: "	  										, oFont12N:oFont	, 300, 100,, 0, 0)
-	oRpt:SayAlign(660	, 640	, AllTrim(TMP001->A1_TEL) 								, oFont12:oFont		, 300, 100,, 0, 0)
-EndIf
+oRpt:SayAlign(660	, 500	, "Telefone: "	  										, oFont12N:oFont	, 300, 100,, 0, 0)
+oRpt:SayAlign(660	, 640	, AllTrim(TMP001->A1_TEL) 								, oFont12:oFont		, 300, 100,, 0, 0)
+oRpt:SayAlign(660	, 1300	, "Cond.Pagto:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
+oRpt:SayAlign(660	, 1500	, AllTrim(TMP001->CJ_CONDPAG + "-" + TMP001->E4_DESCRI)	, oFont12:oFont		, 650, 100,, 0, 0)
 
 Return Nil
 
@@ -415,7 +421,7 @@ oRpt:Line(725	, 100	, 725	, 2080)
 // Cabecalho das colunas dos itens
 oRpt:SayAlign(760	, 100	, "Código"							 			, oFont12N:oFont	, 250	, 100,, 0, 0)
 oRpt:SayAlign(760	, 250	, "Descrição do Produto" 				 		, oFont12N:oFont	, 400	, 100,, 0, 0)
-oRpt:SayAlign(760	, 700	, "Un"								 			, oFont12N:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(760	, 710	, "Un"								 			, oFont12N:oFont	, 200	, 100,, 0, 0)
 oRpt:SayAlign(760	, 700	, "Qtd"							 				, oFont12N:oFont	, 250	, 100,, 1, 0)
 oRpt:SayAlign(760	, 850	, "Vl.Unit"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(760	, 1000	, "Vl.do Item"									, oFont12N:oFont	, 300	, 100,, 1, 0)
@@ -465,7 +471,7 @@ nLinha += If(nLinha == 0, 850, 040)
 // Detalhes dos itens na SCK
 oRpt:SayAlign(nLinha	, 100	, AllTrim(TMP001->CK_PRODUTO)						 				, oFont12:oFont	, 250	, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 250	, AllTrim(TMP001->B1_DESC)								 			, oFont12:oFont	, 600	, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 700	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 710	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 700	, Transform(ROUND(TMP001->CK_QTDVEN ,4), GetSX3Cache("CK_QTDVEN", "X3_PICTURE"))	, oFont12:oFont	, 250	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(nPrcVen ,4), GetSX3Cache("CK_PRCVEN", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1000	, Transform(ROUND(nValor ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
@@ -504,11 +510,11 @@ oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2080)
 nLinha += 040
 
 oRpt:SayAlign(nLinha	, 100	, "Valor Itens s/ Desconto:"									, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 400	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 250, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 400	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 900	, "Desconto dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1150	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 250, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1150	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1500	, "Total dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1800	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 250, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1800	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
 
 nLinha += 040
 
