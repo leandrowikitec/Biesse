@@ -396,7 +396,7 @@ oRpt:SayAlign(620	, 1500	, AllTrim(TMP001->A3_NOME)								, oFont12:oFont		, 65
 oRpt:SayAlign(660	, 500	, "Telefone: "	  										, oFont12N:oFont	, 300, 100,, 0, 0)
 oRpt:SayAlign(660	, 640	, AllTrim(TMP001->A1_TEL) 								, oFont12:oFont		, 300, 100,, 0, 0)
 oRpt:SayAlign(660	, 1300	, "Cond.Pagto:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
-oRpt:SayAlign(660	, 1500	, AllTrim(TMP001->CJ_CONDPAG + "-" + TMP001->E4_DESCRI)	, oFont12:oFont		, 650, 100,, 0, 0)
+oRpt:SayAlign(660	, 1500	, AllTrim(TMP001->E4_DESCRI)							, oFont12:oFont		, 650, 100,, 0, 0)
 
 Return Nil
 
@@ -479,7 +479,7 @@ oRpt:SayAlign(nLinha	, 1150	, Transform(ROUND(nValDesc ,4), GetSX3Cache("CK_VALD
 oRpt:SayAlign(nLinha	, 1300	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1450	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1600	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1750	, Transform(ROUND(nValor - nValDesc,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")), oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1750	, Transform(ROUND(nValor - nValDesc,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))		, oFont12:oFont	, 300	, 100,, 1, 0)
 
 nTotVal  	+= nValor
 nTotDesc 	+= nValDesc
@@ -514,7 +514,7 @@ oRpt:SayAlign(nLinha	, 400	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICT
 oRpt:SayAlign(nLinha	, 900	, "Desconto dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 1150	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1500	, "Total dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1800	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1750	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
 
 nLinha += 040
 
