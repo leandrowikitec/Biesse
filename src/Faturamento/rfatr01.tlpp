@@ -346,27 +346,23 @@ oRpt:Line(405	, 100	, 405	, 2080)
 
 oRpt:SayAlign(460	, 100	, AllTrim(SM0->M0_FILIAL)								, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(460	, 500	, "Cliente: " 							 				, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(460	, 640	, AllTrim(TMP001->A1_NOME)		  		 				, oFont12:oFont		, 600, 100,, 0, 0)
+oRpt:SayAlign(460	, 640	, AllTrim(TMP001->A1_NOME)		  		 				, oFont12:oFont		, 650, 100,, 0, 0)
 oRpt:SayAlign(460	, 1300	, "Data de Emissão: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
 oRpt:SayAlign(460	, 1540	, DToC(SToD(TMP001->CJ_EMISSAO))	  		 			, oFont12:oFont		, 200, 100,, 0, 0)
 oRpt:SayAlign(460	, 1690	, "N° do Orçamento: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(460	, 1930	, AllTrim(TMP001->CJ_NUM)		  			 			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(460	, 1940	, AllTrim(TMP001->CJ_NUM)		  			 			, oFont12:oFont		, 350, 100,, 0, 0)
 
 oRpt:SayAlign(500	, 100	, AllTrim(SM0->M0_ENDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(500	, 500	, "Endereço: " 							 				, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(500	, 640	, AllTrim(TMP001->A1_END)		  		 				, oFont12:oFont		, 600, 100,, 0, 0)
+oRpt:SayAlign(500	, 640	, AllTrim(TMP001->A1_END)		  		 				, oFont12:oFont		, 650, 100,, 0, 0)
 oRpt:SayAlign(500	, 1300	, "Data de Entrega: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
 oRpt:SayAlign(500	, 1540	, DToC(SToD(TMP001->CK_ENTREG))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
 oRpt:SayAlign(500	, 1690	, "Data de Validade: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(500	, 1930	, DToC(SToD(TMP001->CJ_VALIDA))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(500	, 1940	, DToC(SToD(TMP001->CJ_VALIDA))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
 
 oRpt:SayAlign(540	, 100	, AllTrim(SM0->M0_CIDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
-oRpt:SayAlign(540	, 500	, "CEP: " 		  						 				, oFont12N:oFont	, 100, 100,, 0, 0)
-oRpt:SayAlign(540	, 570	, Transform(TMP001->A1_CEP, "@R 99.999-999")			, oFont12:oFont		, 350, 100,, 0, 0)
-oRpt:SayAlign(540	, 740	, "Bairro:" 		  						 			, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(540	, 840	, AllTrim(TMP001->A1_BAIRRO)							, oFont12:oFont		, 450, 100,, 0, 0)
-oRpt:SayAlign(540	, 1300	, "Cidade:" 		  									, oFont12N:oFont	, 500, 100,, 0, 0)
-oRpt:SayAlign(540	, 1400	, AllTrim(TMP001->A1_MUN) + '/'	+ AllTrim(TMP001->A1_EST)	, oFont12:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(540	, 500	, "Cidade:" 		  									, oFont12N:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(540	, 640	, AllTrim(TMP001->A1_MUN) + ' / '+ AllTrim(TMP001->A1_EST)	, oFont12:oFont	, 500, 100,, 0, 0)
 oRpt:SayAlign(540	, 1690	, "Período:" 									 		, oFont12N:oFont	, 350, 100,, 0, 0)
 
 If lTela
@@ -376,18 +372,25 @@ Else
 EndIf	
 
 oRpt:SayAlign(580	, 100	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12:oFont	, 500, 100,, 0, 0)
-oRpt:SayAlign(580	, 500	, "CNPJ: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(580	, 610	, Transform(TMP001->A1_CGC, "@R 99.999.999/9999-99") 	, oFont12:oFont		, 500, 100,, 0, 0)
-oRpt:SayAlign(580	, 870	, "I.E: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(580	, 920	, AllTrim(TMP001->A1_INSCR)								, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(580	, 500	, "CEP: " 		  						 				, oFont12N:oFont	, 100, 100,, 0, 0)
+oRpt:SayAlign(580	, 570	, Transform(TMP001->A1_CEP, "@R 99.999-999")			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(580	, 760	, "Bairro:" 		  						 			, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(580	, 860	, AllTrim(TMP001->A1_BAIRRO)							, oFont12:oFont		, 450, 100,, 0, 0)
 oRpt:SayAlign(580	, 1300	, "Tipo de Frete: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
 oRpt:SayAlign(580	, 1500	, If(nX == 0, "", aTipFrete[nX][2])						, oFont12:oFont		, 400, 100,, 0, 0)
 
 oRpt:SayAlign(620	, 100	, "Telefone: " + SM0->M0_TEL        					, oFont12:oFont		, 500, 100,, 0, 0)
-oRpt:SayAlign(620	, 500	, "Telefone: "	  										, oFont12N:oFont	, 300, 100,, 0, 0)
-oRpt:SayAlign(620	, 640	, AllTrim(TMP001->A1_TEL) 								, oFont12:oFont		, 300, 100,, 0, 0)
+oRpt:SayAlign(620	, 500	, "CNPJ: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(620	, 610	, Transform(TMP001->A1_CGC, "@R 99.999.999/9999-99") 	, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(620	, 890	, "I.E: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(620	, 940	, AllTrim(TMP001->A1_INSCR)								, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(620	, 1300	, "Vendedor:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
 oRpt:SayAlign(620	, 1500	, AllTrim(TMP001->A3_NOME)								, oFont12:oFont		, 650, 100,, 0, 0)
+
+If TMP001->A1_TEL <> ""
+	oRpt:SayAlign(660	, 500	, "Telefone: "	  										, oFont12N:oFont	, 300, 100,, 0, 0)
+	oRpt:SayAlign(660	, 640	, AllTrim(TMP001->A1_TEL) 								, oFont12:oFont		, 300, 100,, 0, 0)
+EndIf
 
 Return Nil
 
