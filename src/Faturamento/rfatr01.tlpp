@@ -369,6 +369,8 @@ oRpt:SayAlign(500	, 1940	, DToC(SToD(TMP001->CJ_VALIDA))		  		 			, oFont12:oFon
 oRpt:SayAlign(540	, 100	, AllTrim(SM0->M0_CIDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(540	, 500	, "Cidade:" 		  									, oFont12N:oFont	, 500, 100,, 0, 0)
 oRpt:SayAlign(540	, 640	, AllTrim(TMP001->A1_MUN) + ' / '+ AllTrim(TMP001->A1_EST)	, oFont12:oFont	, 500, 100,, 0, 0)
+
+/*/
 oRpt:SayAlign(540	, 1690	, "Período:" 									 		, oFont12N:oFont	, 350, 100,, 0, 0)
 
 If lTela
@@ -376,6 +378,7 @@ If lTela
 Else
 	oRpt:SayAlign(540	, 1810	, DToC(SToD(TMP001->CJ_EMISSAO)) + " à " + DToC(SToD(TMP001->CJ_EMISSAO))	, oFont12:oFont		, 350, 100,, 0, 0)
 EndIf	
+/*/
 
 oRpt:SayAlign(580	, 100	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12:oFont	, 500, 100,, 0, 0)
 oRpt:SayAlign(580	, 500	, "CEP: " 		  						 				, oFont12N:oFont	, 100, 100,, 0, 0)
@@ -404,7 +407,7 @@ Return Nil
 	(Funcao para adicionar a discriminacao dos itens)
 	@type Static Function
 	@author Everaldo
-	@since 23/09/2021
+	@since 11/11/2021
 	@version version
 	@return Nil, Nulo
 	@example
@@ -420,8 +423,8 @@ oRpt:Line(725	, 100	, 725	, 2080)
 
 // Cabecalho das colunas dos itens
 oRpt:SayAlign(760	, 100	, "Código"							 			, oFont12N:oFont	, 250	, 100,, 0, 0)
-oRpt:SayAlign(760	, 250	, "Descrição do Produto" 				 		, oFont12N:oFont	, 400	, 100,, 0, 0)
-oRpt:SayAlign(760	, 710	, "Un"								 			, oFont12N:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(760	, 280	, "Descrição do Produto" 				 		, oFont12N:oFont	, 400	, 100,, 0, 0)
+oRpt:SayAlign(760	, 740	, "Un"								 			, oFont12N:oFont	, 200	, 100,, 0, 0)
 oRpt:SayAlign(760	, 700	, "Qtd"							 				, oFont12N:oFont	, 250	, 100,, 1, 0)
 oRpt:SayAlign(760	, 850	, "Vl.Unit"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(760	, 1000	, "Vl.do Item"									, oFont12N:oFont	, 300	, 100,, 1, 0)
@@ -441,7 +444,7 @@ Return Nil
 	(Funcao para adicionar os itens dos servicos)
 	@type Static Function
 	@author Everaldo
-	@since 23/09/2021
+	@since 11/11/2021
 	@version version
 	@param nLinha, numeric, (Referencia da linha para o item a ser considerado)
 	@return Nil, Nulo
@@ -470,8 +473,8 @@ nLinha += If(nLinha == 0, 850, 040)
 
 // Detalhes dos itens na SCK
 oRpt:SayAlign(nLinha	, 100	, AllTrim(TMP001->CK_PRODUTO)						 				, oFont12:oFont	, 250	, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 250	, AllTrim(TMP001->B1_DESC)								 			, oFont12:oFont	, 600	, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 710	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 280	, AllTrim(TMP001->B1_DESC)								 			, oFont12:oFont	, 600	, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 740	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 700	, Transform(ROUND(TMP001->CK_QTDVEN ,4), GetSX3Cache("CK_QTDVEN", "X3_PICTURE"))	, oFont12:oFont	, 250	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(nPrcVen ,4), GetSX3Cache("CK_PRCVEN", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1000	, Transform(ROUND(nValor ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
