@@ -55,14 +55,14 @@ Private lTela 		:= .T. as logical
 // Monta array com as perguntas
 
 aAdd(aParamBox, {9,cCadastro,100,12,.T.})
-aAdd(aParamBox, {1,"Cliente de ?",Space(06),"","","SA1","",0,.F.}) // Tipo caractere
-aAdd(aParamBox, {1,"Cliente até ?",Space(06),"","","SA1","",0,.F.}) // Tipo caractere
-aAdd(aParamBox, {1,"Data de ?",Ctod(Space(8)),"","","","",50,.F.}) // Tipo data
-aAdd(aParamBox, {1,"Data até ?",Ctod(Space(8)),"","","","",50,.F.}) // Tipo data
-aAdd(aParamBox, {1,"Orçamento de ?",Space(06),"","","SCJ","",0,.F.}) // Tipo caractere
-aAdd(aParamBox, {1,"Orçamento até ?",Space(06),"","","SCJ","",0,.F.}) // Tipo caractere
-aAdd(aParamBox, {2,"Situação ?",1,axSituacao,50,"",.F.}) // Tipo combo
-aAdd(aParamBox, {2,"Qual moeda ? ",1,axMoeda,50,"",.F.}) // Tipo combo
+aAdd(aParamBox, {1,"Cliente de ",Space(06),"","","SA1","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {1,"Cliente até ",Space(06),"","","SA1","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {1,"Data de ",Ctod(Space(8)),"","","","",50,.F.}) // Tipo data
+aAdd(aParamBox, {1,"Data até ",Ctod(Space(8)),"","","","",50,.F.}) // Tipo data
+aAdd(aParamBox, {1,"Orçamento de ",Space(06),"","","SCJ","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {1,"Orçamento até ",Space(06),"","","SCJ","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {2,"Situação ",1,axSituacao,50,"",.F.}) // Tipo combo
+aAdd(aParamBox, {2,"Qual moeda ",1,axMoeda,50,"",.F.}) // Tipo combo
 
 If IsInCallStack( "MATA415" )
 	lTela := .F.
@@ -115,6 +115,7 @@ Private nTotPaginas	:= 0 as numeric
 Private nTotVal  	:= 0 as numeric
 Private nTotDesc 	:= 0 as numeric
 Private nTotValDesc	:= 0 as numeric
+Private cObservacao := "" as character
 Private oRpt		:= Nil as object
 Private oFont12		:= Nil as object
 Private oFont12N	:= Nil as object
@@ -127,7 +128,7 @@ Private oFont18N	:= Nil as object
 
 cQuery := "SELECT "
 cQuery += "CJ_FILIAL, CJ_CLIENTE, CJ_LOJA, CJ_EMISSAO, CJ_NUM, CJ_STATUS, CJ_MOEDA, CJ_VALIDA, " +cRLF
-cQuery += "CJ_TPFRETE, CJ_TIPOCLI, CJ_CONDPAG, " +cRLF
+cQuery += "CJ_TPFRETE, CJ_TIPOCLI, CJ_CONDPAG, CJ_FRETE, CJ_SEGURO, CJ_DESPESA, CJ_XOBS, " +cRLF
 cQuery += "CK_FILIAL, CK_NUM, CK_PRODUTO, CK_ITEM, CK_CLIENTE, CK_LOJA, CK_UM, CK_QTDVEN, CK_PRCVEN, " +cRLF
 cQuery += "CK_VALOR, CK_TES, CK_VALDESC, CK_ENTREG, CK_CLASFIS, " +cRLF
 cQuery += "A1_COD, SUBSTRING(A1_NOME,1,35) AS A1_NOME, SUBSTRING(A1_END,1,35) AS A1_END, A1_CEP, " +cRLF
@@ -217,6 +218,8 @@ While !Eof() .And. !lEnd
 
 		cOrcAtu := TMP001->CJ_NUM
 
+		cObservacao := POSICIONE("SCJ",1,TMP001->CJ_FILIAL+TMP001->CJ_NUM,"CJ_XOBS")
+
 		// Calcula impostos
 		CalcImposto()
 
@@ -259,9 +262,6 @@ While !Eof() .And. !lEnd
 
 		// Inicio nova pagina
 		oRpt:StartPage()
-
-		// Desenho linhas laterais da folha
-		// SetLinhasPag()
 
 		// Secao do cabecalho
 		AdicCabecalho()
@@ -504,6 +504,15 @@ Return Nil
 
 Static Function AdicTotal(nLinha as numeric)
 
+Local nX 		:= 0 as numeric
+Local nQbObs	:= 1 as numeric
+
+// Calcula o Imposto Geral do Orçamento
+
+nIcms		:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "NF_VALICM"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nIcmsSt 	:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "NF_VALSOL"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nIpi 		:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "NF_VALIPI"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+
 nLinha += 040
 
 oRpt:Line(nLinha	, 100	, nLinha	, 2080)		// Linha -- abaixo dos Itens
@@ -521,9 +530,61 @@ oRpt:SayAlign(nLinha	, 1750	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3
 
 nLinha += 040
 
-oRpt:Line(nLinha	, 100	, nLinha	, 2080)		// Linha -- abaixo dos totais
+oRpt:Line(nLinha	, 100	, nLinha	, 2080)		// Linha -- entre totais dos itens e despesas
 oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2080)
 oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2080)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "Desconto (-):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 435	, Transform(ROUND((nTotDesc / nTotVal)*100,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) + " %", oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 900	, "Despesa  (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1150	, Transform(CJ_DESPESA, GetSX3Cache("CK_VALOR", "X3_PICTURE"))  , oFont12:oFont	, 300, 100,, 1, 0)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "Frete      (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 400	, Transform(CJ_FRETE, GetSX3Cache("CK_VALOR", "X3_PICTURE"))	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 900	, "Seguro    (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1150	, Transform(CJ_SEGURO, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "Observação:"													, oFont12N:oFont, 500, 100,, 0, 0)
+
+For nX := 1 to (Int(Len(cObservacao)/100)+1)
+
+	oRpt:SayAlign(nLinha	, 280	, Substr(cObservacao, nQbObs, 100)							, oFont12:oFont, 1800, 100,, 0, 0)
+	nLinha += 040
+	nQbObs += 100
+
+Next
+
+oRpt:Line(nLinha	, 100	, nLinha	, 2080)		// Linha -- entre despesas e totais gerais
+oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2080)
+oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2080)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "VL ITENS"					 				, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 350	, "DESCONTO"  						 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 600	, "VL LIQUIDO"						 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 850	, "ADICIONAIS"				 					, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, "TOTAL ICMS"						 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1350	, "TOTAL IPI"									, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1600	, "TOTAL ICMS-ST"					 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, "VALOR TOTAL"									, oFont12N:oFont	, 235	, 100,, 1, 0)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 		  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 350	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	 	  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 600	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(CJ_FRETE+CJ_SEGURO+CJ_DESPESA,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 		 			, oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1350	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1600	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nTotValDesc+CJ_FRETE+CJ_SEGURO+CJ_DESPESA,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
 
 nTotVal  	:= 0
 nTotDesc 	:= 0
@@ -532,44 +593,16 @@ nTotValDesc := 0
 Return Nil
 
 /*/{Protheus.doc} SetLinhasPag
-	(Funcao para desenhar linhas laterais da pagina)
+	(Funcao para Calcular os impostos)
 	@type Static Function
 	@author Everaldo
-	@since 23/09/2021
+	@since 11/11/2021
 	@version version
 	@return Nil, Nulo
 	@example
 	(examples)
 	@see (links_or_references)
 	/*/
-
-Static Function SetLinhasPag()
-
-// Secao do cabecalho do romaneio de carga
-oRpt:Line(195	, 100	, 195	, 2080)		// Linha ------
-oRpt:Line(195	, 1695	, 400	, 1695)		// Linha |
-oRpt:Line(198	, 100	, 198	, 2080)		// Linha ------ para ficar dupla
-oRpt:Line(200	, 100	, 200	, 2080)		// Linha ------ para ficar dupla
-
-oRpt:Line(2951	, 100	, 2951	, 2080)		// Linha ------ ultima linha do rodape
-oRpt:Line(2952	, 100	, 2952	, 2080)		// Linha ------ para ficar dupla
-oRpt:Line(2953	, 100	, 2953	, 2080)		// Linha ------ para ficar dupla
-oRpt:Line(2954	, 100	, 2954	, 2080)		// Linha ------ para ficar dupla
-oRpt:Line(2955	, 100	, 2955	, 2080)		// Linha ------ para ficar dupla
-
-oRpt:Line(195	, 095	, 2955	, 095)		// Linha |      lateral esquerda
-oRpt:Line(195	, 097	, 2955	, 097)		// Linha |      para ficar dupla
-oRpt:Line(195	, 098	, 2955	, 098)		// Linha |      para ficar dupla
-oRpt:Line(195	, 099	, 2955	, 099)		// Linha |      para ficar dupla
-oRpt:Line(195	, 100	, 2955	, 100)		// Linha |      para ficar dupla
-
-oRpt:Line(195	, 2080	, 2955	, 2080)		// Linha      | lateral direita
-oRpt:Line(195	, 2081	, 2955	, 2081)		// Linha      | para ficar dupla
-oRpt:Line(195	, 2082	, 2955	, 2082)		// Linha      | para ficar dupla
-oRpt:Line(195	, 2083	, 2955	, 2083)		// Linha      | para ficar dupla
-oRpt:Line(195	, 2084	, 2955	, 2084)		// Linha      | para ficar dupla
-
-Return Nil
 
 Static Function CalcImposto()
 
@@ -622,7 +655,7 @@ EndDo
 
 // Calcula a quantidade de páginas do orçamento
 
-nTotPaginas := Int(nItens / 36) + 1
+nTotPaginas := Int((Int(Len(cObservacao)/100) + nItens) / 36) + 1
 nPaginas    := 0
 
 RestArea(aAreaCK)
