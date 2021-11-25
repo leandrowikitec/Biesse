@@ -111,6 +111,9 @@ Local aAreas		:= {SCK->(GetArea()), GetArea()} as array
 Private nLinDmsFol	:= 2890	// Maximo de linhas por folhas
 Private nPaginas    := 0 as numeric
 Private nTotPaginas	:= 0 as numeric
+Private nFrete		:= 0 as numeric
+Private nSeguro 	:= 0 as numeric
+Private nDespesa	:= 0 as numeric
 Private nTotVal  	:= 0 as numeric
 Private nTotDesc 	:= 0 as numeric
 Private nTotValDesc	:= 0 as numeric
@@ -211,66 +214,120 @@ While !Eof() .And. !lEnd
 		Return (Nil)
 	EndIf
 
-	// Quando quebra a numeração da carga é inicializada uma nova página com todas as secoes
+	If lPrimFolha
 
-	If cOrcAtu <> TMP001->CJ_NUM .Or. nLinha > (nLinDmsFol - (((Int(Len(cObservacao)/100))*040)+320))
+		lPrimFolha := .F.
+		cFile := "RFATR01_"+AllTrim(TMP001->CJ_NUM) + ".PDF"
+		//      FWMsPrinter():New ( < cFilePrintert >, [ nDevice], [ lAdjustToLegacy], [ cPathInServer], [ lDisabeSetup ], [ lTReport], [ @oPrintSetup], [ cPrinter], [ lServer], [ lPDFAsPNG], [ lRaw], [ lViewPDF], [ nQtdCopy] )
+		oRpt := FWMSPrinter():New(AllTrim(cFile),IMP_PDF/*nDevice*/,/*lAdjustToLegacy*/, "C:\PDF\"/*cPathInServer*/,!lTela/*lDisableSetup*/ ,/*lTReport*/,/*oPrintSetup*/,/*cPrinter*/,/*lServer*/,/*lPDFAsPNG*/,/*lRaw*/,.F./*lViewPDF*/)
+		oRpt:cPathPDF := "C:\PDF\"
+		oRpt:SetPortrait()
 
-		cOrcAtu := TMP001->CJ_NUM
+		oFont12		:= TFontEx():New(oRpt,"Arial",12,12,.F.,.T.,.F.)
+		oFont12N	:= TFontEx():New(oRpt,"Arial",12,12,.T.,.T.,.F.)
+		oFont14		:= TFontEx():New(oRpt,"Arial",14,14,.F.,.T.,.F.)
+		oFont14N	:= TFontEx():New(oRpt,"Arial",14,14,.T.,.T.,.F.)
+		oFont16N	:= TFontEx():New(oRpt,"Arial",16,16,.T.,.T.,.F.)
+		oFont18N	:= TFontEx():New(oRpt,"Arial",18,18,.T.,.T.,.F.)
 
+		cOrcAtu 	:= TMP001->CJ_NUM
 		cObservacao := POSICIONE("SCJ",1,TMP001->CJ_FILIAL+TMP001->CJ_NUM,"CJ_XOBS")
+		nFrete      := TMP001->CJ_FRETE
+		nSeguro		:= TMP001->CJ_SEGURO
+		nDespesa	:= TMP001->CJ_DESPESA
 
 		// Calcula impostos
 		CalcImposto()
 
-		// Definições realizadas somente na primeira folha
-		// Senão imprime total do Orçamento
-		If lPrimFolha
+		nLinha := 0
+		nFolha++
 
-			lPrimFolha := .F.
-			cFile := "RFATR01_"+AllTrim(TMP001->CJ_NUM) + ".PDF"
-			//      FWMsPrinter():New ( < cFilePrintert >, [ nDevice], [ lAdjustToLegacy], [ cPathInServer], [ lDisabeSetup ], [ lTReport], [ @oPrintSetup], [ cPrinter], [ lServer], [ lPDFAsPNG], [ lRaw], [ lViewPDF], [ nQtdCopy] )
-			oRpt := FWMSPrinter():New(AllTrim(cFile),IMP_PDF/*nDevice*/,/*lAdjustToLegacy*/, "C:\PDF\"/*cPathInServer*/,!lTela/*lDisableSetup*/ ,/*lTReport*/,/*oPrintSetup*/,/*cPrinter*/,/*lServer*/,/*lPDFAsPNG*/,/*lRaw*/,.F./*lViewPDF*/)
-			oRpt:cPathPDF := "C:\PDF\"
-			oRpt:SetPortrait()
+		// Inicio nova pagina
+		oRpt:StartPage()
 
-			oFont12		:= TFontEx():New(oRpt,"Arial",12,12,.F.,.T.,.F.)
-			oFont12N	:= TFontEx():New(oRpt,"Arial",12,12,.T.,.T.,.F.)
-			oFont14		:= TFontEx():New(oRpt,"Arial",14,14,.F.,.T.,.F.)
-			oFont14N	:= TFontEx():New(oRpt,"Arial",14,14,.T.,.T.,.F.)
-			oFont16N	:= TFontEx():New(oRpt,"Arial",16,16,.T.,.T.,.F.)
-			oFont18N	:= TFontEx():New(oRpt,"Arial",18,18,.T.,.T.,.F.)
-		Else
+		// Secao do cabecalho
+		AdicCabecalho()
 
-			// Rodape do relatorio
-			If nLinha <= (nLinDmsFol - (((Int(Len(cObservacao)/100))*040)+320))
-	
-				// Secao totais 
-				AdicTotal(@nLinha)
+		// Secao do cliente
+		AdicCliente()
 
-			Else
-				// Secao Rodape
-				AdicRodape()
+		// Secao discriminacao dos itens
+		AdicDiscrimItens()
 
-				// Secao do cabecalho
-				AdicCabecalho()
+	EndIf
 
-				// Secao do cliente
-				AdicCliente()
+	If nLinha > nLinDmsFol
 
-				// Secao discriminacao dos itens
-				AdicDiscrimItens()
+		// Secao Rodape
+		AdicRodape()
 
-				// Secao totais 
-				AdicTotal(@nLinha)
+		// Encerro pagina atual
+		oRpt:EndPage()
 
-			EndIf
+		// Inicio nova pagina
+		oRpt:StartPage()
+
+		nLinha := 0
+		nFolha++
+
+		// Secao do cabecalho
+		AdicCabecalho()
+
+		// Secao do cliente
+		AdicCliente()
+
+		// Secao discriminacao dos itens
+		AdicDiscrimItens()
+
+	EndIf
+
+	// Quando quebra a numeração da carga é inicializada uma nova página com todas as secoes
+
+	If cOrcAtu <> TMP001->CJ_NUM 
+
+		cOrcAtu := TMP001->CJ_NUM
+
+		If nLinha > (nLinDmsFol - (((Int(Len(cObservacao)/100))*040)+320))
+
+			// Secao Rodape
+			AdicRodape()
 
 			// Encerro pagina atual
 			oRpt:EndPage()
 
-			// Fecho o cálculo de impostos
-			MaFisEnd()
+			// Inicio nova pagina
+			oRpt:StartPage()
+
+			nLinha := 720
+			nFolha++
+
+			// Secao do cabecalho
+			AdicCabecalho()
+
+			// Secao do cliente
+			AdicCliente()
+
 		EndIf
+
+		// Secao totais 
+		AdicTotal(@nLinha)
+
+		// Secao Rodape
+		AdicRodape()
+
+		// Fecho o cálculo de impostos
+		MaFisEnd()
+
+		cObservacao := POSICIONE("SCJ",1,TMP001->CJ_FILIAL+TMP001->CJ_NUM,"CJ_XOBS")
+		nFrete      := TMP001->CJ_FRETE
+		nSeguro		:= TMP001->CJ_SEGURO
+		nDespesa	:= TMP001->CJ_DESPESA
+
+		// Calcula impostos
+		CalcImposto()
+
+		// Encerro pagina atual
+		oRpt:EndPage()
 
 		nLinha := 0
 		nFolha++
@@ -292,7 +349,6 @@ While !Eof() .And. !lEnd
 	// Secao dos itens 
 	AdicItens(@nLinha)
 
-
  	dbSelectArea("TMP001")
 	dbSkip()
 EndDo
@@ -304,9 +360,21 @@ If !lPrimFolha
 		// Secao totais 
 		AdicTotal(@nLinha)
 
+		// Secao Rodape
+		AdicRodape()
+
 	Else
 		// Secao Rodape
 		AdicRodape()
+
+		// Encerro pagina atual
+		oRpt:EndPage()
+
+		// Inicio nova pagina
+		oRpt:StartPage()
+
+		nLinha := 720
+		nFolha++
 
 		// Secao do cabecalho
 		AdicCabecalho()
@@ -314,14 +382,21 @@ If !lPrimFolha
 		// Secao do cliente
 		AdicCliente()
 
-		// Secao discriminacao dos itens
-		AdicDiscrimItens()
-
 		// Secao totais 
 		AdicTotal(@nLinha)
 
+		// Secao Rodape
+		AdicRodape()
+
 	EndIf
+
+	// Encerro pagina atual
+	oRpt:EndPage()
+
 EndIf
+
+// Fecho o cálculo de impostos
+MaFisEnd()
 
 // oRpt:Preview()
 oRpt:Print()
@@ -357,7 +432,9 @@ oRpt:SayAlign(260	, 950	, "ORÇAMENTO DE VENDAS"									, oFont18N:oFont	, 800, 
 oRpt:SayAlign(280	, 500	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(320	, 500	, "Telefone: " + SM0->M0_TEL        					, oFont12N:oFont	, 500, 100,, 0, 0)
 
-
+oRpt:Line(400	, 100	, 400	, 2080)		// Linha -- acima do cliente
+oRpt:Line(403	, 100	, 403	, 2080)
+oRpt:Line(405	, 100	, 405	, 2080)
 
 Return Nil
 
@@ -386,10 +463,6 @@ AAdd(aTipFrete, {"D", "D-Por conta destinatário"})
 AAdd(aTipFrete, {"S", "S-Sem frete"})
 
 nX := AScan( aTipFrete,{|x| x[1] == TMP001->CJ_TPFRETE})
-
-oRpt:Line(400	, 100	, 400	, 2080)		// Linha -- acima do cliente
-oRpt:Line(403	, 100	, 403	, 2080)
-oRpt:Line(405	, 100	, 405	, 2080)
 
 oRpt:SayAlign(460	, 100	, "Cliente: " 							 				, oFont12N:oFont	, 350, 100,, 0, 0)
 oRpt:SayAlign(460	, 240	, AllTrim(TMP001->A1_NOME)		  		 				, oFont12:oFont		, 800, 100,, 0, 0)
@@ -575,16 +648,16 @@ nLinha += 040
 oRpt:SayAlign(nLinha	, 100	, "Desconto (-):"												, oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 435	, Transform(ROUND((nTotDesc / nTotVal)*100,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) + " %", oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 900	, "Despesa  (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1150	, Transform(TMP001->CJ_DESPESA, GetSX3Cache("CJ_DESPESA", "X3_PICTURE"))  , oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1150	, Transform(nDespesa, GetSX3Cache("CJ_DESPESA", "X3_PICTURE"))  , oFont12:oFont	, 300, 100,, 1, 0)
 
 nLinha += 040
 
 oRpt:SayAlign(nLinha	, 100	, "Frete      (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 400	, Transform(TMP001->CJ_FRETE, GetSX3Cache("CJ_FRETE", "X3_PICTURE"))	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 400	, Transform(nFrete, GetSX3Cache("CJ_FRETE", "X3_PICTURE"))	, oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 900	, "Seguro    (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1150	, Transform(TMP001->CJ_SEGURO, GetSX3Cache("CJ_SEGURO", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1150	, Transform(nSeguro, GetSX3Cache("CJ_SEGURO", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
 
-nLinha += 040
+nLinha += 050
 
 oRpt:SayAlign(nLinha	, 100	, "Observação:"													, oFont12N:oFont, 500, 100,, 0, 0)
 
@@ -616,11 +689,11 @@ nLinha += 040
 oRpt:SayAlign(nLinha	, 100	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 		  , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 350	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	 	  , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 600	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(CJ_FRETE+CJ_SEGURO+CJ_DESPESA,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12N:oFont	, 235	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 		 			, oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(nFrete+nSeguro+nDespesa,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))   , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1350	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1600	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nTotValDesc+CJ_FRETE+CJ_SEGURO+CJ_DESPESA,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nTotValDesc+nFrete+nSeguro+nDespesa,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
 
 AdicRodape()
 
@@ -690,7 +763,7 @@ MaFisIni(	TMP001->CJ_CLIENTE,;                   // 1-Codigo Cliente/Fornecedor
 			"RFATR01")                             // 10-Nome da rotina que esta utilizando a funcao
 
 // Inclui itens
-
+SCK->(dbSetOrder(1))
 SCK->(DbSeek(xFilial('SCK') + TMP001->CK_NUM))
 While ! SCK->(EoF()) .And. SCK->CK_NUM == TMP001->CK_NUM
 	// Calcula quantos itens tem o Orçamento
