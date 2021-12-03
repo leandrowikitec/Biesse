@@ -133,7 +133,7 @@ cQuery += "CJ_FILIAL, CJ_CLIENTE, CJ_LOJA, CJ_EMISSAO, CJ_NUM, CJ_STATUS, CJ_MOE
 cQuery += "CJ_TPFRETE, CJ_TIPOCLI, CJ_CONDPAG, CJ_FRETE, CJ_SEGURO, CJ_DESPESA, CJ_XOBS, " +cRLF
 cQuery += "CK_FILIAL, CK_NUM, CK_PRODUTO, CK_ITEM, CK_CLIENTE, CK_LOJA, CK_UM, CK_QTDVEN, CK_PRCVEN, " +cRLF
 cQuery += "CK_VALOR, CK_TES, CK_VALDESC, CK_ENTREG, CK_CLASFIS, " +cRLF
-cQuery += "A1_COD, SUBSTRING(A1_NOME,1,50) AS A1_NOME, SUBSTRING(A1_END,1,50) AS A1_END, A1_CEP, " +cRLF
+cQuery += "A1_COD, SUBSTRING(A1_NOME,1,100) AS A1_NOME, SUBSTRING(A1_END,1,100) AS A1_END, A1_CEP, " +cRLF
 cQuery += "A1_EST, A1_BAIRRO, A1_MUN, A1_CGC, A1_INSCR, A1_TEL, " +cRLF
 cQuery += "SUBSTRING(B1_DESC,1,30) AS B1_DESC, " +cRLF
 cQuery += "A3_NOME, " +cRLF
@@ -425,16 +425,16 @@ Static Function AdicCabecalho()
 nPaginas ++
 oRpt:SayAlign(200	, 500	, AllTrim(SM0->M0_ENDENT)								, oFont12N:oFont	, 500, 100,, 0, 0)
 oRpt:SayBitmap(205	, 100	, "\SYSTEM\IMAGENS\INTERMAC.JPEG"						, 350, 150)
-oRpt:SayAlign(210	, 1900	, "Página " + Transform(nPaginas, "@R 99") + " de " + Transform(nTotPaginas, "@R 99")	, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
+oRpt:SayAlign(210	, 2000	, "Página " + Transform(nPaginas, "@R 99") + " de " + Transform(nTotPaginas, "@R 99")	, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
 oRpt:SayAlign(240	, 500	, AllTrim(SM0->M0_CIDENT)								, oFont12N:oFont	, 500, 100,, 0, 0)
-oRpt:SayAlign(250	, 1900	, DtoC(dDataBase)      		 							, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
+oRpt:SayAlign(250	, 2000	, DtoC(dDataBase)      		 							, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
 oRpt:SayAlign(260	, 950	, "ORÇAMENTO DE VENDAS"									, oFont18N:oFont	, 800, 100,, 0, 0)
 oRpt:SayAlign(280	, 500	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(320	, 500	, "Telefone: " + SM0->M0_TEL        					, oFont12N:oFont	, 500, 100,, 0, 0)
 
-oRpt:Line(400	, 100	, 400	, 2080)		// Linha -- acima do cliente
-oRpt:Line(403	, 100	, 403	, 2080)
-oRpt:Line(405	, 100	, 405	, 2080)
+oRpt:Line(400	, 100	, 400	, 2180)		// Linha -- acima do cliente
+oRpt:Line(403	, 100	, 403	, 2180)
+oRpt:Line(405	, 100	, 405	, 2180)
 
 Return Nil
 
@@ -465,50 +465,42 @@ AAdd(aTipFrete, {"S", "S-Sem frete"})
 nX := AScan( aTipFrete,{|x| x[1] == TMP001->CJ_TPFRETE})
 
 oRpt:SayAlign(460	, 100	, "Cliente: " 							 				, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(460	, 240	, AllTrim(TMP001->A1_NOME)		  		 				, oFont12:oFont		, 800, 100,, 0, 0)
-oRpt:SayAlign(460	, 1250	, "Data de Emissão: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(460	, 1490	, DToC(SToD(TMP001->CJ_EMISSAO))	  		 			, oFont12:oFont		, 200, 100,, 0, 0)
-oRpt:SayAlign(460	, 1690	, "N° do Orçamento: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(460	, 1940	, AllTrim(TMP001->CJ_NUM)		  			 			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(460	, 240	, AllTrim(TMP001->A1_NOME)		  		 				, oFont12:oFont		, 1500, 100,, 0, 0)
+oRpt:SayAlign(460	, 1790	, "N° do Orçamento: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(460	, 2040	, AllTrim(TMP001->CJ_NUM)		  			 			, oFont12:oFont		, 350, 100,, 0, 0)
 
 oRpt:SayAlign(500	, 100	, "Endereço: " 							 				, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(500	, 240	, AllTrim(TMP001->A1_END)		  		 				, oFont12:oFont		, 1050, 100,, 0, 0)
-oRpt:SayAlign(500	, 1250	, "Data de Entrega: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(500	, 1490	, DToC(SToD(TMP001->CK_ENTREG))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
-oRpt:SayAlign(500	, 1690	, "Data de Validade: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(500	, 1940	, DToC(SToD(TMP001->CJ_VALIDA))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(500	, 240	, AllTrim(TMP001->A1_END)		  		 				, oFont12:oFont		, 1500, 100,, 0, 0)
+oRpt:SayAlign(500	, 1790	, "Data de Emissão: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(500	, 2040	, DToC(SToD(TMP001->CJ_EMISSAO))	  		 			, oFont12:oFont		, 200, 100,, 0, 0)
+
+
 
 oRpt:SayAlign(540	, 100	, "Cidade:" 		  									, oFont12N:oFont	, 500, 100,, 0, 0)
 oRpt:SayAlign(540	, 240	, AllTrim(TMP001->A1_MUN) + ' / '+ AllTrim(TMP001->A1_EST)	, oFont12:oFont	, 500, 100,, 0, 0)
-
-/*/
-oRpt:SayAlign(540	, 1690	, "Período:" 									 		, oFont12N:oFont	, 350, 100,, 0, 0)
-
-If lTela
-	oRpt:SayAlign(540	, 1810	, DToC(MV_PAR04) + " à " + DToC(MV_PAR05)			, oFont12:oFont		, 350, 100,, 0, 0)
-Else
-	oRpt:SayAlign(540	, 1810	, DToC(SToD(TMP001->CJ_EMISSAO)) + " à " + DToC(SToD(TMP001->CJ_EMISSAO))	, oFont12:oFont		, 350, 100,, 0, 0)
-EndIf	
-/*/
+oRpt:SayAlign(540	, 1350	, "Data de Entrega: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(540	, 1590	, DToC(SToD(TMP001->CK_ENTREG))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(540	, 1790	, "Data de Validade: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(540	, 2040	, DToC(SToD(TMP001->CJ_VALIDA))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
 
 oRpt:SayAlign(580	, 100	, "CEP: " 		  						 				, oFont12N:oFont	, 100, 100,, 0, 0)
 oRpt:SayAlign(580	, 240	, Transform(TMP001->A1_CEP, "@R 99.999-999")			, oFont12:oFont		, 350, 100,, 0, 0)
-oRpt:SayAlign(580	, 440	, "Bairro:" 		  						 			, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(580	, 540	, AllTrim(TMP001->A1_BAIRRO)							, oFont12:oFont		, 450, 100,, 0, 0)
-oRpt:SayAlign(580	, 1250	, "Tipo de Frete: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(580	, 1490	, If(nX == 0, "", aTipFrete[nX][2])						, oFont12:oFont		, 400, 100,, 0, 0)
+oRpt:SayAlign(580	, 540	, "Bairro:" 		  						 			, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(580	, 640	, AllTrim(TMP001->A1_BAIRRO)							, oFont12:oFont		, 450, 100,, 0, 0)
+oRpt:SayAlign(580	, 1350	, "Tipo de Frete: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(580	, 1590	, If(nX == 0, "", aTipFrete[nX][2])						, oFont12:oFont		, 400, 100,, 0, 0)
 
 oRpt:SayAlign(620	, 100	, "CNPJ: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
 oRpt:SayAlign(620	, 240	, Transform(TMP001->A1_CGC, "@R 99.999.999/9999-99") 	, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(620	, 540	, "I.E: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(620	, 600	, AllTrim(TMP001->A1_INSCR)								, oFont12:oFont		, 500, 100,, 0, 0)
-oRpt:SayAlign(620	, 1250	, "Vendedor:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
-oRpt:SayAlign(620	, 1490	, AllTrim(TMP001->A3_NOME)								, oFont12:oFont		, 650, 100,, 0, 0)
+oRpt:SayAlign(620	, 640	, AllTrim(TMP001->A1_INSCR)								, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(620	, 1350	, "Vendedor:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
+oRpt:SayAlign(620	, 1590	, AllTrim(TMP001->A3_NOME)								, oFont12:oFont		, 650, 100,, 0, 0)
 
 oRpt:SayAlign(660	, 100	, "Telefone: "	  										, oFont12N:oFont	, 300, 100,, 0, 0)
 oRpt:SayAlign(660	, 240	, AllTrim(TMP001->A1_TEL) 								, oFont12:oFont		, 300, 100,, 0, 0)
-oRpt:SayAlign(660	, 1250	, "Cond.Pagto:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
-oRpt:SayAlign(660	, 1490	, AllTrim(TMP001->E4_DESCRI)							, oFont12:oFont		, 650, 100,, 0, 0)
+oRpt:SayAlign(660	, 1350	, "Cond.Pagto:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
+oRpt:SayAlign(660	, 1590	, AllTrim(TMP001->E4_DESCRI)							, oFont12:oFont		, 650, 100,, 0, 0)
 
 Return Nil
 
@@ -526,26 +518,26 @@ Return Nil
 
 Static Function AdicDiscrimItens()
 
-oRpt:Line(720	, 100	, 720	, 2080)		// Linha -- acima da discriminacao dos Itens
-oRpt:Line(723	, 100	, 723	, 2080)
-oRpt:Line(725	, 100	, 725	, 2080)
+oRpt:Line(720	, 100	, 720	, 2180)		// Linha -- acima da discriminacao dos Itens
+oRpt:Line(723	, 100	, 723	, 2180)
+oRpt:Line(725	, 100	, 725	, 2180)
 
 // Cabecalho das colunas dos itens
 oRpt:SayAlign(760	, 100	, "Código"							 			, oFont12N:oFont	, 250	, 100,, 0, 0)
 oRpt:SayAlign(760	, 280	, "Descrição do Produto" 				 		, oFont12N:oFont	, 400	, 100,, 0, 0)
-oRpt:SayAlign(760	, 740	, "Un"								 			, oFont12N:oFont	, 200	, 100,, 0, 0)
-oRpt:SayAlign(760	, 700	, "Qtd"							 				, oFont12N:oFont	, 250	, 100,, 1, 0)
-oRpt:SayAlign(760	, 850	, "Vl.Unit"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(760	, 1000	, "Vl.do Item"									, oFont12N:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(760	, 1150	, "Desc.Item"						 			, oFont12N:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(760	, 1300	, "Vl.ICMS"										, oFont12N:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(760	, 1450	, "IPI"								 			, oFont12N:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(760	, 1600	, "ICMS-ST"										, oFont12N:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(760	, 1750	, "Total"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 840	, "Un"								 			, oFont12N:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(760	, 800	, "Qtd"							 				, oFont12N:oFont	, 250	, 100,, 1, 0)
+oRpt:SayAlign(760	, 950	, "Vl.Unit"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1100	, "Vl.do Item"									, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1250	, "Desc.Item"						 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1400	, "Vl.ICMS"										, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1550	, "IPI"								 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1700	, "ICMS-ST"										, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1850	, "Total"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
 
-oRpt:Line(800	, 100	, 800	, 2080)		// Linha -- abaixo da discriminacao dos Itens
-oRpt:Line(803	, 100	, 803	, 2080)
-oRpt:Line(805	, 100	, 805	, 2080)
+oRpt:Line(800	, 100	, 800	, 2180)		// Linha -- abaixo da discriminacao dos Itens
+oRpt:Line(803	, 100	, 803	, 2180)
+oRpt:Line(805	, 100	, 805	, 2180)
 
 Return Nil
 
@@ -583,15 +575,15 @@ nLinha += If(nLinha == 0, 840, 040)
 // Detalhes dos itens na SCK
 oRpt:SayAlign(nLinha	, 100	, AllTrim(TMP001->CK_PRODUTO)						 				, oFont12:oFont	, 250	, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 280	, AllTrim(TMP001->B1_DESC)								 			, oFont12:oFont	, 600	, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 740	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 700	, Transform(ROUND(TMP001->CK_QTDVEN ,4), GetSX3Cache("CK_QTDVEN", "X3_PICTURE"))	, oFont12:oFont	, 250	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(nPrcVen ,4), GetSX3Cache("CK_PRCVEN", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1000	, Transform(ROUND(nValor ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1150	, Transform(ROUND(nValDesc ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))			, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1300	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1450	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1600	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1750	, Transform(ROUND(nValor - nValDesc,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))		, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 840	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 800	, Transform(ROUND(TMP001->CK_QTDVEN ,4), GetSX3Cache("CK_QTDVEN", "X3_PICTURE"))	, oFont12:oFont	, 250	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 950	, Transform(ROUND(nPrcVen ,4), GetSX3Cache("CK_PRCVEN", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nValor ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(ROUND(nValDesc ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))			, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1400	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1550	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1700	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nValor - nValDesc,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))		, oFont12:oFont	, 300	, 100,, 1, 0)
 
 nTotVal  	+= nValor
 nTotDesc 	+= nValDesc
@@ -624,38 +616,38 @@ nIpi 		:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "NF_VALIPI"),TMP001->CJ_MOEDA,MV
 
 nLinha += 040
 
-oRpt:Line(nLinha	, 100	, nLinha	, 2080)		// Linha -- abaixo dos Itens
-oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2080)
-oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2080)
+oRpt:Line(nLinha	, 100	, nLinha	, 2180)		// Linha -- abaixo dos Itens
+oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2180)
+oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
 
 nLinha += 040
 
 oRpt:SayAlign(nLinha	, 100	, "Valor Itens s/ Desconto:"									, oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 400	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 900	, "Desconto dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1150	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1500	, "Total dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1750	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1000	, "Desconto dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1600	, "Total dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
 
 nLinha += 040
 
-oRpt:Line(nLinha	, 100	, nLinha	, 2080)		// Linha -- entre totais dos itens e despesas
-oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2080)
-oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2080)
+oRpt:Line(nLinha	, 100	, nLinha	, 2180)		// Linha -- entre totais dos itens e despesas
+oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2180)
+oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
 
 nLinha += 040
 
 oRpt:SayAlign(nLinha	, 100	, "Desconto (-):"												, oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 435	, Transform(ROUND((nTotDesc / nTotVal)*100,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) + " %", oFont12:oFont	, 300, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 900	, "Despesa  (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1150	, Transform(nDespesa, GetSX3Cache("CJ_DESPESA", "X3_PICTURE"))  , oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1000	, "Despesa  (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(nDespesa, GetSX3Cache("CJ_DESPESA", "X3_PICTURE"))  , oFont12:oFont	, 300, 100,, 1, 0)
 
 nLinha += 040
 
-oRpt:SayAlign(nLinha	, 100	, "Frete      (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 100	, "Frete       (+):"											, oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 400	, Transform(nFrete, GetSX3Cache("CJ_FRETE", "X3_PICTURE"))	, oFont12:oFont	, 300, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 900	, "Seguro    (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1150	, Transform(nSeguro, GetSX3Cache("CJ_SEGURO", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1000	, "Seguro    (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(nSeguro, GetSX3Cache("CJ_SEGURO", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
 
 nLinha += 050
 
@@ -669,9 +661,9 @@ For nX := 1 to (Int(Len(cObservacao)/100)+1)
 
 Next
 
-oRpt:Line(nLinha	, 100	, nLinha	, 2080)		// Linha -- entre despesas e totais gerais
-oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2080)
-oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2080)
+oRpt:Line(nLinha	, 100	, nLinha	, 2180)		// Linha -- entre despesas e totais gerais
+oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2180)
+oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
 
 nLinha += 040
 
@@ -719,9 +711,9 @@ Return Nil
 
 Static Function AdicRodape()
 
-oRpt:Line(2900	, 100	, 2900	, 2080)		// Linha -- no final da página para incluir os dados da empresa
-oRpt:Line(2903	, 100	, 2903	, 2080)
-oRpt:Line(2905	, 100	, 2905	, 2080)
+oRpt:Line(2900	, 100	, 2900	, 2180)		// Linha -- no final da página para incluir os dados da empresa
+oRpt:Line(2903	, 100	, 2903	, 2180)
+oRpt:Line(2905	, 100	, 2905	, 2180)
 
 
 oRpt:SayAlign(2940	, 100	, AllTrim(SM0->M0_ENDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
