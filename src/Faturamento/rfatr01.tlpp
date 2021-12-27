@@ -1,0 +1,795 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"  
+#INCLUDE "TBICONN.CH"
+#INCLUDE "RPTDEF.CH"
+
+/*/{Protheus.doc} RFATR01
+	(Rotina para gerar relatorio customizado de Orçamento de Vendas analítico)
+	@type User Function
+	@author Everaldo
+	@since 10/11/2021
+	@version 1.0
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+/*/
+
+User Function RFATR01()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de variaveis                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Local lCanSave	 	:= .T.
+Local lUserSave  	:= .T.
+Local lCentered		:= .T.
+Local aRet 			:= {}
+Local aParamBox 	:= {}
+Local cLoad		 	:= "getRfatr01"
+Local axMoeda		:= {"Moeda 1","Moeda 2","Moeda 3","Moeda 4","Moeda 5"}
+Local axSituacao	:= {"Todos","Aberto","Baixado","Cancelado"}
+Local aAreas		:= {SCJ->(GetArea()), GetArea()} as array
+Private cCadastro  	:= "Orçamento de Vendas"
+Private lEnd		:= .F.
+Private nLastKey 	:= 0
+Private lTela 		:= .T. as logical
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Verifica as Perguntas Seleciondas                                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Parametros do relatorio                                             ³
+//³                                                                     ³
+//³ mv_par02 - Cliente De                                               ³
+//³ mv_par03 - Cliente Até                                              ³
+//³ mv_par04 - Data De                                                  ³
+//³ mv_par05 - Data Até                                                 ³
+//³ mv_par06 - Orçamento De                                             ³
+//³ mv_par07 - Orçamento Até                                            ³
+//³ mv_par08 - Situação                                                 ³
+//³ mv_par09 - Qual Moeda                                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+// Monta array com as perguntas
+
+aAdd(aParamBox, {9,cCadastro,100,12,.T.})
+aAdd(aParamBox, {1,"Cliente de ",Space(06),"","","SA1","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {1,"Cliente até ",Space(06),"","","SA1","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {1,"Data de ",Ctod(Space(8)),"","","","",50,.F.}) // Tipo data
+aAdd(aParamBox, {1,"Data até ",Ctod(Space(8)),"","","","",50,.F.}) // Tipo data
+aAdd(aParamBox, {1,"Orçamento de ",Space(06),"","","SCJ","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {1,"Orçamento até ",Space(06),"","","SCJ","",0,.F.}) // Tipo caractere
+aAdd(aParamBox, {2,"Situação ",1,axSituacao,50,"",.F.}) // Tipo combo
+aAdd(aParamBox, {2,"Qual moeda ",1,axMoeda,50,"",.F.}) // Tipo combo
+
+If IsInCallStack( "MATA415" )
+	lTela := .F.
+	mv_par06 := SCJ->CJ_NUM
+	mv_par07 := SCJ->CJ_NUM
+	mv_par08 := 1
+	mv_par09 := 1
+Else
+
+	If !ParamBox(aParamBox, "Parâmetros", @aRet, /*bVldParams*/, , lCentered, , , , cLoad, lCanSave, lUserSave)
+		Return
+	EndIf
+
+EndIf
+
+Processa({|lEnd| RunProc()},cCadastro)
+
+aEval(aAreas, {|x| RestArea(x) })
+
+Return Nil
+
+/*/{Protheus.doc} RunProc
+	(Funcao para gerar relatorio de customizado de Orçamento de Vendas)
+	@type User Function
+	@author Everaldo
+	@since 10/11/2021
+	@version 1.0
+	@param cDiretorio, character, (Diretorio a ser considerado para gravar o arquivo)
+	@param cArquivo, character, (Nome do arquivo a ser considerado)
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+/*/
+
+Static Function RunProc()
+
+Local nFolha		:= 0 as numeric
+Local nLinha		:= 0 as numeric
+Local cOrcAtu		:= "" as character
+Local cFile			:= "" as character
+
+Local lPrimFolha	:= .T. as logical
+Local cRLF    		:= Chr(13)+Chr(10) as character
+
+Local aAreas		:= {SCK->(GetArea()), GetArea()} as array
+
+Private nLinDmsFol	:= 2890	// Maximo de linhas por folhas
+Private nPaginas    := 0 as numeric
+Private nTotPaginas	:= 0 as numeric
+Private nFrete		:= 0 as numeric
+Private nSeguro 	:= 0 as numeric
+Private nDespesa	:= 0 as numeric
+Private nTotVal  	:= 0 as numeric
+Private nTotDesc 	:= 0 as numeric
+Private nTotValDesc	:= 0 as numeric
+Private cObservacao := "" as character
+Private oRpt		:= Nil as object
+Private oFont12		:= Nil as object
+Private oFont12N	:= Nil as object
+Private oFont14		:= Nil as object
+Private oFont14N	:= Nil as object
+Private oFont16N	:= Nil as object
+Private oFont18N	:= Nil as object
+
+// Monta a query de clientes 
+
+cQuery := "SELECT "
+cQuery += "CJ_FILIAL, CJ_CLIENTE, CJ_LOJA, CJ_EMISSAO, CJ_NUM, CJ_STATUS, CJ_MOEDA, CJ_VALIDA, " +cRLF
+cQuery += "CJ_TPFRETE, CJ_TIPOCLI, CJ_CONDPAG, CJ_FRETE, CJ_SEGURO, CJ_DESPESA, CJ_XOBS, " +cRLF
+cQuery += "CK_FILIAL, CK_NUM, CK_PRODUTO, CK_ITEM, CK_CLIENTE, CK_LOJA, CK_UM, CK_QTDVEN, CK_PRCVEN, " +cRLF
+cQuery += "CK_VALOR, CK_TES, CK_VALDESC, CK_ENTREG, CK_CLASFIS, " +cRLF
+cQuery += "A1_COD, SUBSTRING(A1_NOME,1,100) AS A1_NOME, SUBSTRING(A1_END,1,100) AS A1_END, A1_CEP, " +cRLF
+cQuery += "A1_EST, A1_BAIRRO, A1_MUN, A1_CGC, A1_INSCR, A1_TEL, " +cRLF
+cQuery += "SUBSTRING(B1_DESC,1,30) AS B1_DESC, " +cRLF
+cQuery += "A3_NOME, " +cRLF
+cQuery += "E4_DESCRI " +cRLF
+
+cQuery += "FROM "+RetSqlName("SCJ")+" SCJ " +cRLF
+
+cQuery += "INNER JOIN "+RetSqlName("SCK")+" SCK "+cRLF
+cQuery += "ON SCJ.CJ_FILIAL = SCK.CK_FILIAL "+cRLF
+cQuery += "AND SCJ.CJ_NUM = SCK.CK_NUM " +cRLF
+cQuery += "AND SCJ.CJ_CLIENTE = SCK.CK_CLIENTE " +cRLF
+cQuery += "AND SCJ.CJ_LOJA = SCK.CK_LOJA " +cRLF
+cQuery += "AND SCK.D_E_L_E_T_ <> '*' " +cRLF
+
+cQuery += "INNER JOIN "+RetSqlName("SA1")+" SA1 "+cRLF
+cQuery += "ON SA1.A1_FILIAL = '"+xFilial("SA1")+"' " +cRLF
+cQuery += "AND SA1.A1_COD = SCJ.CJ_CLIENTE " +cRLF
+cQuery += "AND SA1.A1_LOJA = SCJ.CJ_LOJA " +cRLF
+cQuery += "AND SA1.D_E_L_E_T_ <> '*' " +cRLF
+
+cQuery += "INNER JOIN "+RetSqlName("SB1")+" SB1 "+cRLF
+cQuery += "ON SB1.B1_FILIAL = '"+xFilial("SB1")+"' " +cRLF
+cQuery += "AND SB1.B1_COD = SCK.CK_PRODUTO " +cRLF
+cQuery += "AND SB1.D_E_L_E_T_ <> '*' " +cRLF
+
+cQuery += "LEFT OUTER JOIN "+RetSqlName("SA3")+" SA3 "+cRLF
+cQuery += "ON SA3.A3_FILIAL = '"+xFilial("SA3")+"' " +cRLF
+cQuery += "AND SA3.A3_COD = SA1.A1_VEND " +cRLF
+cQuery += "AND SA3.D_E_L_E_T_ <> '*' " +cRLF
+
+cQuery += "LEFT OUTER JOIN "+RetSqlName("SE4")+" SE4 "+cRLF
+cQuery += "ON SE4.E4_FILIAL = '"+xFilial("SE4")+"' " +cRLF
+cQuery += "AND SE4.E4_CODIGO = SCJ.CJ_CONDPAG " +cRLF
+cQuery += "AND SE4.D_E_L_E_T_ <> '*' " +cRLF
+
+cQuery += "WHERE SCJ.CJ_FILIAL = '"+xFilial("SCJ")+"' " +cRLF
+
+If lTela
+	cQuery += "AND SCJ.CJ_CLIENTE BETWEEN '"+mv_par02+"' AND '"+mv_par03+"' " +cRLF
+	cQuery += "AND SCJ.CJ_EMISSAO BETWEEN '"+Dtos(mv_par04)+"' AND '"+Dtos(mv_par05)+"' " +cRLF
+EndIf
+
+cQuery += "AND SCJ.CJ_NUM BETWEEN '"+mv_par06+"' AND '"+mv_par07+"' " +cRLF      
+
+If mv_par08 == 2
+	cQuery += "AND SCJ.CJ_STATUS = 'A' " +cRLF
+ElseIf mv_par08 == 3
+	cQuery += "AND SCJ.CJ_STATUS = 'B' " +cRLF
+ElseIf mv_par08 == 4
+	cQuery += "AND SCJ.CJ_STATUS = 'C' " +cRLF
+EndIf
+
+cQuery += "AND SCJ.D_E_L_E_T_ <> '*' " +cRLF
+
+cQuery += "ORDER BY SCJ.CJ_FILIAL, SCJ.CJ_CLIENTE, SCJ.CJ_LOJA, SCJ.CJ_NUM, SCK.CK_ITEM " +cRLF
+
+cQuery := ChangeQuery(cQuery)
+
+MemoWrite("\QUERYSYS\RFATR01.SQL",cQuery)
+
+// Define os registros a processar
+If Select("TMP001") > 0
+	dbSelectArea("TMP001")
+	dbCloseArea()
+EndIf
+
+TCQUERY cQuery NEW ALIAS "TMP001"
+
+dbSelectArea("TMP001")
+dbGoTop()
+
+// Acumula array com os dados para exportação
+While !Eof() .And. !lEnd
+
+	// Verifica se abortou a rotina
+	If lEnd
+		@ Li,000 PSAY "Abortado pelo operador"
+		Return (Nil)
+	EndIf
+
+	If lPrimFolha
+
+		lPrimFolha := .F.
+		cFile := "RFATR01_"+AllTrim(TMP001->CJ_NUM) + ".PDF"
+		//      FWMsPrinter():New ( < cFilePrintert >, [ nDevice], [ lAdjustToLegacy], [ cPathInServer], [ lDisabeSetup ], [ lTReport], [ @oPrintSetup], [ cPrinter], [ lServer], [ lPDFAsPNG], [ lRaw], [ lViewPDF], [ nQtdCopy] )
+		oRpt := FWMSPrinter():New(AllTrim(cFile),IMP_PDF/*nDevice*/,/*lAdjustToLegacy*/, "C:\PDF\"/*cPathInServer*/,!lTela/*lDisableSetup*/ ,/*lTReport*/,/*oPrintSetup*/,/*cPrinter*/,/*lServer*/,/*lPDFAsPNG*/,/*lRaw*/,.F./*lViewPDF*/)
+		oRpt:cPathPDF := "C:\PDF\"
+		oRpt:SetPortrait()
+
+		oFont12		:= TFontEx():New(oRpt,"Arial",12,12,.F.,.T.,.F.)
+		oFont12N	:= TFontEx():New(oRpt,"Arial",12,12,.T.,.T.,.F.)
+		oFont14		:= TFontEx():New(oRpt,"Arial",14,14,.F.,.T.,.F.)
+		oFont14N	:= TFontEx():New(oRpt,"Arial",14,14,.T.,.T.,.F.)
+		oFont16N	:= TFontEx():New(oRpt,"Arial",16,16,.T.,.T.,.F.)
+		oFont18N	:= TFontEx():New(oRpt,"Arial",18,18,.T.,.T.,.F.)
+
+		cOrcAtu 	:= TMP001->CJ_NUM
+		cObservacao := POSICIONE("SCJ",1,TMP001->CJ_FILIAL+TMP001->CJ_NUM,"CJ_XOBS")
+		nFrete      := TMP001->CJ_FRETE
+		nSeguro		:= TMP001->CJ_SEGURO
+		nDespesa	:= TMP001->CJ_DESPESA
+
+		// Calcula impostos
+		CalcImposto()
+
+		nLinha := 0
+		nFolha++
+
+		// Inicio nova pagina
+		oRpt:StartPage()
+
+		// Secao do cabecalho
+		AdicCabecalho()
+
+		// Secao do cliente
+		AdicCliente()
+
+		// Secao discriminacao dos itens
+		AdicDiscrimItens()
+
+	EndIf
+
+	If nLinha > nLinDmsFol
+
+		// Secao Rodape
+		AdicRodape()
+
+		// Encerro pagina atual
+		oRpt:EndPage()
+
+		// Inicio nova pagina
+		oRpt:StartPage()
+
+		nLinha := 0
+		nFolha++
+
+		// Secao do cabecalho
+		AdicCabecalho()
+
+		// Secao do cliente
+		AdicCliente()
+
+		// Secao discriminacao dos itens
+		AdicDiscrimItens()
+
+	EndIf
+
+	// Quando quebra a numeração da carga é inicializada uma nova página com todas as secoes
+
+	If cOrcAtu <> TMP001->CJ_NUM 
+
+		cOrcAtu := TMP001->CJ_NUM
+
+		If nLinha > (nLinDmsFol - (((Int(Len(cObservacao)/100))*040)+320))
+
+			// Secao Rodape
+			AdicRodape()
+
+			// Encerro pagina atual
+			oRpt:EndPage()
+
+			// Inicio nova pagina
+			oRpt:StartPage()
+
+			nLinha := 720
+			nFolha++
+
+			// Secao do cabecalho
+			AdicCabecalho()
+
+			// Secao do cliente
+			AdicCliente()
+
+		EndIf
+
+		// Secao totais 
+		AdicTotal(@nLinha)
+
+		// Secao Rodape
+		AdicRodape()
+
+		// Fecho o cálculo de impostos
+		MaFisEnd()
+
+		cObservacao := POSICIONE("SCJ",1,TMP001->CJ_FILIAL+TMP001->CJ_NUM,"CJ_XOBS")
+		nFrete      := TMP001->CJ_FRETE
+		nSeguro		:= TMP001->CJ_SEGURO
+		nDespesa	:= TMP001->CJ_DESPESA
+
+		// Calcula impostos
+		CalcImposto()
+
+		// Encerro pagina atual
+		oRpt:EndPage()
+
+		nLinha := 0
+		nFolha++
+
+		// Inicio nova pagina
+		oRpt:StartPage()
+
+		// Secao do cabecalho
+		AdicCabecalho()
+
+		// Secao do cliente
+		AdicCliente()
+
+		// Secao discriminacao dos itens
+		AdicDiscrimItens()
+
+	EndIf
+
+	// Secao dos itens 
+	AdicItens(@nLinha)
+
+ 	dbSelectArea("TMP001")
+	dbSkip()
+EndDo
+
+// Encerra o relatório
+If !lPrimFolha
+	If nLinha <= (nLinDmsFol - (((Int(Len(cObservacao)/100))*040)+320))
+
+		// Secao totais 
+		AdicTotal(@nLinha)
+
+		// Secao Rodape
+		AdicRodape()
+
+	Else
+		// Secao Rodape
+		AdicRodape()
+
+		// Encerro pagina atual
+		oRpt:EndPage()
+
+		// Inicio nova pagina
+		oRpt:StartPage()
+
+		nLinha := 720
+		nFolha++
+
+		// Secao do cabecalho
+		AdicCabecalho()
+
+		// Secao do cliente
+		AdicCliente()
+
+		// Secao totais 
+		AdicTotal(@nLinha)
+
+		// Secao Rodape
+		AdicRodape()
+
+	EndIf
+
+	// Encerro pagina atual
+	oRpt:EndPage()
+
+EndIf
+
+// Fecho o cálculo de impostos
+MaFisEnd()
+
+// oRpt:Preview()
+oRpt:Print()
+FreeObj(oRpt)
+oRpt := Nil
+
+aEval(aAreas, {|x| RestArea(x) })
+
+Return Nil
+
+/*/{Protheus.doc} AdicCabecalho
+	(Funcao para adicionar dados do Cabecalho)
+	@type Static Function
+	@author Everaldo
+	@since 10/11/2021
+	@version version
+	@param 
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AdicCabecalho()
+
+nPaginas ++
+oRpt:SayAlign(200	, 500	, AllTrim(SM0->M0_ENDENT)								, oFont12N:oFont	, 500, 100,, 0, 0)
+oRpt:SayBitmap(205	, 100	, "\SYSTEM\IMAGENS\INTERMAC.JPEG"						, 350, 150)
+oRpt:SayAlign(210	, 2000	, "Página " + Transform(nPaginas, "@R 99") + " de " + Transform(nTotPaginas, "@R 99")	, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
+oRpt:SayAlign(240	, 500	, AllTrim(SM0->M0_CIDENT)								, oFont12N:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(250	, 2000	, DtoC(dDataBase)      		 							, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
+oRpt:SayAlign(260	, 950	, "ORÇAMENTO DE VENDAS"									, oFont18N:oFont	, 800, 100,, 0, 0)
+oRpt:SayAlign(280	, 500	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(320	, 500	, "Telefone: " + SM0->M0_TEL        					, oFont12N:oFont	, 500, 100,, 0, 0)
+
+oRpt:Line(400	, 100	, 400	, 2180)		// Linha -- acima do cliente
+oRpt:Line(403	, 100	, 403	, 2180)
+oRpt:Line(405	, 100	, 405	, 2180)
+
+Return Nil
+
+/*/{Protheus.doc} AdicCliente
+	(Funcao para adicionar dados do Cliente)
+	@type Static Function
+	@author Everaldo
+	@since 11/11/2021
+	@version version
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AdicCliente()
+
+Local aTipFrete	:= {} as array
+Local nX		:= 0 as numeric
+
+AAdd(aTipFrete, {"C", "C-CIF"})
+AAdd(aTipFrete, {"F", "F-FOB"})
+AAdd(aTipFrete, {"T", "T-Por conta de terceiros"})
+AAdd(aTipFrete, {"R", "R-Por conta remetente"})
+AAdd(aTipFrete, {"D", "D-Por conta destinatário"})
+AAdd(aTipFrete, {"S", "S-Sem frete"})
+
+nX := AScan( aTipFrete,{|x| x[1] == TMP001->CJ_TPFRETE})
+
+oRpt:SayAlign(460	, 100	, "Cliente: " 							 				, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(460	, 240	, AllTrim(TMP001->A1_NOME)		  		 				, oFont12:oFont		, 1500, 100,, 0, 0)
+oRpt:SayAlign(460	, 1790	, "N° do Orçamento: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(460	, 2040	, AllTrim(TMP001->CJ_NUM)		  			 			, oFont12:oFont		, 350, 100,, 0, 0)
+
+oRpt:SayAlign(500	, 100	, "Endereço: " 							 				, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(500	, 240	, AllTrim(TMP001->A1_END)		  		 				, oFont12:oFont		, 1500, 100,, 0, 0)
+oRpt:SayAlign(500	, 1790	, "Data de Emissão: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(500	, 2040	, DToC(SToD(TMP001->CJ_EMISSAO))	  		 			, oFont12:oFont		, 200, 100,, 0, 0)
+
+
+
+oRpt:SayAlign(540	, 100	, "Cidade:" 		  									, oFont12N:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(540	, 240	, AllTrim(TMP001->A1_MUN) + ' / '+ AllTrim(TMP001->A1_EST)	, oFont12:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(540	, 1350	, "Data de Entrega: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(540	, 1590	, DToC(SToD(TMP001->CK_ENTREG))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(540	, 1790	, "Data de Validade: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(540	, 2040	, DToC(SToD(TMP001->CJ_VALIDA))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
+
+oRpt:SayAlign(580	, 100	, "CEP: " 		  						 				, oFont12N:oFont	, 100, 100,, 0, 0)
+oRpt:SayAlign(580	, 240	, Transform(TMP001->A1_CEP, "@R 99.999-999")			, oFont12:oFont		, 350, 100,, 0, 0)
+oRpt:SayAlign(580	, 540	, "Bairro:" 		  						 			, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(580	, 640	, AllTrim(TMP001->A1_BAIRRO)							, oFont12:oFont		, 450, 100,, 0, 0)
+oRpt:SayAlign(580	, 1350	, "Tipo de Frete: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(580	, 1590	, If(nX == 0, "", aTipFrete[nX][2])						, oFont12:oFont		, 400, 100,, 0, 0)
+
+oRpt:SayAlign(620	, 100	, "CNPJ: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(620	, 240	, Transform(TMP001->A1_CGC, "@R 99.999.999/9999-99") 	, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(620	, 540	, "I.E: "	  											, oFont12N:oFont	, 350, 100,, 0, 0)
+oRpt:SayAlign(620	, 640	, AllTrim(TMP001->A1_INSCR)								, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(620	, 1350	, "Vendedor:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
+oRpt:SayAlign(620	, 1590	, AllTrim(TMP001->A3_NOME)								, oFont12:oFont		, 650, 100,, 0, 0)
+
+oRpt:SayAlign(660	, 100	, "Telefone: "	  										, oFont12N:oFont	, 300, 100,, 0, 0)
+oRpt:SayAlign(660	, 240	, AllTrim(TMP001->A1_TEL) 								, oFont12:oFont		, 300, 100,, 0, 0)
+oRpt:SayAlign(660	, 1350	, "Cond.Pagto:"					 						, oFont12N:oFont	, 300, 100,, 0, 0)
+oRpt:SayAlign(660	, 1590	, AllTrim(TMP001->E4_DESCRI)							, oFont12:oFont		, 650, 100,, 0, 0)
+
+Return Nil
+
+/*/{Protheus.doc} AdicDiscrimItens
+	(Funcao para adicionar a discriminacao dos itens)
+	@type Static Function
+	@author Everaldo
+	@since 11/11/2021
+	@version version
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AdicDiscrimItens()
+
+oRpt:Line(720	, 100	, 720	, 2180)		// Linha -- acima da discriminacao dos Itens
+oRpt:Line(723	, 100	, 723	, 2180)
+oRpt:Line(725	, 100	, 725	, 2180)
+
+// Cabecalho das colunas dos itens
+oRpt:SayAlign(760	, 100	, "Código"							 			, oFont12N:oFont	, 250	, 100,, 0, 0)
+oRpt:SayAlign(760	, 280	, "Descrição do Produto" 				 		, oFont12N:oFont	, 400	, 100,, 0, 0)
+oRpt:SayAlign(760	, 840	, "Un"								 			, oFont12N:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(760	, 800	, "Qtd"							 				, oFont12N:oFont	, 250	, 100,, 1, 0)
+oRpt:SayAlign(760	, 950	, "Vl.Unit"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1100	, "Vl.do Item"									, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1250	, "Desc.Item"						 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1400	, "Vl.ICMS"										, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1550	, "IPI"								 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1700	, "ICMS-ST"										, oFont12N:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(760	, 1850	, "Total"							 			, oFont12N:oFont	, 300	, 100,, 1, 0)
+
+oRpt:Line(800	, 100	, 800	, 2180)		// Linha -- abaixo da discriminacao dos Itens
+oRpt:Line(803	, 100	, 803	, 2180)
+oRpt:Line(805	, 100	, 805	, 2180)
+
+Return Nil
+
+/*/{Protheus.doc} AdicItens
+	(Funcao para adicionar os itens do Orçamento)
+	@type Static Function
+	@author Everaldo
+	@since 11/11/2021
+	@version version
+	@param nLinha, numeric, (Referencia da linha para o item a ser considerado)
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AdicItens(nLinha as numeric)
+
+Local nPrcVen	:= 0 as numeric
+Local nValor	:= 0 as numeric
+Local nValDesc	:= 0 as numeric
+Local nIcms		:= 0 as numeric
+Local nIcmsSt	:= 0 as numeric
+Local nIpi		:= 0 as numeric
+
+nPrcVen 	:= xMoeda(TMP001->CK_PRCVEN,TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nValor 		:= xMoeda(TMP001->CK_VALOR,TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nValDesc 	:= xMoeda(TMP001->CK_VALDESC,TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nIcms		:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "IT_VALICM"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nIcmsSt 	:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "IT_VALSOL"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nIpi 		:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "IT_VALIPI"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+
+nLinha += If(nLinha == 0, 840, 040)
+
+// Detalhes dos itens na SCK
+oRpt:SayAlign(nLinha	, 100	, AllTrim(TMP001->CK_PRODUTO)						 				, oFont12:oFont	, 250	, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 280	, AllTrim(TMP001->B1_DESC)								 			, oFont12:oFont	, 600	, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 840	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 800	, Transform(ROUND(TMP001->CK_QTDVEN ,4), GetSX3Cache("CK_QTDVEN", "X3_PICTURE"))	, oFont12:oFont	, 250	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 950	, Transform(ROUND(nPrcVen ,4), GetSX3Cache("CK_PRCVEN", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nValor ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(ROUND(nValDesc ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))			, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1400	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1550	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1700	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nValor - nValDesc,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))		, oFont12:oFont	, 300	, 100,, 1, 0)
+
+nTotVal  	+= nValor
+nTotDesc 	+= nValDesc
+nTotValDesc += ROUND((nValor - nValDesc),4)
+
+Return Nil
+
+/*/{Protheus.doc} AdicTotal
+	(Funcao para adicionar os totais do Orçamento)
+	@type Static Function
+	@author Everaldo
+	@since 11/11/2021
+	@version version
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AdicTotal(nLinha as numeric)
+
+Local nX 		:= 0 as numeric
+Local nQbObs	:= 1 as numeric
+
+// Calcula o Imposto Geral do Orçamento
+
+nIcms		:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "NF_VALICM"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nIcmsSt 	:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "NF_VALSOL"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+nIpi 		:= xMoeda(MaFisRet(VAL(TMP001->CK_ITEM), "NF_VALIPI"),TMP001->CJ_MOEDA,MV_PAR09,TMP001->CJ_EMISSAO)
+
+nLinha += 040
+
+oRpt:Line(nLinha	, 100	, nLinha	, 2180)		// Linha -- abaixo dos Itens
+oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2180)
+oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "Valor Itens s/ Desconto:"									, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 400	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1000	, "Desconto dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1600	, "Total dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
+
+nLinha += 040
+
+oRpt:Line(nLinha	, 100	, nLinha	, 2180)		// Linha -- entre totais dos itens e despesas
+oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2180)
+oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "Desconto (-):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 435	, Transform(ROUND((nTotDesc / nTotVal)*100,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) + " %", oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1000	, "Despesa  (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(nDespesa, GetSX3Cache("CJ_DESPESA", "X3_PICTURE"))  , oFont12:oFont	, 300, 100,, 1, 0)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "Frete       (+):"											, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 400	, Transform(nFrete, GetSX3Cache("CJ_FRETE", "X3_PICTURE"))	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1000	, "Seguro    (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
+oRpt:SayAlign(nLinha	, 1250	, Transform(nSeguro, GetSX3Cache("CJ_SEGURO", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+
+nLinha += 050
+
+oRpt:SayAlign(nLinha	, 100	, "Observação:"													, oFont12N:oFont, 500, 100,, 0, 0)
+
+For nX := 1 to (Int(Len(cObservacao)/100)+1)
+
+	oRpt:SayAlign(nLinha	, 280	, Substr(cObservacao, nQbObs, 100)							, oFont12:oFont, 1800, 100,, 0, 0)
+	nLinha += 040
+	nQbObs += 100
+
+Next
+
+oRpt:Line(nLinha	, 100	, nLinha	, 2180)		// Linha -- entre despesas e totais gerais
+oRpt:Line(nLinha +3	, 100	, nLinha +3	, 2180)
+oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, "VL ITENS"					 				, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 350	, "DESCONTO"  						 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 600	, "VL LIQUIDO"						 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 850	, "ADICIONAIS"				 					, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, "TOTAL ICMS"						 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1350	, "TOTAL IPI"									, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1600	, "TOTAL ICMS-ST"					 			, oFont12N:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, "VALOR TOTAL"									, oFont12N:oFont	, 235	, 100,, 1, 0)
+
+nLinha += 040
+
+oRpt:SayAlign(nLinha	, 100	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 		  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 350	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	 	  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 600	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(nFrete+nSeguro+nDespesa,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))   , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1350	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1600	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nTotValDesc+nFrete+nSeguro+nDespesa,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
+
+AdicRodape()
+
+// Limpa totais
+
+nTotVal  	:= 0
+nTotDesc 	:= 0
+nTotValDesc := 0
+
+Return Nil
+
+/*/{Protheus.doc} AdicRodape
+	(Funcao para adicionar o rodapé da página)
+	@type Static Function
+	@author Everaldo
+	@since 11/11/2021
+	@version version
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AdicRodape()
+
+oRpt:Line(2900	, 100	, 2900	, 2180)		// Linha -- no final da página para incluir os dados da empresa
+oRpt:Line(2903	, 100	, 2903	, 2180)
+oRpt:Line(2905	, 100	, 2905	, 2180)
+
+
+oRpt:SayAlign(2940	, 100	, AllTrim(SM0->M0_ENDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(2940	, 500	, AllTrim(SM0->M0_CIDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(2940	, 1000	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(2940	, 1800	, "Telefone: " + SM0->M0_TEL        					, oFont12:oFont		, 500, 100,, 0, 0)
+
+Return Nil
+
+/*/{Protheus.doc} SetLinhasPag
+	(Funcao para Calcular os impostos)
+	@type Static Function
+	@author Everaldo
+	@since 11/11/2021
+	@version version
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function CalcImposto()
+
+Local aArea     := GetArea()
+Local aAreaCK   := SCK->(GetArea())
+Local nItens	:= 0
+
+// Cálculo dos impostos
+// Inclui cabeçalho dos impostos
+MaFisIni(	TMP001->CJ_CLIENTE,;                   // 1-Codigo Cliente/Fornecedor
+			TMP001->CJ_LOJA,;                      // 2-Loja do Cliente/Fornecedor
+			"C",;                                  // 3-C:Cliente , F:Fornecedor
+			"N",;                                  // 4-Tipo da NF
+			TMP001->CJ_TIPOCLI,;                   // 5-Tipo do Cliente/Fornecedor
+			MaFisRelImp("MTR700",{"SCJ","SCK"}),;  // 6-Relacao de Impostos que suportados no arquivo
+			,;                                     // 7-Tipo de complemento
+			,;                                     // 8-Permite Incluir Impostos no Rodape .T./.F.
+			"SB1",;                                // 9-Alias do Cadastro de Produtos - ("SBI" P/ Front Loja)
+			"RFATR01")                             // 10-Nome da rotina que esta utilizando a funcao
+
+// Inclui itens
+SCK->(dbSetOrder(1))
+SCK->(DbSeek(xFilial('SCK') + TMP001->CK_NUM))
+While ! SCK->(EoF()) .And. SCK->CK_NUM == TMP001->CK_NUM
+	// Calcula quantos itens tem o Orçamento
+
+	nItens ++
+
+	//Pega os tratamentos de impostos
+	
+	MaFisAdd(   SCK->CK_PRODUTO,;                     // 1-Codigo do Produto                 ( Obrigatorio )
+				SCK->CK_TES,;                         // 2-Codigo do TES                     ( Opcional )
+				SCK->CK_QTDVEN,;                      // 3-Quantidade                     ( Obrigatorio )
+				SCK->CK_PRCVEN,;                      // 4-Preco Unitario                 ( Obrigatorio )
+				SCK->CK_VALDESC,;                     // 5 desconto
+				"",;                     			  // 6-Numero da NF Original             ( Devolucao/Benef )
+				"",;                    			  // 7-Serie da NF Original             ( Devolucao/Benef )
+				0,;                                    // 8-RecNo da NF Original no arq SD1/SD2
+				0,;                					  // 9-Valor do Frete do Item         ( Opcional )
+				0,;            						  // 10-Valor da Despesa do item         ( Opcional )
+				0,;            						  // 11-Valor do Seguro do item         ( Opcional )
+				0,;                                   // 12-Valor do Frete Autonomo         ( Opcional )
+				SCK->CK_VALOR,;                       // 13-Valor da Mercadoria             ( Obrigatorio )
+				0,;									  // 14-Valor da Embalagem ( Opiconal )
+		 		, , , , , , , , , , , , ,;
+		 	) 					  // 28-Classificacao fiscal)                                 // 16-RecNo do SF4
+		
+	SCK->(DbSkip())
+EndDo
+
+// Calcula a quantidade de páginas do orçamento
+
+nTotPaginas := Int((Int(Len(cObservacao)/100) + nItens) / 40) + 1
+nPaginas    := 0
+
+RestArea(aAreaCK)
+RestArea(aArea)
+
+Return Nil
