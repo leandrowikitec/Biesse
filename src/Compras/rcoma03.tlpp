@@ -134,7 +134,7 @@ oFile := FWFileReader():New(cFile)
 If (oFile:Open())
 
 	// Define o Encoding do arquivo
-	cCodePage := GetCodePage(cFile)
+	cCodePage := MyGetCodePage(cFile)
 
 	ProcRegua(oFile:getFileSize())
 
@@ -251,7 +251,7 @@ End Transaction
 
 Return cResult
 
-/*/{Protheus.doc} GetCodePage
+/*/{Protheus.doc} MyGetCodePage
 	(Verifica o encoding do arquivo para tratamento de conversoes e acentuacoes)
 	@type Static Function
 	@author Calabro'
@@ -264,7 +264,7 @@ Return cResult
 	@see (links_or_references)
 	/*/
 
-Static Function GetCodePage(cFile)
+Static Function MyGetCodePage(cFile)
 
 Local cBuffer		:= "" as character
 Local cEncoding		:= "" as character
