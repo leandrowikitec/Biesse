@@ -292,4 +292,4 @@ Do Case
 		cRetEncoding := "UTF-16 BE"
 EndCase
 
-Return cCodePage
+Return cRetEncoding
