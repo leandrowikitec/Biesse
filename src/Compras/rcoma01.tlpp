@@ -33,6 +33,8 @@ Local cNumNF		:= "" as character
 Local aParam		:= {} as array
 Local aResultado	:= {} as array
 
+Private cCodePage	:= "" as character
+
 Private aCabec		:= {} as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
 Private aDet		:= {} as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
 
@@ -161,7 +163,7 @@ For nI := 1 to Len(aDet)
 		EndIf
 
 		AAdd(aItem, {"D1_ITEM"		, cItem := Soma1(cItem)																				, Nil } )
-		AAdd(aItem, {"D1_COD"		, TrataDados("D1_COD", aDet[nI][aScan(aCabec, {|x| "CODIGO" $ FwNoAccent(Upper(AllTrim(DecodeUTF8(x)))) })])	, Nil } )
+		AAdd(aItem, {"D1_COD"		, TrataDados("D1_COD", aDet[nI][aScan(aCabec, {|x| "CODIGO" $ FwNoAccent(Upper(AllTrim(MyDecodeUTF8(x)))) })])	, Nil } )
 		AAdd(aItem, {"D1_QUANT"		, TrataDados("D1_QUANT", aDet[nI][nPosProdQtd])														, Nil } )
 		AAdd(aItem, {"D1_VUNIT"		, TrataDados("D1_VUNIT", ( TrataDados("D1_VUNIT", aDet[nI][nPosProdCIF]) +;
 										TrataDados("D1_II", aDet[nI][aScan(aCabec, {|x| "II" $ Upper(AllTrim(x)) })]) ) /;
@@ -706,3 +708,19 @@ If SF1->(FieldPos("F1_AFRMIMP")) > 0
 EndIf
 
 Return Nil
+
+/*/{Protheus.doc} MyDecodeUTF8
+	(Verifica se o tipo de encoding do arquivo selecionado pelo usuario e' UTF-8 para decodificar)
+	@type Static Function
+	@author Calabro'
+	@since 27/12/2021
+	@version version
+	@param cString, character, (String a ser decodificada)
+	@return cString, character, (String decodificada ou mantida, caso nao seja UTF-8)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function MyDecodeUTF8(cString as character)
+Return If("UTF-8" $ cCodePage, DecodeUTF8(cString), cString)
