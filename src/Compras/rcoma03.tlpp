@@ -275,7 +275,7 @@ Local nHandle		:= 0 as integer
 nHandle := FOpen(cFile)
 FRead(nHandle, @cBuffer, 32)
 FClose(nHandle)
-cEncoding := cHexStrDump(cBuffer)
+cEncoding := HexStrDump(cBuffer)
 
 // Verifica o Encoding utilizando retorno hexadcimal da primeira linha do arquivo
 // Atualmente o bloco de notas permite 5 tipos: ANSI, UFT-8, UTF-8 BOM, UTF-16 BE e UFT-16 LE
