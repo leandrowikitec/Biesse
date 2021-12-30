@@ -1,0 +1,825 @@
+#Include "Rwmake.ch"
+#Include "Protheus.ch"
+
+/*/{Protheus.doc} RCOMA02
+	(Rotina para complementar NF De Importação com informações da DI)
+	@type User Function
+	@author Calabro'
+	@since 22/09/2021
+	@version 1.0
+	@param lExibeTela, logic, (define se permite exibir tela ou se nao exibe por conta de ser ExecAuto)
+	@return lContinua, logic, (.T. - Continua processamento / .F. - processo cancelado ou com erros)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function RCOMA02(lExibeTela)
+
+Local cNumDI			:= SF1->F1_XNUMDI as character
+Local cLocDes			:= SF1->F1_XLOCDE as character
+Local cUFDes			:= SF1->F1_XUFDES as character
+Local cTpImp			:= SF1->F1_XTPTIMP as character
+Local cLocServ			:= SF1->F1_XLOCSER as character
+Local cImpCompl			:= "" as character
+Local cAtualiz			:= "" as character
+Local cViaTransp		:= "" as character
+Local cFormImp			:= "" as character
+Local cCNPJTerceiro		:= Space(14) as character
+Local cUFTerceiro		:= Space(2) as character
+
+Local nPosPro		:= 0 as integer
+Local nPosQtd		:= 0 as integer
+Local nCont			:= 0 as integer
+Local nX			:= 0 as integer
+Local nPesoBruto	:= SF1->F1_PBRUTO as numeric
+Local nPesoLiqui	:= SF1->F1_PLIQUI as numeric
+
+Local dDtRegDi		:= SF1->F1_XDTREG as date
+Local dDtDesemb		:= SF1->F1_XDTDES as date
+
+Local lContinua	:= .T. as logical
+
+Local aAreas		:= {SD1->(GetArea()), GetArea()} as array
+
+Default lExibeTela		:= .T.
+
+If AllTrim(SF1->F1_EST) != "EX"
+	MsgAlert("Esta rotina só pode ser usada em NF de importação")
+	lContinua := .F.
+EndIf
+
+If lContinua
+	nPosPro := aScan(aHeader,{|x| AllTrim(x[2])=="D1_COD"})
+	nPosQtd := aScan(aHeader,{|x| AllTrim(x[2])=="D1_QUANT"})
+
+	//Calcula o peso liquido e bruto
+	If Empty(nPesoBruto) .Or. Empty(nPesoLiqui)
+		For nCont := 1 To Len(aCols)
+			If !Empty(Posicione("SB1",1,xFilial("SB1") + aCols[nCont][nPosPro],"B1_COD"))
+				nPesoBruto += (SB1->B1_PESBRU * aCols[nCont][nPosQtd])
+				nPesoLiqui += (SB1->B1_PESO   * aCols[nCont][nPosQtd])
+			EndIf	
+		Next nCont
+	EndIf
+
+	// Verifica se exibe tela
+	If lExibeTela .AND. !NewDlg1(@nPesoLiqui	, @nPesoBruto	, @cNumDI	, @cLocDes		, @cUFDes,;
+									@dDtRegDi	, @dDtDesemb	, @cTpImp	, @cLocServ		, @cImpCompl,;
+									@cAtualiz	, @cViaTransp	, @cFormImp	, Nil			,@cCNPJTerceiro,;
+									@cUFTerceiro)
+		MsgAlert("Operação de vincular dados da importação e da DI abortada!")
+		lContinua = .F.
+	EndIf
+
+	// Se variavel lContinua estiver verdadeira e nao exibe tela,
+	// configuro informacoes para adicionar automaticamente
+	If lContinua .AND. !lExibeTela
+
+		cImpCompl := "2"
+		cAtualiz := "1"
+
+		// Verifica se processo esta em execucao via integracao CSV
+		// Se positivo, busca dados dos parametros de pergunte que usuario preencheu
+		If IsInCallStack("U_RCOMA01") .AND. ValType(aParamRCO01) == "A" .AND. Len(aParamRCO01) > 8
+			cViaTransp := aParamRCO01[17]
+			cFormImp := aParamRCO01[18]
+			cCNPJTerceiro := aParamRCO01[21]
+			cUFTerceiro := aParamRCO01[22]
+		EndIf
+	EndIf
+EndIf
+
+If lContinua
+
+	// Na nova versao apenas atualiza campos se variaveis estiverem preenchidas
+	DbSelectArea("SF1")
+	While !RecLock("SF1",.F.)
+	EndDo
+	If !Empty(nPesoLiqui)
+		SF1->F1_PLIQUI  := nPesoLiqui
+	EndIf
+	If !Empty(nPesoBruto)
+		SF1->F1_PBRUTO  := nPesoBruto
+	EndIf
+	If !Empty(cNumDI)
+		SF1->F1_XNUMDI  := cNumDI
+	EndIf
+	If !Empty(cLocDes)
+		SF1->F1_XLOCDE  := cLocDes
+	EndIf
+	If !Empty(cUFDes)
+		SF1->F1_XUFDES	 := cUFDes
+	EndIf
+	If !Empty(dDtDesemb)
+		SF1->F1_XDTDES  := dDtDesemb
+	EndIf
+	If !Empty(dDtRegDi)
+		SF1->F1_XDTREG  := dDtRegDi
+	EndIf
+	If !Empty(cTpImp)
+		SF1->F1_XTPTIMP := cTpImp
+	EndIf
+	If !Empty(cLocServ)
+		SF1->F1_XLOCSER := cLocServ
+	EndIf
+	MsUnlock()
+
+	// If cAtualiz == "1"
+
+		If cImpCompl == "2" //Gera a CD5 baseando-se nos itens da NF
+
+			DbSelectArea("SD1")
+			DbSetOrder(1)
+			If SD1->(DbSeek(xFilial("SD1") + SF1->(F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA)))
+
+				cNumDI := ""
+
+				//Monta o numeto da DI, deixando apenas os dígitos
+				For nX := 1 To Len(Alltrim(SF1->F1_XNUMDI))
+					If Len(cNumDI) < TamSx3("CD5_NDI")[1] //O Numero da DI terá o tamanho máximo do campo CD5_NDI
+						If Isdigit(SubStr(SF1->F1_XNUMDI,nX,1))
+							cNumDI += SubStr(SF1->F1_XNUMDI,nX,1)
+						Endif
+					Else
+						Exit	
+					EndIf
+				Next nX
+
+				While SD1->(!Eof()) .And. SD1->(D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA) == SF1->(F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA)
+
+					DbSelectArea("CD5")
+					DbSetOrder(4)
+					If !CD5->(DbSeek(xFilial("CD5") + SD1->(D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA+D1_ITEM)))
+
+						Reclock("CD5", .T.)
+							CD5->CD5_FILIAL 	:= xFilial("CD5")
+							CD5->CD5_DOC		:= SD1->D1_DOC
+							CD5->CD5_SERIE		:= SD1->D1_SERIE
+							CD5->CD5_ESPEC		:= SF1->F1_ESPECIE
+							CD5->CD5_FORNEC		:= SD1->D1_FORNECE
+							CD5->CD5_LOJA		:= SD1->D1_LOJA
+							CD5->CD5_TPIMP		:= SF1->F1_XTPTIMP
+							CD5->CD5_DOCIMP		:= SF1->F1_XNUMDI
+							CD5->CD5_BSPIS		:= IIF(SF1->F1_TIPO == "C" ,0,SD1->D1_BASIMP6) //Quando for complemento, todas as informacoes referente a impostos  e valores ficam zerados
+							CD5->CD5_ALPIS		:= IIF(SF1->F1_TIPO == "C" .Or. SD1->D1_BASIMP6 == 0,0,SD1->D1_ALQIMP6)
+							CD5->CD5_VLPIS		:= IIF(SF1->F1_TIPO == "C" .Or. SD1->D1_BASIMP6 == 0,0,SD1->D1_VALIMP6)
+							CD5->CD5_BSCOF		:= IIF(SF1->F1_TIPO == "C" ,0,SD1->D1_BASIMP5)
+							CD5->CD5_ALCOF		:= IIF(SF1->F1_TIPO == "C" .Or. SD1->D1_BASIMP5 == 0,0,SD1->D1_ALQIMP5)
+							CD5->CD5_VLCOF		:= IIF(SF1->F1_TIPO == "C" .Or. SD1->D1_BASIMP5 == 0,0,SD1->D1_VALIMP5)
+							CD5->CD5_DTPPIS		:= IIF(SD1->D1_VALIMP6 > 0,SF1->F1_XDTREG,CTOD("  /  /  "))
+							CD5->CD5_DTPCOF		:= IIF(SD1->D1_VALIMP5 > 0,SF1->F1_XDTREG,CTOD("  /  /  "))
+							CD5->CD5_LOCAL		:= SF1->F1_XLOCSER
+							CD5->CD5_NDI		:= cNumDI
+							CD5->CD5_DTDI		:= SF1->F1_XDTREG
+							CD5->CD5_LOCDES		:= SF1->F1_XLOCDE
+							CD5->CD5_UFDES		:= SF1->F1_XUFDES
+							CD5->CD5_DTDES		:= SF1->F1_XDTDES
+							CD5->CD5_CODEXP		:= SF1->F1_FORNECE
+							CD5->CD5_LOJEXP		:= SD1->D1_LOJA
+							CD5->CD5_NADIC		:= SD1->D1_XNADIC
+							CD5->CD5_SQADIC		:= SD1->D1_XSQADIC
+							CD5->CD5_CODFAB		:= SD1->D1_FORNECE
+							CD5->CD5_LOJFAB		:= SD1->D1_LOJA
+							CD5->CD5_DSPAD		:= SD1->D1_XDSPAD
+							CD5->CD5_VLRII		:= SD1->D1_II
+							CD5->CD5_ITEM		:= SD1->D1_ITEM
+							CD5->CD5_VTRANS		:= cViaTransp
+							CD5->CD5_INTERM		:= cFormImp
+							CD5->CD5_CNPJAE		:= cCNPJTerceiro
+							CD5->CD5_UFTERC		:= cUFTerceiro
+						CD5->(MsUnlock())
+					EndIf
+
+					SD1->(DbSkip())
+				EndDo
+			EndIf
+
+		Else //Executa a rotina para importação da planilha
+
+			U_FCOMP14(SF1->F1_DOC,SF1->F1_SERIE,SF1->F1_FORNECE,SF1->F1_LOJA)
+		EndIf
+	// EndIf
+EndIf
+
+aEval(aAreas, {|x| RestArea(x) })
+
+Return lContinua
+
+/*/{Protheus.doc} NewDlg1
+	(Tela para preencher as informações que serão digitadas)
+	@type User Function
+	@author Calabro'
+	@since 22/09/2021
+	@version 1.0
+	@param nPesoLiqui, numeric, (Peso liquido)
+	@param nPesoBruto, numeric, (Peso bruto)
+	@param cNumDI, char, (Numero da DI)
+	@param cLocDes, char, (Local de destino)
+	@param cUFDes, char, (UF de destino)
+	@param dDtRegDi, date, (Data do registro da DI)
+	@param dDtDesemb, date, (Data do desembaraco da DI)
+	@param cTpImp, char, (Tipo de importacao)
+	@param cLocServ, char, (Local do servico)
+	@param cImpCompl, char, (Importacao complementar (2) por CSV ou por NF incluida (1))
+	@param cAtualiz, char, (Atualiza dados da CD5?)
+	@param cViaTransp, char, (Via de transporte)
+	@param cFormImp, char, (Forma de importacao)
+	@param cNumDoc, char, (Numero do documento)
+	@param cCNPJTerceiro, char, (CNPJ do terceiro que esta' importando)
+	@param cUFTerceiro, char, (UF do terceiro que esta' importando)
+	@return lReturn, logic, (.T. - Continua processamento / .F. - processo cancelado ou com erros)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function NewDlg1(nPesoLiqui	, nPesoBruto	, cNumDI	, cLocDes	, cUFDes,;
+						dDtRegDi	, dDtDesemb		, cTpImp	, cLocServ	, cImpCompl,;
+						cAtualiz	, cViaTransp	, cFormImp	, cNumDoc	, cCNPJTerceiro,;
+						cUFTerceiro)
+
+Local lReturn	:= .F. as logical
+
+Local oDlg3		:= Nil as object
+Local oCombo29	:= Nil as object
+Local oCombo31	:= Nil as object
+Local oCombo33	:= Nil as object
+Local oCombo50	:= Nil as object
+Local oCombo51	:= Nil as object
+Local oCombo52	:= Nil as object
+Local oSay1		:= Nil as object
+Local oSay28	:= Nil as object
+Local oSay30	:= Nil as object
+Local oSay32	:= Nil as object
+Local oSay34	:= Nil as object
+Local oGet35	:= Nil as object
+Local oSay36	:= Nil as object
+Local oGet37	:= Nil as object
+Local oSay38	:= Nil as object
+Local oGet39	:= Nil as object
+Local oSay40	:= Nil as object
+Local oGet41	:= Nil as object
+Local oSay42	:= Nil as object
+Local oGet43	:= Nil as object
+Local oSay44	:= Nil as object
+Local oGet45	:= Nil as object
+Local oSay46	:= Nil as object
+Local oSay49	:= Nil as object
+Local oSay50	:= Nil as object
+Local oGet47	:= Nil as object
+Local oSay51	:= Nil as object
+Local oGet48	:= Nil as object
+Local oSay52	:= Nil as object
+Local oGet49	:= Nil as object
+Local oSBtn51	:= Nil as object
+Local oSBtn52	:= Nil as object
+
+Default cNumDoc		:= ""
+
+oDlg3 := MSDIALOG():Create()
+oDlg3:cName := "oDlg3"
+oDlg3:cCaption := "NF De Importacao" + If(!Empty(cNumDoc), " NOTA N° ", "") + cNumDoc
+oDlg3:nLeft := 0
+oDlg3:nTop := 0
+oDlg3:nWidth := 680
+oDlg3:nHeight := 335
+oDlg3:lShowHint := .F.
+oDlg3:lCentered := .T.
+
+oSay1 := TSAY():Create(oDlg3)
+oSay1:cName := "oSay1"
+oSay1:cCaption := "Preencha os campos abaixo para que a NF de importação seja complementada"
+oSay1:nLeft := 125
+oSay1:nTop := 8
+oSay1:nWidth := 388
+oSay1:nHeight := 17
+oSay1:lShowHint := .F.
+oSay1:lReadOnly := .F.
+oSay1:Align := 0
+oSay1:lVisibleControl := .T.
+oSay1:lWordWrap := .F.
+oSay1:lTransparent := .F.
+
+oSay28 := TSAY():Create(oDlg3)
+oSay28:cName := "oSay28"
+oSay28:cCaption := "Dados Complementares"
+oSay28:nLeft := 6
+oSay28:nTop := 40
+oSay28:nWidth := 116
+oSay28:nHeight := 17
+oSay28:lShowHint := .F.
+oSay28:lReadOnly := .F.
+oSay28:Align := 0
+oSay28:lVisibleControl := .T.
+oSay28:lWordWrap := .F.
+oSay28:lTransparent := .F.
+
+oCombo29 := TCOMBOBOX():Create(oDlg3)
+oCombo29:cName := "oCombo29"
+oCombo29:cCaption := "oCombo29"
+oCombo29:nLeft := 125
+oCombo29:nTop := 40
+oCombo29:nWidth := 297
+oCombo29:nHeight := 21
+oCombo29:lShowHint := .F.
+oCombo29:lReadOnly := .F.
+oCombo29:Align := 0
+oCombo29:cVariable := "cImpCompl"
+oCombo29:bSetGet := {|u| If(PCount()>0,cImpCompl:=u,cImpCompl) }
+oCombo29:lVisibleControl := .T.
+oCombo29:aItems := { "1=Importar arquivo CSV","2=Informacoes digitadas nos Itens da NF"}
+oCombo29:nAt := 1
+
+oSay51 := TSAY():Create(oDlg3)
+oSay51:cName := "oSay51"
+oSay51:cCaption := "CNPJ Ter."
+oSay51:nLeft := 430
+oSay51:nTop := 40
+oSay51:nWidth := 58
+oSay51:nHeight := 17
+oSay51:lShowHint := .F.
+oSay51:lReadOnly := .F.
+oSay51:Align := 0
+oSay51:lVisibleControl := .T.
+oSay51:lWordWrap := .F.
+oSay51:lTransparent := .F.
+
+oGet48 := TGET():Create(oDlg3)
+oGet48:cName := "oGet48"
+oGet48:cCaption := "oGet48"
+oGet48:nLeft := 495
+oGet48:nTop := 40
+oGet48:nWidth := 153
+oGet48:nHeight := 21
+oGet48:lShowHint := .F.
+oGet48:lReadOnly := .F.
+oGet48:Align := 0
+oGet48:cVariable := "cCNPJTerceiro"
+oGet48:bSetGet := {|u| If(PCount()>0,cCNPJTerceiro:=u,cCNPJTerceiro) }
+oGet48:lVisibleControl := .T.
+oGet48:lPassword := .F.
+oGet48:Picture := "@R 99.999.999/9999-99"
+oGet48:lHasButton := .F.
+oGet48:bValid := {|| !Empty(cCNPJTerceiro) }
+
+oSay30 := TSAY():Create(oDlg3)
+oSay30:cName := "oSay30"
+oSay30:cCaption := "Tipo Doc Imp"
+oSay30:nLeft := 6
+oSay30:nTop := 70
+oSay30:nWidth := 72
+oSay30:nHeight := 17
+oSay30:lShowHint := .F.
+oSay30:lReadOnly := .F.
+oSay30:Align := 0
+oSay30:lVisibleControl := .T.
+oSay30:lWordWrap := .F.
+oSay30:lTransparent := .F.
+
+oCombo31 := TCOMBOBOX():Create(oDlg3)
+oCombo31:cName := "oCombo31"
+oCombo31:cCaption := "oCombo31"
+oCombo31:nLeft := 83
+oCombo31:nTop := 70
+oCombo31:nWidth := 339
+oCombo31:nHeight := 21
+oCombo31:lShowHint := .F.
+oCombo31:lReadOnly := .F.
+oCombo31:Align := 0
+oCombo31:cVariable := "cTpImp"
+oCombo31:bSetGet := {|u| If(PCount()>0,cTpImp:=u,cTpImp) }
+oCombo31:lVisibleControl := .T.
+oCombo31:aItems := { "0=Declaracao de importacao","1=Declaracao simplificada de importacao","2=Recof - Declaracao de admissao","3=Outros"}
+oCombo31:nAt := 1
+
+oSay52 := TSAY():Create(oDlg3)
+oSay52:cName := "oSay52"
+oSay52:cCaption := "UF Terc."
+oSay52:nLeft := 430
+oSay52:nTop := 70
+oSay52:nWidth := 58
+oSay52:nHeight := 17
+oSay52:lShowHint := .F.
+oSay52:lReadOnly := .F.
+oSay52:Align := 0
+oSay52:lVisibleControl := .T.
+oSay52:lWordWrap := .F.
+oSay52:lTransparent := .F.
+
+oGet49 := TGET():Create(oDlg3)
+oGet49:cF3 := "12"
+oGet49:cName := "oGet49"
+oGet49:cCaption := "oGet49"
+oGet49:nLeft := 495
+oGet49:nTop := 70
+oGet49:nWidth := 53
+oGet49:nHeight := 21
+oGet49:lShowHint := .F.
+oGet49:lReadOnly := .F.
+oGet49:Align := 0
+oGet49:cVariable := "cUFTerceiro"
+oGet49:bSetGet := {|u| If(PCount()>0,cUFTerceiro:=u,cUFTerceiro) }
+oGet49:lVisibleControl := .T.
+oGet49:lPassword := .F.
+oGet49:Picture := "@!"
+oGet49:lHasButton := .F.
+oGet49:bValid := {|| ExistCpo("SX5","12"+cUFTerceiro) .AND. !Empty(cUFTerceiro) }
+
+oSay32 := TSAY():Create(oDlg3)
+oSay32:cName := "oSay32"
+oSay32:cCaption := "Local Serv"
+oSay32:nLeft := 6
+oSay32:nTop := 100
+oSay32:nWidth := 65
+oSay32:nHeight := 17
+oSay32:lShowHint := .F.
+oSay32:lReadOnly := .F.
+oSay32:Align := 0
+oSay32:lVisibleControl := .T.
+oSay32:lWordWrap := .F.
+oSay32:lTransparent := .F.
+
+oCombo33 := TCOMBOBOX():Create(oDlg3)
+oCombo33:cName := "oCombo33"
+oCombo33:cCaption := "oCombo33"
+oCombo33:nLeft := 83
+oCombo33:nTop := 100
+oCombo33:nWidth := 340
+oCombo33:nHeight := 21
+oCombo33:lShowHint := .F.
+oCombo33:lReadOnly := .F.
+oCombo33:Align := 0
+oCombo33:cVariable := "cLocServ"
+oCombo33:bSetGet := {|u| If(PCount()>0,cLocServ:=u,cLocServ) }
+oCombo33:lVisibleControl := .T.
+oCombo33:aItems := { "0=Executado no Pais","1=Executado no Exterior, cujo resultado se verifique no Pais"}
+oCombo33:nAt := 0
+
+oSay34 := TSAY():Create(oDlg3)
+oSay34:cName := "oSay34"
+oSay34:cCaption := "Local Desemb"
+oSay34:nLeft := 6
+oSay34:nTop := 130
+oSay34:nWidth := 70
+oSay34:nHeight := 17
+oSay34:lShowHint := .F.
+oSay34:lReadOnly := .F.
+oSay34:Align := 0
+oSay34:lVisibleControl := .T.
+oSay34:lWordWrap := .F.
+oSay34:lTransparent := .F.
+
+oGet35 := TGET():Create(oDlg3)
+oGet35:cName := "oGet35"
+oGet35:cCaption := "oGet35"
+oGet35:nLeft := 83
+oGet35:nTop := 130
+oGet35:nWidth := 339
+oGet35:nHeight := 21
+oGet35:lShowHint := .F.
+oGet35:lReadOnly := .F.
+oGet35:Align := 0
+oGet35:cVariable := "cLocDes"
+oGet35:bSetGet := {|u| If(PCount()>0,cLocDes:=u,cLocDes) }
+oGet35:lVisibleControl := .T.
+oGet35:lPassword := .F.
+oGet35:Picture := "@!"
+oGet35:lHasButton := .F.
+oGet35:bValid := {|| !Empty(cLocDes) }
+
+oSay36 := TSAY():Create(oDlg3)
+oSay36:cName := "oSay36"
+oSay36:cCaption := "UF Desemb"
+oSay36:nLeft := 460
+oSay36:nTop := 130
+oSay36:nWidth := 58
+oSay36:nHeight := 17
+oSay36:lShowHint := .F.
+oSay36:lReadOnly := .F.
+oSay36:Align := 0
+oSay36:lVisibleControl := .T.
+oSay36:lWordWrap := .F.
+oSay36:lTransparent := .F.
+
+oGet37 := TGET():Create(oDlg3)
+oGet37:cF3 := "12"
+oGet37:cName := "oGet37"
+oGet37:cCaption := "oGet37"
+oGet37:nLeft := 525
+oGet37:nTop := 130
+oGet37:nWidth := 53
+oGet37:nHeight := 21
+oGet37:lShowHint := .F.
+oGet37:lReadOnly := .F.
+oGet37:Align := 0
+oGet37:cVariable := "cUFDes"
+oGet37:bSetGet := {|u| If(PCount()>0,cUFDes:=u,cUFDes) }
+oGet37:lVisibleControl := .T.
+oGet37:lPassword := .F.
+oGet37:Picture := "@!"
+oGet37:lHasButton := .F.
+oGet37:bValid := {|| !Empty(cUFDes) }
+
+oSay38 := TSAY():Create(oDlg3)
+oSay38:cName := "oSay38"
+oSay38:cCaption := "Peso Liquido"
+oSay38:nLeft := 6
+oSay38:nTop := 160
+oSay38:nWidth := 65
+oSay38:nHeight := 17
+oSay38:lShowHint := .F.
+oSay38:lReadOnly := .F.
+oSay38:Align := 0
+oSay38:lVisibleControl := .T.
+oSay38:lWordWrap := .F.
+oSay38:lTransparent := .F.
+
+oGet39 := TGET():Create(oDlg3)
+oGet39:cName := "oGet39"
+oGet39:cCaption := "oGet39"
+oGet39:nLeft := 83
+oGet39:nTop := 160
+oGet39:nWidth := 121
+oGet39:nHeight := 21
+oGet39:lShowHint := .F.
+oGet39:lReadOnly := .F.
+oGet39:Align := 0
+oGet39:cVariable := "nPesoLiqui"
+oGet39:bSetGet := {|u| If(PCount()>0,nPesoLiqui:=u,nPesoLiqui) }
+oGet39:lVisibleControl := .T.
+oGet39:lPassword := .F.
+oGet39:Picture := "@E 999999.9999"
+oGet39:lHasButton := .F.
+oGet39:bValid := {|| nPesoLiqui > 0 }
+
+oSay40 := TSAY():Create(oDlg3)
+oSay40:cName := "oSay40"
+oSay40:cCaption := "Peso Bruto"
+oSay40:nLeft := 285
+oSay40:nTop := 160
+oSay40:nWidth := 57
+oSay40:nHeight := 17
+oSay40:lShowHint := .F.
+oSay40:lReadOnly := .F.
+oSay40:Align := 0
+oSay40:lVisibleControl := .T.
+oSay40:lWordWrap := .F.
+oSay40:lTransparent := .F.
+
+oGet41 := TGET():Create(oDlg3)
+oGet41:cName := "oGet41"
+oGet41:cCaption := "oGet41"
+oGet41:nLeft := 350
+oGet41:nTop := 160
+oGet41:nWidth := 121
+oGet41:nHeight := 21
+oGet41:lShowHint := .F.
+oGet41:lReadOnly := .F.
+oGet41:Align := 0
+oGet41:cVariable := "nPesoBruto"
+oGet41:bSetGet := {|u| If(PCount()>0,nPesoBruto:=u,nPesoBruto) }
+oGet41:lVisibleControl := .T.
+oGet41:lPassword := .F.
+oGet41:Picture := "@E 999999.9999"
+oGet41:lHasButton := .F.
+oGet41:bValid := {|| nPesoBruto > 0 }
+
+oSay42 := TSAY():Create(oDlg3)
+oSay42:cName := "oSay42"
+oSay42:cCaption := "Num. DI"
+oSay42:nLeft := 6
+oSay42:nTop := 190
+oSay42:nWidth := 65
+oSay42:nHeight := 17
+oSay42:lShowHint := .F.
+oSay42:lReadOnly := .F.
+oSay42:Align := 0
+oSay42:lVisibleControl := .T.
+oSay42:lWordWrap := .F.
+oSay42:lTransparent := .F.
+
+oGet43 := TGET():Create(oDlg3)
+oGet43:cName := "oGet43"
+oGet43:cCaption := "oGet43"
+oGet43:nLeft := 83
+oGet43:nTop := 190
+oGet43:nWidth := 167
+oGet43:nHeight := 21
+oGet43:lShowHint := .F.
+oGet43:lReadOnly := .F.
+oGet43:Align := 0
+oGet43:cVariable := "cNumDI"
+oGet43:bSetGet := {|u| If(PCount()>0,cNumDI:=u,cNumDI) }
+oGet43:lVisibleControl := .T.
+oGet43:lPassword := .F.
+oGet43:lHasButton := .F.
+oGet43:bValid := {|| VldDadosCampo(cNumDI,cImpCompl) }
+
+oSay44 := TSAY():Create(oDlg3)
+oSay44:cName := "oSay44"
+oSay44:cCaption := "Dt. Reg DI"
+oSay44:nLeft := 285
+oSay44:nTop := 190
+oSay44:nWidth := 56
+oSay44:nHeight := 17
+oSay44:lShowHint := .F.
+oSay44:lReadOnly := .F.
+oSay44:Align := 0
+oSay44:lVisibleControl := .T.
+oSay44:lWordWrap := .F.
+oSay44:lTransparent := .F.
+
+oGet45 := TGET():Create(oDlg3)
+oGet45:cName := "oGet45"
+oGet45:cCaption := "oGet45"
+oGet45:nLeft := 350
+oGet45:nTop := 190
+oGet45:nWidth := 121
+oGet45:nHeight := 21
+oGet45:lShowHint := .F.
+oGet45:lReadOnly := .F.
+oGet45:Align := 0
+oGet45:cVariable := "dDtRegDi"
+oGet45:bSetGet := {|u| If(PCount()>0,dDtRegDi:=u,dDtRegDi) }
+oGet45:lVisibleControl := .T.
+oGet45:lPassword := .F.
+oGet45:lHasButton := .F.
+oGet45:bValid := {|| VldDadosCampo(dDtRegDi,cImpCompl) }
+
+oSay46 := TSAY():Create(oDlg3)
+oSay46:cName := "oSay46"
+oSay46:cCaption := "Dt Desemb"
+oSay46:nLeft := 6
+oSay46:nTop := 220
+oSay46:nWidth := 69
+oSay46:nHeight := 17
+oSay46:lShowHint := .F.
+oSay46:lReadOnly := .F.
+oSay46:Align := 0
+oSay46:lVisibleControl := .T.
+oSay46:lWordWrap := .F.
+oSay46:lTransparent := .F.
+
+oGet47 := TGET():Create(oDlg3)
+oGet47:cName := "oGet47"
+oGet47:cCaption := "oGet47"
+oGet47:nLeft := 83
+oGet47:nTop := 220
+oGet47:nWidth := 116
+oGet47:nHeight := 21
+oGet47:lShowHint := .F.
+oGet47:lReadOnly := .F.
+oGet47:Align := 0
+oGet47:cVariable := "dDtDesemb"
+oGet47:bSetGet := {|u| If(PCount()>0,dDtDesemb:=u,dDtDesemb) }
+oGet47:lVisibleControl := .T.
+oGet47:lPassword := .F.
+oGet47:lHasButton := .F.
+oGet47:bValid := {|| VldDadosCampo(dDtDesemb,cImpCompl) }
+
+oSay48 := TSAY():Create(oDlg3)
+oSay48:cName := "oSay48"
+oSay48:cCaption := "Atualiza Dados Compl?"
+oSay48:nLeft := 285
+oSay48:nTop := 220
+oSay48:nWidth := 111
+oSay48:nHeight := 17
+oSay48:lShowHint := .F.
+oSay48:lReadOnly := .F.
+oSay48:Align := 0
+oSay48:lVisibleControl := .T.
+oSay48:lWordWrap := .F.
+oSay48:lTransparent := .F.
+
+oCombo50 := TCOMBOBOX():Create(oDlg3)
+oCombo50:cName := "oCombo50"
+oCombo50:cCaption := "oCombo50"
+oCombo50:nLeft := 400
+oCombo50:nTop := 220
+oCombo50:nWidth := 71
+oCombo50:nHeight := 21
+oCombo50:lShowHint := .F.
+oCombo50:lReadOnly := .T.
+oCombo50:Align := 0
+oCombo50:cVariable := "cAtualiz"
+oCombo50:bSetGet := {|u| If(PCount()>0,cAtualiz:=u,cAtualiz) }
+oCombo50:lVisibleControl := .T.
+oCombo50:aItems := { "1=Sim","2=Nao"}
+oCombo50:nAt := 2
+
+oSay49 := TSAY():Create(oDlg3)
+oSay49:cName := "oSay49"
+oSay49:cCaption := "Via Transp."
+oSay49:nLeft := 6
+oSay49:nTop := 250
+oSay49:nWidth := 65
+oSay49:nHeight := 17
+oSay49:lShowHint := .F.
+oSay49:lReadOnly := .F.
+oSay49:Align := 0
+oSay49:lVisibleControl := .T.
+oSay49:lWordWrap := .F.
+oSay49:lTransparent := .F.
+
+oCombo51 := TCOMBOBOX():Create(oDlg3)
+oCombo51:cName := "oCombo51"
+oCombo51:cCaption := "oCombo51"
+oCombo51:nLeft := 83
+oCombo51:nTop := 250
+oCombo51:nWidth := 160
+oCombo51:nHeight := 21
+oCombo51:lShowHint := .F.
+oCombo51:lReadOnly := .F.
+oCombo51:Align := 0
+oCombo51:cVariable := "cViaTransp"
+oCombo51:bSetGet := {|u| If(PCount()>0,cViaTransp:=u,cViaTransp) }
+oCombo51:lVisibleControl := .T.
+oCombo51:aItems := Separa(Alltrim(cBoxVTrans()), ";", .F.)
+oCombo51:nAt := 1
+
+oSay50 := TSAY():Create(oDlg3)
+oSay50:cName := "oSay50"
+oSay50:cCaption := "Forma Import"
+oSay50:nLeft := 285
+oSay50:nTop := 250
+oSay50:nWidth := 65
+oSay50:nHeight := 17
+oSay50:lShowHint := .F.
+oSay50:lReadOnly := .F.
+oSay50:Align := 0
+oSay50:lVisibleControl := .T.
+oSay50:lWordWrap := .F.
+oSay50:lTransparent := .F.
+
+oCombo52 := TCOMBOBOX():Create(oDlg3)
+oCombo52:cName := "oCombo52"
+oCombo52:cCaption := "oCombo52"
+oCombo52:nLeft := 360
+oCombo52:nTop := 250
+oCombo52:nWidth := 230
+oCombo52:nHeight := 21
+oCombo52:lShowHint := .F.
+oCombo52:lReadOnly := .F.
+oCombo52:Align := 0
+oCombo52:cVariable := "cFormImp"
+oCombo52:bSetGet := {|u| If(PCount()>0,cFormImp:=u,cFormImp) }
+oCombo52:lVisibleControl := .T.
+oCombo52:aItems := Separa(Alltrim(GetSX3Cache("CD5_INTERM", "X3_CBOX")), ";", .F.)
+oCombo52:nAt := 1
+
+oSBtn51 := SBUTTON():Create(oDlg3)
+oSBtn51:cName := "oSBtn51"
+oSBtn51:cCaption := "&OK"
+oSBtn51:nLeft := 180
+oSBtn51:nTop := 280
+oSBtn51:nWidth := 52
+oSBtn51:nHeight := 22
+oSBtn51:lShowHint := .F.
+oSBtn51:lReadOnly := .F.
+oSBtn51:Align := 0
+oSBtn51:lVisibleControl := .T.
+oSBtn51:nType := 1
+oSBtn51:bAction := {|| lReturn := .t.,Close(oDlg3) }
+
+oSBtn52 := SBUTTON():Create(oDlg3)
+oSBtn52:cName := "oSBtn52"
+oSBtn52:cCaption := "oSBtn52"
+oSBtn52:nLeft := 400
+oSBtn52:nTop := 280
+oSBtn52:nWidth := 52
+oSBtn52:nHeight := 22
+oSBtn52:lShowHint := .F.
+oSBtn52:lReadOnly := .F.
+oSBtn52:Align := 0
+oSBtn52:lVisibleControl := .T.
+oSBtn52:nType := 2
+oSBtn52:bAction := {|| Close(oDlg3) }
+
+oDlg3:Activate()
+
+Return lReturn
+
+/*/{Protheus.doc} VldDadosCampo
+	(Valida as informações digitadas na tela)
+	@type User Function
+	@author Calabro'
+	@since 22/09/2021
+	@version 1.0
+	@param cVariavel, char, (Variavel que esta' efetuando a validacao)
+	@return lContinua, logic, (.T. - Continua processamento / .F. - processo cancelado ou com erros)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function VldDadosCampo(cVariavel, cImpCompl)
+
+Local lContinua := .T. as logical
+
+If cImpCompl == "2" .And. Empty(cVariavel)
+	MsgAlert("Este campo deve ser preenchido","ATENCAO")				
+	lContinua := .f.
+EndIf
+	
+Return lContinua

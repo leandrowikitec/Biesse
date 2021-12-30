@@ -1,0 +1,704 @@
+#INCLUDE "PROTHEUS.CH"
+
+#DEFINE NPOSFORN		02
+#DEFINE NPOSLOJA		03
+#DEFINE NPOSESPECIE		04
+#DEFINE NPOSTES			05
+#DEFINE NPOSCOND		06
+#DEFINE NPOSSERIE		07
+#DEFINE NPOSENATUR		08
+#DEFINE NF1TRANSP		09
+#DEFINE NF1VOLUME1		10
+#DEFINE NF1ESPECI1		11
+#DEFINE NPOSAUTCOMPL	12
+#DEFINE NF1DTREG		13
+#DEFINE NF1DTDES		14
+#DEFINE NF1LOCSER		15
+#DEFINE NF1TPTIMP		16
+#DEFINE NF1UFDES		19
+#DEFINE NF1LOCDE		20
+
+/*/{Protheus.doc} RCOMA01
+(Funcao para incluir uma nota fiscal de entrada com arquivo CSV)
+@author Renato Calabro'
+@since 30/04/2021
+@return Nil
+@see (links_or_references)
+/*/
+
+User Function RCOMA01()
+
+Local cNumNF		:= "" as character
+
+Local aParam		:= {} as array
+Local aResultado	:= {} as array
+
+Private cCodePage	:= "" as character
+
+Private aCabec		:= {} as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
+Private aDet		:= {} as array		// Variavel utilizada para reaproveitar funcao em RCOMA03
+
+aParam := MyPerg()
+
+If Len(aParam) > 0
+
+	// Se arquivo CSV existir no caminho informado, processo rotina para ler dados e carregar aCabec e aDet
+	If File(AllTrim(aParam[1]))
+
+		// Efetuo a leitura do arquivo selecionado
+		Processa({|| U_RCO03LeArq(AllTrim(aParam[1])) },"Processando...", "Efetuando leitura do arquivo...")
+
+		// Somente prossegue se cabecalho e detalhes forem carregados
+		If Len(aCabec) * Len(aDet) > 0
+
+			Processa( { || aResultado := Importa(aParam) }, "Importando arquivo", "" )
+
+			If Len(aResultado) > 0
+				AEval(aResultado, {|x| cNumNF += x + CRLF})
+				Aviso(	"Arquivo processado!", "O arquivo foi processado." + CRLF +;
+						"Verifique o número das notas ou inconsistências geradas:" + CRLF + cNumNF, {"&Ok"} )
+			EndIf
+		Else
+			Aviso(	"Sem dados válidos", "O arquivo CSV existe, mas não foi possível carregar os dados da planilha" + CRLF + CRLF +;
+					"Total de linhas lidas do cabeçalho: " + cValToChar(Len(aCabec)) + CRLF + "Total de linhas lidas dos itens: " +;
+					cValToChar(Len(aDet)), {"&Cancelar"} )
+		EndIf
+	EndIf
+EndIf
+
+Return Nil
+
+/*/{Protheus.doc} Importa
+(Funcao para incluir documento de entrada a partir de dados lidos do arquivo CSV)
+@author Calabro'
+@since 01/06/2020
+@param aParam, array (Array contendo as respostas preenchidas pelo usuário)
+@return aRetorno, array (Array contendo o resultado de inclusão de NF de entrada com sucesso ou falha)
+@see (links_or_references)
+/*/
+
+Static Function Importa(aParam)
+
+Local cItem			:= Repl("0", TamSX3("D1_ITEM")[1]) as character
+Local cSerieId		:= "" as character
+Local cNumDoc		:= "" as character
+
+Local nI 			:= 0 as integer
+Local nTotItens		:= GetMv("MV_NUMITEN",, 300) as integer		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens
+Local nPosProdQtd	:= aScan(aCabec,{|x| "QTDE" $ FwNoAccent(AllTrim(x))}) as integer
+Local nPosProdCIF	:= aScan(aCabec,{|x| "CIF" $ FwNoAccent(AllTrim(x))}) as integer
+Local nPesoBruto	:= 0 as numeric
+Local nPesoLiquid	:= 0 as numeric
+Local nTotAFRMM		:= 0 as numeric
+Local nTotTxSisco	:= 0 as numeric
+Local nTotPis		:= 0 as numeric
+Local nTotCofins	:= 0 as numeric
+Local nTotICMS		:= 0 as numeric
+Local nTotIPI		:= 0 as numeric
+Local nTotBaseICMS	:= 0 as numeric
+Local nTotBaseIPI	:= 0 as numeric
+
+Local lUsaNewKey	:= TamSX3("F1_SERIE")[1] == 14 as logical		// Verifica se o novo formato de gravacao do Id nos campos _SERIE esta em uso
+
+Local aCabNF		:= {} as array
+Local aDetNF		:= {} as array
+Local aItem			:= {} as array
+Local aRetorno		:= {} as array
+Local aAutoImp		:= {} as array
+
+Private aParamRCO01	:= aParam as array				// Adiciono variavel Private para ser utilizado no ponto de entrada SF1100I
+
+cSerieId := IIf( lUsaNewKey , SerieNfId("SF1",4,"F1_SERIE", dDataBase, aParam[NPOSESPECIE], aParam[NPOSSERIE]) , aParam[NPOSSERIE] )
+
+ProcRegua(Len(aDet))
+
+// Analise de cada linha dos itens
+For nI := 1 to Len(aDet)
+
+	// So considera se o array conter a descricao preenchida, pois a maioria das informacoes
+	// estao na descricao
+	If !Empty(aDet[nI][nPosProdQtd])
+
+		IncProc("Preparando linhas para gerar notas: " + cValToChar(nI) + "/" + cValToChar(Len(aDet)) )
+
+		// Se aCabNF estiver vazio, adiciono dados de cabecalho
+		If Empty(aCabNF)
+
+			cNumDoc := NxtSX5Nota( aParam[NPOSSERIE], Nil, GetMV("MV_TPNRNFS"),,,, cSerieId)	// O parametro cSerieId deve ser passado para funcao Sx5NumNota afim de tratar a existencia ou nao do mesmo numero na funcao VldSx5Num do MATXFUNA.PRX
+
+			// Se nao conseguir gerar uma numeracao para a nota, aborto processo de inclusao
+			If !Empty(cNumDoc)
+				Aadd(aCabNF, { "F1_FILIAL" 	, xFilial("SF1")											, Nil })
+				Aadd(aCabNF, { "F1_TIPO" 	, "N"														, Nil })
+				Aadd(aCabNF, { "F1_FORMUL" 	, "S"														, Nil })
+				Aadd(aCabNF, { "F1_DOC" 	, cNumDoc													, Nil })
+				Aadd(aCabNF, { "F1_SERIE" 	, aParam[NPOSSERIE]											, Nil })
+				Aadd(aCabNF, { "F1_FORNECE"	, aParam[NPOSFORN]											, Nil })
+				Aadd(aCabNF, { "F1_LOJA"	, aParam[NPOSLOJA]											, Nil })
+				Aadd(aCabNF, { "F1_COND" 	, aParam[NPOSCOND]											, Nil })
+				Aadd(aCabNF, { "F1_ESPECIE"	, aParam[NPOSESPECIE]										, Nil })
+				Aadd(aCabNF, { "F1_EMISSAO"	, dDataBase													, Nil })
+				Aadd(aCabNF, { "F1_RECBMTO"	, dDataBase													, Nil })
+				Aadd(aCabNF, { "F1_DTDIGIT"	, dDataBase													, Nil })
+				Aadd(aCabNF, { "E2_NATUREZ"	, aParam[NPOSENATUR]										, Nil })
+				Aadd(aCabNF, { "F1_TRANSP"	, aParam[NF1TRANSP]										, Nil })
+				// Preenchimento de volume e especie apenas na primeira nota
+				If Len(aRetorno) == 0
+					Aadd(aCabNF, { "F1_VOLUME1"	, aParam[NF1VOLUME1]										, Nil })
+					Aadd(aCabNF, { "F1_ESPECI1"	, aParam[NF1ESPECI1]										, Nil })
+				EndIf
+				Aadd(aCabNF, { "F1_XNUMDI"	, aDet[nI][aScan(aCabec, {|x| " DI" $ Upper(AllTrim(x)) })]	, Nil })
+				// Se ira preencher os dados automaticamente do complemento, adiciono campos parametrizados por usuario
+				If aParam[NPOSAUTCOMPL] == "1"
+					Aadd(aCabNF, { "F1_XDTREG"	, aParam[NF1DTREG]										, Nil })
+					Aadd(aCabNF, { "F1_XDTDES"	, aParam[NF1DTDES]										, Nil })
+					Aadd(aCabNF, { "F1_XTPTIMP"	, aParam[NF1TPTIMP]										, Nil })
+					Aadd(aCabNF, { "F1_XLOCSER"	, aParam[NF1LOCSER]										, Nil })
+					Aadd(aCabNF, { "F1_XUFDES"	, aParam[NF1UFDES]										, Nil })
+					Aadd(aCabNF, { "F1_XLOCDE"	, aParam[NF1LOCDE]										, Nil })
+				EndIf
+			Else
+				Aviso(	"Falha ao gerar arquivo!", "Tentativa de buscar nova numeração para nota fiscal para a série falhou." + CRLF +;
+						"O processo será interrompido", {"&Cancelar"} )
+				Exit
+			EndIf
+		EndIf
+
+		AAdd(aItem, {"D1_ITEM"		, cItem := Soma1(cItem)																				, Nil } )
+		AAdd(aItem, {"D1_COD"		, TrataDados("D1_COD", aDet[nI][aScan(aCabec, {|x| "CODIGO" $ FwNoAccent(Upper(AllTrim(MyDecodeUTF8(x)))) })])	, Nil } )
+		AAdd(aItem, {"D1_QUANT"		, TrataDados("D1_QUANT", aDet[nI][nPosProdQtd])														, Nil } )
+		AAdd(aItem, {"D1_VUNIT"		, TrataDados("D1_VUNIT", ( TrataDados("D1_VUNIT", aDet[nI][nPosProdCIF]) +;
+										TrataDados("D1_II", aDet[nI][aScan(aCabec, {|x| "II" $ Upper(AllTrim(x)) })]) ) /;
+										TrataDados("D1_QUANT", aDet[nI][nPosProdQtd]) )													, Nil } )
+
+		If aScan(aCabec, {|x| "TES" $ Upper(AllTrim(x)) }) > 0 .AND. !Empty(aDet[nI][aScan(aCabec, {|x| "TES" $ Upper(AllTrim(x)) })])
+			AAdd(aItem, {"D1_TES"		, TrataDados("D1_TES", aDet[nI][aScan(aCabec, {|x| "TES" $ Upper(AllTrim(x)) })])				, Nil } )
+		Else
+			AAdd(aItem, {"D1_TES"		, aParam[NPOSTES]																				, Nil } )
+		EndIf
+
+		If !Empty(aDet[nI][aScan(aCabec, {|x| "IPI" $ Upper(AllTrim(x)) })])
+			AAdd(aItem, {"D1_IPI"		, TrataDados("D1_IPI", aDet[nI][aScan(aCabec, {|x| "IPI" $ Upper(AllTrim(x)) })])				, Nil } )
+		EndIf
+
+		If SD1->(FieldPos("D1_XNADIC")) > 0
+			AAdd(aItem, {"D1_XNADIC"	, TrataDados("D1_XNADIC", aDet[nI][aScan(aCabec, {|x| "ADICAO" $ Upper(AllTrim(x)) })])				, Nil } )
+		EndIf
+		If SD1->(FieldPos("D1_XSQADIC")) > 0
+			AAdd(aItem, {"D1_XSQADIC"	, TrataDados("D1_XSQADIC", aDet[nI][aScan(aCabec, {|x| "ITEM" $ Upper(AllTrim(x)) })])				, Nil } )
+		EndIf
+		AAdd(aItem, {"D1_II"		, TrataDados("D1_II", aDet[nI][aScan(aCabec, {|x| "II" $ Upper(AllTrim(x)) })])						, Nil } )
+
+		If SD1->(FieldPos("D1_AFRMIMP")) > 0
+			// AAdd(aItem, {"D1_AFRMIMP"	, TrataDados("D1_AFRMIMP", aDet[nI][aScan(aCabec, {|x| "AFRMM" $ Upper(AllTrim(x)) })])			, Nil } )
+			nTotAFRMM += TrataDados("D1_AFRMIMP", aDet[nI][aScan(aCabec, {|x| "AFRMM" $ Upper(AllTrim(x)) })])
+		EndIf
+
+		// Calculo totalizadores para gravar em campos do cabecalho da nota
+		nPesoBruto += TrataDados("F1_PBRUTO", aDet[nI][aScan(aCabec, {|x| "BRUTO" $ Upper(AllTrim(x)) })])
+		nPesoLiquid += TrataDados("F1_PLIQUI", aDet[nI][aScan(aCabec, {|x| "LIQUIDO" $ Upper(AllTrim(x)) })])
+		nTotTxSisco += TrataDados("F1_DESPESA", aDet[nI][aScan(aCabec, {|x| "SISCOMEX" $ Upper(AllTrim(x)) })])
+		
+		If !Empty(aDet[nI][aScan(aCabec, {|x| "IPI" $ Upper(AllTrim(x)) })])
+
+			AAdd(aItem, {"D1_BASEIPI"	, TrataDados("D1_BASEIPI", aDet[nI][aScan(aCabec, {|x| "BASE IPI" $ Upper(AllTrim(x)) })])			, Nil } )
+
+			// Adiciono nas variaveis para salvar nos totalizadores
+			nTotIPI += TrataDados("F1_VALIPI", aDet[nI][aScan(aCabec, {|x| "VLR. IPI" $ Upper(AllTrim(x)) })])
+			nTotBaseIPI += TrataDados("F1_BASEIPI", aDet[nI][aScan(aCabec, {|x| "BASE IPI" $ Upper(AllTrim(x)) })])
+		EndIf
+
+		// Impostos (Informar a referência do imposto, que consta no valid do campo)
+		// Para impostos de Itens informar: referência, valor, número da linha
+		AAdd(aAutoImp, {'IT_BASEICM', TrataDados("D1_BASEICM", aDet[nI][aScan(aCabec, {|x| "BASE ICMS" $ Upper(AllTrim(x)) })])	, nI }) //Base
+
+		AAdd(aAutoImp, {'IT_ALIQICM', TrataDados("D1_PICM", aDet[nI][aScan(aCabec, {|x| "ICMS" $ Upper(AllTrim(x)) })])			, nI }) //Porcentagem Imposto
+
+		AAdd(aAutoImp, {'IT_VALICM'	, TrataDados("D1_VALICM", aDet[nI][aScan(aCabec, {|x| "VLR. ICMS" $ Upper(AllTrim(x)) })])	, nI }) //Valor imposto
+
+		nTotICMS += TrataDados("F1_VALICM", aDet[nI][aScan(aCabec, {|x| "VLR. ICMS" $ Upper(AllTrim(x)) })])
+		nTotBaseICMS += TrataDados("F1_BASEICM", aDet[nI][aScan(aCabec, {|x| "BASE ICMS" $ Upper(AllTrim(x)) })])
+
+		nTotPis += TrataDados("F1_VALIMP6", aDet[nI][aScan(aCabec, {|x| "VLR. PIS" $ Upper(AllTrim(x)) })])
+		nTotCofins += TrataDados("F1_VALIMP5", aDet[nI][aScan(aCabec, {|x| "VLR. COFINS" $ Upper(AllTrim(x)) })])
+
+		// Adiciono todas as colunas da linha no array de item de nota fiscal
+		AAdd(aDetNF, aClone(aItem))
+
+		// Se o laco alcancar o numero maximo de itens para geracao da nota, gero a nota
+		// e faco novo tratamento de proximos itens para uma nova nota
+		If Mod(nI, nTotItens) == 0
+
+			// Adiciono dados de campos de cabecalho que sao calculados com valores
+			AddCposCabec(	@aCabNF		, nPesoBruto	, nPesoLiquid	, nTotTxSisco	, nTotPis		, nTotCofins,;
+							nTotAFRMM	, nTotICMS		, nTotBaseICMS	, nTotIPI		, nTotBaseIPI )
+
+			AAdd(aRetorno, GravaNFEntrada(aCabNF, aDetNF, aAutoImp))
+			// Esvazio array de nota fiscal para proxima nota, pois preciso de uma nova numeracao
+			ASize(aCabNF,0)
+			// Esvazio array de itens de nota fiscal para proximo lote de itens
+			ASize(aDetNF,0)
+			// Esvazio array de impostos de itens de nota fiscal para proximo lote de itens
+			ASize(aAutoImp,0)
+			// Esvazio variaveis de peso para proxima nota
+			nPesoBruto := 0
+			nPesoLiquid := 0
+			nTotTxSisco := 0
+			nTotPis := 0
+			nTotCofins := 0
+			nTotAFRMM := 0
+			nTotICMS := 0
+			nTotBaseICMS := 0
+			nTotIPI := 0
+			nTotBaseIPI := 0
+		EndIf
+
+		// Zero array aItem para proxima linha
+		ASize(aItem,0)
+	Else
+		AAdd(aRetorno, "Linha " + cValToChar(nI) + " desconsiderada, pois não possui dados a serem utilizados para incluir o item." + CRLF)
+	EndIf
+Next nI
+
+// Se ultimo processamento nao foi executao no laco, executo o restante dos itens
+If Len(aDetNF) > 0
+	// Adiciono dados de campos de cabecalho que sao calculados com valores
+	AddCposCabec(	@aCabNF		, nPesoBruto	, nPesoLiquid	, nTotTxSisco	, nTotPis		, nTotCofins,;
+					nTotAFRMM	, nTotICMS		, nTotBaseICMS	, nTotIPI		, nTotBaseIPI )
+
+	AAdd(aRetorno, GravaNFEntrada(aCabNF, aDetNF, aAutoImp))
+EndIf
+
+Return aRetorno
+
+/*/{Protheus.doc} MyPerg
+(Funcao para executar o Parambox da rotina)
+@author Renato Calabro'
+@since 31/05/2021
+@return aRet, array, (Array contendo os conteudos preenchidos pelo usuario)
+@see (links_or_references)
+/*/
+
+Static Function MyPerg()
+
+Local cTitulo		:= "Parâmetros para importar arquivo" as character					//Titulo a ser apresentado no Parambox
+
+Local aParambox 	:= {} as array					//Array com os tipos de Parambox
+Local aRet 			:= {} as array					//Array com o retorno do pergunte
+Local aAreaAtu 		:= GetArea() as array					//Armazena array atual
+
+// 1
+aAdd(aParamBox,{6,;
+				"Selec.Diretório:",;
+				Space(230),;
+				"",;
+				"",;
+				"",;
+				80,;
+				.T.,;
+				"Arquivos CSV|*.CSV",;
+				"C:\",;
+				GETF_LOCALFLOPPY + GETF_LOCALHARD + GETF_NETWORKDRIVE})
+// 2
+aAdd(aParamBox,{1,;
+				"Fornecedor",;
+				Space(TamSX3("A2_COD")[1]),;
+				"@!",;
+				"ExistCpo('SA2',MV_PAR02)",;
+				"SA2",;
+				"",;
+				TamSX3("A2_COD")[1],;
+				.T. } )
+// 3
+aAdd(aParamBox,{1,;
+				"Loja",;
+				Space(TamSX3("A2_LOJA")[1]),;
+				"@!",;
+				"ExistCpo('SA2',MV_PAR02+MV_PAR03)",;
+				"",;
+				"",;
+				TamSX3("A2_LOJA")[1],;
+				.T. } )
+// 4
+aAdd(aParamBox,{1,;
+				"Espécie",;
+				Space(TamSX3("F1_ESPECIE")[1]),;
+				"@!",;
+				"ExistCpo('SX5','42'+MV_PAR04)",;
+				"42",;
+				"",;
+				TamSX3("F1_ESPECIE")[1],;
+				.T. } )
+// 5
+aAdd(aParamBox,{1,;
+				"TES",;
+				Space(TamSX3("D1_TES")[1]),;
+				"@!",;
+				"ExistCpo('SF4',MV_PAR05) .AND. MV_PAR05 < '501'",;
+				"SF4",;
+				"",;
+				TamSX3("D1_TES")[1],;
+				.T. } )
+// 6
+aAdd(aParamBox,{1,;
+				"Cond.Pagto",;
+				Space(TamSX3("F1_COND")[1]),;
+				"@!",;
+				"ExistCpo('SE4',MV_PAR06)",;
+				"SE4",;
+				"",;
+				TamSX3("F1_COND")[1],;
+				.T. } )
+// 7
+aAdd(aParamBox,{1,;
+				"Serie",;
+				Space(TamSX3("F1_SERIE")[1]),;
+				"@!",;
+				"!Empty(Posicione('SX5',1,xFilial('SX5')+'01'+AllTrim(MV_PAR07),'X5_DESCRI'))",;
+				"",;
+				"",;
+				TamSX3("F1_SERIE")[1],;
+				.T. } )
+// 8
+aAdd(aParamBox,{1,;
+				"Natureza",;
+				Space(TamSX3("E2_NATUREZ")[1]),;
+				"@!",;
+				"ExistCpo('SED',MV_PAR08)",;
+				"SED",;
+				"",;
+				60,;
+				.T. } )
+// 9
+aAdd(aParamBox,{1,;
+				"Transportadora",;
+				Space(TamSX3("A4_COD")[1]),;
+				"@!",;
+				"ExistCpo('SA4',MV_PAR09)",;
+				"SA4",;
+				"",;
+				TamSX3("A4_COD")[1],;
+				.F. } )
+// 10
+aAdd(aParamBox,{1,;
+				"Volume 1",;
+				Criavar("F1_VOLUME1", .T.),;
+				GetSX3Cache("F1_VOLUME1", "X3_PICTURE"),;
+				"",;
+				"",;
+				"",;
+				30,;
+				.F. } )
+// 11
+aAdd(aParamBox,{1,;
+				"Especie 1",;
+				Space(TamSX3("F1_ESPECI1")[1]),;
+				"@!",;
+				"",;
+				"",;
+				"",;
+				60,;
+				.F. } )
+// 12
+aAdd(aParamBox,{2,;
+				"Adic. Inf. Complementares",;
+				"3",;
+				{"1=Sim e não exibe tela","2=Não","3=Sim e exibe tela"},;
+				70,;
+				".T.",;
+				.F. } )
+// 13
+aAdd(aParamBox,{1,;
+				"Dt. Registro DI",;
+				CToD(""),;
+				"",;
+				"IF(MV_PAR12=='1',!EMPTY(MV_PAR13),.T.)",;
+				"",;
+				"MV_PAR12=='1'",;
+				50,;
+				.F. } )
+// 14
+aAdd(aParamBox,{1,;
+				"Dt Desembaraço",;
+				CToD(""),;
+				"",;
+				"IF(MV_PAR12=='1',!EMPTY(MV_PAR14),.T.)",;
+				"",;
+				"MV_PAR12=='1'",;
+				50,;
+				.F. } )
+// 15
+aAdd(aParamBox,{2,;
+				"Local Serviço",;
+				"",;
+				Separa(Alltrim(GetSX3Cache("CD5_LOCAL", "X3_CBOX")), ";", .F.),;
+				120,;
+				"IF(MV_PAR12=='1',!EMPTY(MV_PAR15),.T.)",;
+				.F. } )
+// 16
+aAdd(aParamBox,{2,;
+				"Tipo Importação",;
+				"",;
+				{"0=Declaracao de importacao","1=Declaracao simplificada de importacao","2=Recof - Declaracao de admissao","3=Outros"},;
+				100,;
+				"IF(MV_PAR12=='1',!EMPTY(MV_PAR16),.T.)",;
+				.F. } )
+// 17
+aAdd(aParamBox,{2,;
+				"Via Transporte",;
+				"",;
+				Separa(Alltrim(cBoxVTrans()), ";", .F.),;
+				80,;
+				"IF(MV_PAR12=='1',!EMPTY(MV_PAR17),.T.)",;
+				.F. } )
+// 18
+aAdd(aParamBox,{2,;
+				"Forma Importação",;
+				"",;
+				Separa(Alltrim(GetSX3Cache("CD5_INTERM", "X3_CBOX")), ";", .F.),;
+				100,;
+				"IF(MV_PAR12=='1',!EMPTY(MV_PAR18),.T.)",;
+				.F. } )
+// 19
+aAdd(aParamBox,{1,;
+				GetSX3Cache("CD5_UFDES", "X3_TITULO"),;
+				Space(TamSX3("CD5_UFDES")[1]),;
+				"@!",;
+				"ExistCpo('SX5','12'+AllTrim(MV_PAR19)) .AND. IF(MV_PAR12=='1',!EMPTY(MV_PAR19),.T.)",;
+				"12",;
+				"MV_PAR12=='1'",;
+				30,;
+				.F. } )
+// 20
+aAdd(aParamBox,{1,;
+				GetSX3Cache("CD5_LOCDES", "X3_TITULO"),;
+				Space(TamSX3("CD5_LOCDES")[1]),;
+				"@!",;
+				"IF(MV_PAR12=='1',!EMPTY(MV_PAR20),.T.)",;
+				"",;
+				"MV_PAR12=='1'",;
+				100,;
+				.F. } )
+// 21
+aAdd(aParamBox,{1,;
+				GetSX3Cache("CD5_CNPJAE", "X3_TITULO"),;
+				Space(TamSX3("CD5_CNPJAE")[1]),;
+				"@!",;
+				"",;
+				"",;
+				"MV_PAR12=='1'",;
+				70,;
+				.F. } )
+// 22
+aAdd(aParamBox,{1,;
+				GetSX3Cache("CD5_UFTERC", "X3_TITULO"),;
+				Space(TamSX3("CD5_UFTERC")[1]),;
+				"@!",;
+				"ExistCpo('SX5','12'+AllTrim(MV_PAR22)) .AND. IF(MV_PAR12=='1',!EMPTY(MV_PAR22),.T.)",;
+				"12",;
+				"MV_PAR12=='1'",;
+				30,;
+				.F. } )
+
+ParamBox(aParamBox, cTitulo, @aRet,,,,,,,FunName(), .T., .T.)
+
+RestArea(aAreaAtu)
+
+Return aRet
+
+/*/{Protheus.doc} TrataDados
+(Funcao para tratar conteudo de cada campo do arquivo CSV para numerico, data ou logico)
+@author Renato Calabro'
+@since 07/05/2021
+@param cCampo, character, (Nome do campo de referencia do SX3)
+@param xValor, special, (Conteudo enviado para ser convertido)
+@return xValor, special (Conteudo convertido para caracter, numerico, data ou logico)
+@see (links_or_references)
+/*/
+
+Static Function TrataDados(cCampo, xValor)
+
+Local cTipoDado		:= "" as character
+
+If !Empty(xValor)
+
+	 cTipoDado := TamSX3(cCampo)[3]
+
+	// Se tipo de dado for diferente de caracter, faco a conversao
+	// Senao, retorna o mesmo conteudo
+	If cTipoDado <> "C"
+		//Numerico
+		If cTipoDado == "N" .AND. ValType(xValor) == "C"
+			xValor	:= Val(StrTran(StrTran(xValor,"."), ",", "."))
+
+		//Data
+		ElseIf cTipoDado == "D"
+			xValor	:= CToD(xValor)
+
+		//Logico
+		ElseIf cTipoDado == "L"
+			xValor := Upper(xValor) == "T" .OR. Upper(xValor) == ".T."  
+		EndIf
+	EndIf
+EndIf
+
+Return xValor
+
+/*/{Protheus.doc} GravaNFEntrada
+(Funcao para executar ExecAuto de documento de entrada)
+@author Renato Calabro'
+@since 07/05/2021
+@param aCabNF, array, (Array contendo o cabecalho a ser incluido para a nota fiscal de entrada)
+@param aDetNF, array, (Array contendo os itens a serem incluidos para a nota fiscal de entrada)
+@param aAutoImp, array, (Array contendo os impostos dos itens da nota fiscal de entrada)
+@return cReturn, character (Retorno de resultado da funcao MATA103 - erro ou sucesso)
+@see (links_or_references)
+/*/
+
+Static Function GravaNFEntrada(aCabNF, aDetNF, aAutoImp)
+
+Local cResult			:= "" as character
+
+Private lMsErroAuto		:= .F. as logical
+Private lMsErroHelp		:= .T. as logical
+Private	lAutoErrNoFile	:= .T. as logical		// Se for job, gravo erro em array, senao mostro em tela
+
+begin transaction
+
+	// Somente processa se houver cabecalho e itens preenchidos
+	If Len(aCabNF) * Len(aDetNF) > 0
+		MsExecAuto({|x,y,z,a| MATA103(x,y,z,,a)}, aCabNF, aDetNF, 3, aAutoImp )  // 3 > inclusão  -  5 > exclusão   //Documento de entrada
+
+		If lMsErroAuto
+			If !__lSX8
+				RollBackSx8()
+			EndIf
+
+			aAutoErro := GetAutoGrLog()
+			aEval(aAutoErro, {|x| cResult += x + CRLF })
+			// Converto retorno de carro para "|"
+			cResult := StrTran(cResult, Chr(13)+Chr(10), CRLF)
+
+			DisarmTransaction()
+		Else
+
+			cResult := "NF " + aCabNF[aScan(aCabNF, {|x| x[1] == "F1_DOC" })][2] + " gerada com sucesso!" + CRLF
+
+			While (GetSX8Len() > 0)
+				If __lSX8
+					ConfirmSx8()
+				EndIf
+			EndDo
+		EndIf
+	EndIf
+End Transaction
+
+Return cResult
+
+/*/{Protheus.doc} RCOA01AddCompl
+(Funcao para adicionar automaticamente os complementos de nota de importacao)
+@author Renato Calabro'
+@since 09/06/2021
+@param aResultado, array, (Array contendo notas geradas previamente)
+@param aParam, array (Array contendo as respostas preenchidas pelo usuário)
+@return cReturn, character (Retorno de resultado da funcao MATA103 - erro ou sucesso)
+@see (links_or_references)
+/*/
+
+User Function RCOA01AddCompl(aResultado, aParam)
+
+Local cNumDoc	:= "" as character
+
+Local nX		:= 0 as integer
+
+Local aAreas	:= {SF1->(GetArea()), SD1->(GetArea()), GetArea()} as array
+
+SF1->(DbSetOrder(1))	// F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA+F1_TIPO
+SD1->(DbSetOrder(1))	// D1_FILIAL+D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA+D1_COD+D1_ITEM
+
+For nX := 1 To Len(aResultado)
+	If "sucesso" $ aResultado[nX]
+
+		// Tratamento para capturar numero da nota gerada
+		cNumDoc := Substr(aResultado[nX], At("NF", aResultado[nX])+3, TamSX3("F1_DOC")[1])
+		cNumDoc := AllTrim(Substr(cNumDoc, 1, At(" ", cNumDoc)))
+
+		// Se encontrar nota no cabecalho e no item e se usuario confirmar preenchimento de complemento de notas (CD5)
+		// na tela customizada, prossigo com abertura de tela de complemento
+		If SF1->(DbSeek(xFilial("SF1")+PadR(cNumDoc, TamSX3("F1_DOC")[1])+aParam[NPOSSERIE]+aParam[NPOSFORN]+aParam[NPOSLOJA])) .AND.;
+			SD1->(DbSeek(xFilial("SD1")+PadR(cNumDoc, TamSX3("D1_DOC")[1])+aParam[NPOSSERIE]+aParam[NPOSFORN]+aParam[NPOSLOJA])) .AND.;
+			U_RCOMA02(cNumDoc + " " + cValToChar(nX) + " de " + cValToChar(Len(aResultado)))
+
+			// Executo tela de complemento de nota
+			Mata926(SD1->D1_DOC,SD1->D1_SERIE,SF1->F1_ESPECIE,SD1->D1_FORNECE,SD1->D1_LOJA,"E",SD1->D1_TIPO,SD1->D1_CF)
+		EndIf
+	EndIf
+Next nX
+
+AEval(aAreas, {|x| RestArea(x) })
+
+Return Nil
+
+/*/{Protheus.doc} AddCposCabec
+(Funcao para adicionar campos totalizadores no cabecalho, antes da gravacao da nota)
+@author Renato Calabro'
+@since 02/07/2021
+@param aCabNF, array, (Array contendo o cabecalho a ser incluido para a nota fiscal de entrada)
+@param nPesoBruto, numeric, (Peso bruto total da nota)
+@param nPesoLiquid, numeric, (Peso liquido total da nota)
+@param nTotTxSisco, numeric, (Total de despesa Siscomex da nota)
+@param nTotPis, numeric, (Total do PIS da nota)
+@param nTotCofins, numeric, (Total do COFINS da nota)
+@param nTotAFRMM, numeric, (Total do AFRMM da nota)
+@param nTotICMS, numeric, (Total de ICMS da nota)
+@param nTotBaseICMS, numeric, (Base de ICMS da nota)
+@param nTotIPI, numeric, (Total de IPI da nota)
+@param nTotBaseIPI, numeric, (Base de IPI da nota)
+@return Nil, Nulo
+@see (links_or_references)
+/*/
+
+Static Function AddCposCabec(	aCabNF		, nPesoBruto	, nPesoLiquid	, nTotTxSisco	, nTotPis	, nTotCofins,;
+								nTotAFRMM	, nTotICMS		, nTotBaseICMS	, nTotIPI		, nTotBaseIPI )
+
+Local cMsgNota		:= "" as character
+
+// Se for incluir nota, adiciono campos calculados de pesos bruto e liquido
+Aadd(aCabNF, { "F1_PBRUTO"	, nPesoBruto								, Nil } )
+Aadd(aCabNF, { "F1_PLIQUI"	, nPesoLiquid								, Nil } )
+Aadd(aCabNF, { "F1_DESPESA"	, nTotTxSisco + nTotAFRMM					, Nil } )
+Aadd(aCabNF, { "F1_BASEICM"	, nTotBaseICMS								, Nil } )
+Aadd(aCabNF, { "F1_VALICM"	, nTotICMS									, Nil } )
+
+// Adiciono mensagem da nota como exemplo abaixo
+// DI:2103877844- VLR PIS 5.747,00 - VLR COFINS 26.408,84
+// DI 2106705734 - PIS=2.569,19 - COFINS=11.806,02 - SISCOMEX=244,00
+cMsgNota := "DI: " + aCabNf[AScan(aCabNF, {|x| x[1] == "F1_XNUMDI"})][2]
+cMsgNota += " - PIS=" + cValToChar(nTotPis)
+cMsgNota += " - COFINS=" + cValToChar(nTotCofins)
+cMsgNota += " - SISCOMEX=" + cValToChar(nTotTxSisco)
+
+Aadd(aCabNF, { "F1_MENNOTA"	, cMsgNota									, Nil } )
+
+// Adiciono total de AFRMM se o campo existir
+If SF1->(FieldPos("F1_AFRMIMP")) > 0
+	Aadd(aCabNF, { "F1_AFRMIMP"	, nTotAFRMM								, Nil } )
+EndIf
+
+Return Nil
+
+/*/{Protheus.doc} MyDecodeUTF8
+	(Verifica se o tipo de encoding do arquivo selecionado pelo usuario e' UTF-8 para decodificar)
+	@type Static Function
+	@author Calabro'
+	@since 27/12/2021
+	@version version
+	@param cString, character, (String a ser decodificada)
+	@return cString, character, (String decodificada ou mantida, caso nao seja UTF-8)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function MyDecodeUTF8(cString as character)
+Return If("UTF-8" $ cCodePage, DecodeUTF8(cString), cString)
