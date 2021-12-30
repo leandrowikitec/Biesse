@@ -85,7 +85,6 @@ Local cNumDoc		:= "" as character
 
 Local nI 			:= 0 as integer
 Local nTotItens		:= GetMv("MV_NUMITEN",, 300) as integer		// Parametro com maximo de itens por nota. Se nao preenchido, utiliza conceito de max. de itens
-// Local nPosProdArq	:= aScan(aCabec,{|x| "DESCRI" $ FwNoAccent(AllTrim(x))}) as integer
 Local nPosProdQtd	:= aScan(aCabec,{|x| "QTDE" $ FwNoAccent(AllTrim(x))}) as integer
 Local nPosProdCIF	:= aScan(aCabec,{|x| "CIF" $ FwNoAccent(AllTrim(x))}) as integer
 Local nPesoBruto	:= 0 as numeric
@@ -143,8 +142,11 @@ For nI := 1 to Len(aDet)
 				Aadd(aCabNF, { "F1_DTDIGIT"	, dDataBase													, Nil })
 				Aadd(aCabNF, { "E2_NATUREZ"	, aParam[NPOSENATUR]										, Nil })
 				Aadd(aCabNF, { "F1_TRANSP"	, aParam[NF1TRANSP]										, Nil })
-				Aadd(aCabNF, { "F1_VOLUME1"	, aParam[NF1VOLUME1]										, Nil })
-				Aadd(aCabNF, { "F1_ESPECI1"	, aParam[NF1ESPECI1]										, Nil })
+				// Preenchimento de volume e especie apenas na primeira nota
+				If Len(aRetorno) == 0
+					Aadd(aCabNF, { "F1_VOLUME1"	, aParam[NF1VOLUME1]										, Nil })
+					Aadd(aCabNF, { "F1_ESPECI1"	, aParam[NF1ESPECI1]										, Nil })
+				EndIf
 				Aadd(aCabNF, { "F1_XNUMDI"	, aDet[nI][aScan(aCabec, {|x| " DI" $ Upper(AllTrim(x)) })]	, Nil })
 				// Se ira preencher os dados automaticamente do complemento, adiciono campos parametrizados por usuario
 				If aParam[NPOSAUTCOMPL] == "1"
@@ -178,26 +180,6 @@ For nI := 1 to Len(aDet)
 		If !Empty(aDet[nI][aScan(aCabec, {|x| "IPI" $ Upper(AllTrim(x)) })])
 			AAdd(aItem, {"D1_IPI"		, TrataDados("D1_IPI", aDet[nI][aScan(aCabec, {|x| "IPI" $ Upper(AllTrim(x)) })])				, Nil } )
 		EndIf
-
-		// AAdd(aItem, {"D1_LOTEFOR"	, Substr(aDet[nI][nPosProdArq], At("LOTE:", aDet[nI][nPosProdArq])+6, 4) 							, Nil } )
-
-		// Tratamento para datas que o mes nao vem com dois digitos (4/2020, 8/2021)
-		// cConteudo := Substr(aDet[nI][nPosProdArq], At("FABRICA", aDet[nI][nPosProdArq])+13, 12)
-		// Extraio data sem pontuacao e data no final Ex: DATA FABRICAÇÃO: 4/2020. DAT
-		// cConteudo := AllTrim(Left(cConteudo, At(".", cConteudo)-1))
-		// Se conteudo tiver formatacao sem os dias mm/aaaa, adiciono dias para formatar a data
-		// Senao mantenho data original
-		// cConteudo := If(Len(cConteudo) == 10, "", "01/") + If(Len(cConteudo) == 6, "0", "") + cConteudo
-		// AAdd(aItem, {"D1_DFABRIC"	, LastDay(CToD(cConteudo))																			, Nil } )
-
-		// Tratamento para datas que o mes nao vem com dois digitos (4/2020, 8/2021)
-		// cConteudo := Substr(aDet[nI][nPosProdArq], At("VALIDADE:", aDet[nI][nPosProdArq])+10, 12)
-		// Extraio data sem pontuacao e data no final Ex: DATA FABRICAÇÃO: 4/2020. DAT
-		// cConteudo := AllTrim(Left(cConteudo, At(".", cConteudo)-1))
-		// Se conteudo tiver formatacao sem os dias mm/aaaa, adiciono dias para formatar a data
-		// Senao mantenho data original
-		// cConteudo := If(Len(cConteudo) == 10, "", "01/") + If(Len(cConteudo) == 6, "0", "") + cConteudo
-		// AAdd(aItem, {"D1_DTVALID"	, LastDay(CToD(cConteudo))																			, Nil } )
 
 		If SD1->(FieldPos("D1_XNADIC")) > 0
 			AAdd(aItem, {"D1_XNADIC"	, TrataDados("D1_XNADIC", aDet[nI][aScan(aCabec, {|x| "ADICAO" $ Upper(AllTrim(x)) })])				, Nil } )
@@ -314,7 +296,7 @@ aAdd(aParamBox,{6,;
 				"",;
 				80,;
 				.T.,;
-				""/*"Arquivos XLS|*.XLS|Todos os Arquivos|*.*"*/,;
+				"Arquivos CSV|*.CSV",;
 				"C:\",;
 				GETF_LOCALFLOPPY + GETF_LOCALHARD + GETF_NETWORKDRIVE})
 // 2
@@ -400,8 +382,8 @@ aAdd(aParamBox,{1,;
 // 10
 aAdd(aParamBox,{1,;
 				"Volume 1",;
-				0,;
-				"",;
+				Criavar("F1_VOLUME1", .T.),;
+				GetSX3Cache("F1_VOLUME1", "X3_PICTURE"),;
 				"",;
 				"",;
 				"",;
@@ -586,21 +568,17 @@ begin transaction
 	// Somente processa se houver cabecalho e itens preenchidos
 	If Len(aCabNF) * Len(aDetNF) > 0
 		MsExecAuto({|x,y,z,a| MATA103(x,y,z,,a)}, aCabNF, aDetNF, 3, aAutoImp )  // 3 > inclusão  -  5 > exclusão   //Documento de entrada
-		// MSExecAuto({|x,y,z,a,b| MATA103(x,y,z,,a,,,,,)},aCabNF,aDetNF,3,aAutoImp)
 
 		If lMsErroAuto
 			If !__lSX8
 				RollBackSx8()
 			EndIf
 
-			// If !IsBlind()
-			// 	cResult := MostraErro()
-			// Else
-				aAutoErro := GetAutoGrLog()
-				aEval(aAutoErro, {|x| cResult += x + CRLF })
-				// Converto retorno de carro para "|"
-				cResult := StrTran(cResult, Chr(13)+Chr(10), CRLF)
-			// EndIf
+			aAutoErro := GetAutoGrLog()
+			aEval(aAutoErro, {|x| cResult += x + CRLF })
+			// Converto retorno de carro para "|"
+			cResult := StrTran(cResult, Chr(13)+Chr(10), CRLF)
+
 			DisarmTransaction()
 		Else
 
