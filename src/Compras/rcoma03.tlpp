@@ -133,6 +133,9 @@ oFile := FWFileReader():New(cFile)
 
 If (oFile:Open())
 
+	// Define o Encoding do arquivo
+	cCodePage := MyGetCodePage(cFile)
+
 	ProcRegua(oFile:getFileSize())
 
 	While (oFile:hasLine())
@@ -247,3 +250,46 @@ begin transaction
 End Transaction
 
 Return cResult
+
+/*/{Protheus.doc} MyGetCodePage
+	(Verifica o encoding do arquivo para tratamento de conversoes e acentuacoes)
+	@type Static Function
+	@author Calabro'
+	@since 27/12/2021
+	@version version
+	@param cFile, character, (Caminho do arquivo a ser analisado)
+	@return cRetEncoding, character, (Tipo de codepage do arquivo verificado)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function MyGetCodePage(cFile)
+
+Local cBuffer		:= "" as character
+Local cEncoding		:= "" as character
+Local cRetEncoding	:= "" as character
+
+Local nHandle		:= 0 as integer
+
+nHandle := FOpen(cFile)
+FRead(nHandle, @cBuffer, 32)
+FClose(nHandle)
+cEncoding := HexStrDump(cBuffer)
+
+// Verifica o Encoding utilizando retorno hexadcimal da primeira linha do arquivo
+// Atualmente o bloco de notas permite 5 tipos: ANSI, UFT-8, UTF-8 BOM, UTF-16 BE e UFT-16 LE
+Do Case
+	Case "4E 52 2E 20 4E 46 3B 45 4D 49 53 53 C3 4F 3B 46" $ cEncoding
+		cRetEncoding := "ANSI"
+	Case "4E 52 2E 20 4E 46 3B 45 4D 49 53 53 C3 83 4F 3B" $ cEncoding
+		cRetEncoding := "UTF-8"
+	Case "EF BB BF 4E 52 2E 20 4E 46 3B 45 4D 49 53 53 C3" $ cEncoding
+		cRetEncoding := "UTF-8 BOM"
+	Case "FF FE 4E 00 52 00 2E 00 20 00 4E 00 46 00 3B 00" $ cEncoding
+		cRetEncoding := "UTF-16 LE"
+	Case "FE FF 00 4E 00 52 00 2E 00 20 00 4E 00 46 00 3B" $ cEncoding
+		cRetEncoding := "UTF-16 BE"
+EndCase
+
+Return cRetEncoding
