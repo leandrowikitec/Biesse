@@ -116,7 +116,7 @@ Private nSeguro 	:= 0 as numeric
 Private nDespesa	:= 0 as numeric
 Private nTotVal  	:= 0 as numeric
 Private nTotDesc 	:= 0 as numeric
-Private nTotValDesc	:= 0 as numeric
+Private nTotValIPI	:= 0 as numeric
 Private cObservacao := "" as character
 Private oRpt		:= Nil as object
 Private oFont12		:= Nil as object
@@ -577,17 +577,17 @@ oRpt:SayAlign(nLinha	, 100	, AllTrim(TMP001->CK_PRODUTO)						 				, oFont12:oFo
 oRpt:SayAlign(nLinha	, 280	, AllTrim(TMP001->B1_DESC)								 			, oFont12:oFont	, 600	, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 840	, AllTrim(TMP001->CK_UM)							 				, oFont12:oFont	, 200	, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 800	, Transform(ROUND(TMP001->CK_QTDVEN ,4), GetSX3Cache("CK_QTDVEN", "X3_PICTURE"))	, oFont12:oFont	, 250	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 950	, Transform(ROUND(nPrcVen ,4), GetSX3Cache("CK_PRCVEN", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nValor ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 950	, Transform(ROUND((nPrcVen + (nValDesc / TMP001->CK_QTDVEN)) ,4), GetSX3Cache("CK_PRCVEN", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nValor + nValDesc ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1250	, Transform(ROUND(nValDesc ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))			, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1400	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1550	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1700	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALDESC", "X3_PICTURE"))				, oFont12:oFont	, 300	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nValor - nValDesc,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))		, oFont12:oFont	, 300	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nValor + nIpi,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))		, oFont12:oFont	, 300	, 100,, 1, 0)
 
 nTotVal  	+= nValor
 nTotDesc 	+= nValDesc
-nTotValDesc += ROUND((nValor - nValDesc),4)
+nTotValIPI  += ROUND((nValor + nIPI),4)
 
 Return Nil
 
@@ -623,11 +623,11 @@ oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
 nLinha += 040
 
 oRpt:SayAlign(nLinha	, 100	, "Valor Itens s/ Desconto:"									, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 400	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 400	, Transform(nTotVal + nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1000	, "Desconto dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 1250	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1600	, "Total dos Itens:"											, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 1850	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(nTotValIPI, GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 300, 100,, 1, 0)
 
 nLinha += 040
 
@@ -638,7 +638,7 @@ oRpt:Line(nLinha +5	, 100	, nLinha +5	, 2180)
 nLinha += 040
 
 oRpt:SayAlign(nLinha	, 100	, "Desconto (-):"												, oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(nLinha	, 435	, Transform(ROUND((nTotDesc / nTotVal)*100,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) + " %", oFont12:oFont	, 300, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 435	, Transform(ROUND((nTotDesc / (nTotVal+nTotDesc))*100,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) + " %", oFont12:oFont	, 300, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1000	, "Despesa  (+):"												, oFont12N:oFont, 500, 100,, 0, 0)
 oRpt:SayAlign(nLinha	, 1250	, Transform(nDespesa, GetSX3Cache("CJ_DESPESA", "X3_PICTURE"))  , oFont12:oFont	, 300, 100,, 1, 0)
 
@@ -678,14 +678,14 @@ oRpt:SayAlign(nLinha	, 1850	, "VALOR TOTAL"									, oFont12N:oFont	, 235	, 100
 
 nLinha += 040
 
-oRpt:SayAlign(nLinha	, 100	, Transform(nTotVal, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 		  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 100	, Transform(nTotVal+nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 		  , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 350	, Transform(nTotDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	 	  , oFont12:oFont	, 235	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 600	, Transform(nTotValDesc, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 600	, Transform(nTotValIPI, GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 850	, Transform(ROUND(nFrete+nSeguro+nDespesa,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	, oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1100	, Transform(ROUND(nIcms ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE"))   , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1350	, Transform(ROUND(nIpi ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) 	  , oFont12:oFont	, 235	, 100,, 1, 0)
 oRpt:SayAlign(nLinha	, 1600	, Transform(ROUND(nIcmsSt ,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
-oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nTotValDesc+nFrete+nSeguro+nDespesa,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
+oRpt:SayAlign(nLinha	, 1850	, Transform(ROUND(nTotValIPI+nFrete+nSeguro+nDespesa,4), GetSX3Cache("CK_VALOR", "X3_PICTURE")) , oFont12:oFont	, 235	, 100,, 1, 0)
 
 AdicRodape()
 
@@ -693,7 +693,7 @@ AdicRodape()
 
 nTotVal  	:= 0
 nTotDesc 	:= 0
-nTotValDesc := 0
+nTotValIPI  := 0
 
 Return Nil
 
