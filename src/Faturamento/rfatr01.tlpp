@@ -477,7 +477,7 @@ oRpt:SayAlign(500	, 2040	, DToC(SToD(TMP001->CJ_EMISSAO))	  		 			, oFont12:oFon
 
 
 oRpt:SayAlign(540	, 100	, "Cidade:" 		  									, oFont12N:oFont	, 500, 100,, 0, 0)
-oRpt:SayAlign(540	, 240	, AllTrim(TMP001->A1_MUN) + ' / '+ AllTrim(TMP001->A1_EST)	, oFont12:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(540	, 240	, AllTrim(TMP001->A1_MUN) + ' / '+ AllTrim(TMP001->A1_EST)	, oFont12:oFont	, 1000, 100,, 0, 0)
 oRpt:SayAlign(540	, 1350	, "Data de Entrega: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
 oRpt:SayAlign(540	, 1590	, DToC(SToD(TMP001->CK_ENTREG))		  		 			, oFont12:oFont		, 350, 100,, 0, 0)
 oRpt:SayAlign(540	, 1790	, "Data de Validade: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
@@ -486,7 +486,7 @@ oRpt:SayAlign(540	, 2040	, DToC(SToD(TMP001->CJ_VALIDA))		  		 			, oFont12:oFon
 oRpt:SayAlign(580	, 100	, "CEP: " 		  						 				, oFont12N:oFont	, 100, 100,, 0, 0)
 oRpt:SayAlign(580	, 240	, Transform(TMP001->A1_CEP, "@R 99.999-999")			, oFont12:oFont		, 350, 100,, 0, 0)
 oRpt:SayAlign(580	, 540	, "Bairro:" 		  						 			, oFont12N:oFont	, 350, 100,, 0, 0)
-oRpt:SayAlign(580	, 640	, AllTrim(TMP001->A1_BAIRRO)							, oFont12:oFont		, 450, 100,, 0, 0)
+oRpt:SayAlign(580	, 640	, AllTrim(TMP001->A1_BAIRRO)							, oFont12:oFont		, 900, 100,, 0, 0)
 oRpt:SayAlign(580	, 1350	, "Tipo de Frete: " 							 		, oFont12N:oFont	, 350, 100,, 0, 0)
 oRpt:SayAlign(580	, 1590	, If(nX == 0, "", aTipFrete[nX][2])						, oFont12:oFont		, 400, 100,, 0, 0)
 
