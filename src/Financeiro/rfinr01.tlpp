@@ -1847,8 +1847,9 @@ Local nX		:= 0 as numeric
 Local nModulo	:= 0 as numeric
 Local nMult		:= 0 as numeric
 
-nMultIni := Iif( nMultIni==Nil,2,nMultIni )
-nMultFim := Iif( nMultFim==Nil,9,nMultFim )
+nMultIni := Iif( Empty(nMultIni), 2, nMultIni )
+nMultFim := Iif( Empty(nMultFim), 9, nMultFim )
+
 nMult := nMultIni
 cStr := AllTrim(cStr)
 
