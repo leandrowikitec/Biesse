@@ -1322,8 +1322,6 @@ Local cParte5		:= "" as character
 Local cDigital		:= "" as character
 Local cX6SantSof	:= "" as character
 
-Local NNUM			:= "" as numeric
-
 Local aRet			:= {} as array
 
 cAgencia:= STRZERO(Val(cAgencia),4)
@@ -1333,12 +1331,10 @@ If SA6->A6_COD == "001"
 	
 	// Nosso Numero
 	If !Empty(SE1->E1_NUMBCO)
-		nNum   := SE1->E1_NUMBCO
 		cNosso := SE1->E1_NUMBCO
 	Else
 		cNosso := GetMV("ES_SQNUMBB",, "0")
 		cNosso := StrZero(Val(cNosso)+1,10)
-		nNum   := cNosso
 		
 		// Gravo o numero sequencia do Banco do Brasil no Arquivo de Parametros
 		PutMV("ES_SQNUMBB",cNosso)
@@ -1348,7 +1344,7 @@ If SA6->A6_COD == "001"
 	cFatorValor  := fator1() + Strzero(nValor * 100,10)
 	cConvenio := "1225233"
 	
-	cCampoL := "000000" + cConvenio + alltrim(NNUM) + cCart
+	cCampoL := "000000" + cConvenio + alltrim(cNosso) + cCart
 	
 	cLivre 	:= cBanco + cMoeda + cFatorValor + cCampoL
 	
@@ -1381,12 +1377,10 @@ ElseIf SA6->A6_COD == "341"
 	If !Empty(SE1->E1_NUMBCO)
 		cNosso 		:= alltrim(SE1->E1_NUMBCO)
 		cDigNosso  	:= CALC_diE(cCart + cNosso)
-		nNum     	:= cNosso
 		cNosso		:= cNosso + cDigNosso
 	Else
 		cNosso   := GetMV("ES_SQNUMIT",, "0")
 		cDigNosso:= CALC_diE(cCart + cNosso)
-		nNum    := cNosso
 		cNosso	:= cNosso + cDigNosso
 	EndIf
 	
@@ -1792,10 +1786,11 @@ Return cLineDig
 
 Static Function DV_LINHA(cBloco as character)
 
+Local cDigito	:= "" as character
+
 Local nPeso		:= 2 as numeric 	//Inicia peso em 2
 Local nCont		:= 0 as numeric
 Local nX		:= 0 as numeric
-Local nDigito	:= 0 as numeric
 Local nResto	:= 0 as numeric
 Local nDezena	:= 0 as numeric
 
@@ -1822,12 +1817,12 @@ nDezena  := Substr(Str(nCont, 2) ,1 , 1)
 nResto   := ( (Val(nDezena) + 1) * 10) - nCont
 
 If nResto == 10
-	nDigito := "0"
+	cDigito := "0"
 Else
-	nDigito := Str(nResto,1)
+	cDigito := Str(nResto,1)
 Endif
 
-Return nDigito
+Return cDigito
 
 /*/{Protheus.doc} Modulo11
 	(Calcula o modulo 11 para a string enviada por parametro)
