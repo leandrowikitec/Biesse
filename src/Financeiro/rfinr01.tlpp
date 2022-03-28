@@ -36,6 +36,8 @@ Local lRet			:= .T. as logical						//controle de retorno de processo
 
 Local aAreas		:= {} as array
 
+Default aParams		:= {}
+
 If Len(aParams) > 0
 
 	cCodEmp := aParams[1]
