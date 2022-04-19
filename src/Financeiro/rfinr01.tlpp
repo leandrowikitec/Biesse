@@ -99,6 +99,9 @@ Local nOpc			:= 0 as numeric
 Local aPergs		:= {} as array
 Local aRet			:= {} as array
 Local aBancos		:= {} as array
+Local aDimTela		:= MsAdvSize() as array		//Array com as dimensoes da tela
+
+Local oTPnlRodap	:= Nil as object
 
 Private cChaveBanco := "" as character
 Private cMod11      := " " as character
@@ -202,11 +205,20 @@ If Len(aPergs) > 0 .OR. lJob
 		lBoletoPDF := MV_PAR22
 
 		@ 001,001 TO 400,700 DIALOG oDlg TITLE "Seleção de Titulos"
+		oDlg:lMaximized := .T.
+
 		@ 001,001 TO 170,350 BROWSE "SE1" MARK "E1_OK" OBJECT oBrw
-		@ 180,050 SAY oSay1 PROMPT "Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999")) SIZE 070, 010 OF oDlg COLORS 0, 16777215 PIXEL
-		@ 180,100 SAY oSay2 PROMPT "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99")) SIZE 070, 010 OF oDlg COLORS 0, 16777215 PIXEL
-		@ 180,310 BMPBUTTON TYPE 01 ACTION (lExec := .T.,Close(oDlg))
-		@ 180,280 BMPBUTTON TYPE 02 ACTION (lExec := .F.,Close(oDlg))
+
+		//Informacoes do rodape da tela
+		oTPnlRodap := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aDimTela[6] * 0.065,.T.,.F.)
+
+		//Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
+		oTPnlRodap:Align := CONTROL_ALIGN_BOTTOM
+
+		@ 010,010 SAY oSay1 PROMPT "Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999")) SIZE 070, 010 OF oTPnlRodap COLORS 0, 16777215 PIXEL
+		@ 010,050 SAY oSay2 PROMPT "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99")) SIZE 070, 010 OF oTPnlRodap COLORS 0, 16777215 PIXEL
+		@ 010,310 BMPBUTTON TYPE 01 ACTION (lExec := .T.,Close(oDlg))
+		@ 010,280 BMPBUTTON TYPE 02 ACTION (lExec := .F.,Close(oDlg))
 
 		If lPrim
 			SE1->(dbGoTop())
@@ -226,6 +238,8 @@ If Len(aPergs) > 0 .OR. lJob
 			RecLock("SE1",.F.),SE1->E1_OK:=IIF(Marked("E1_OK"),oBrw:CCODMARCA,""),MsUnLock(),oBrw:REFRESHLINE() }
 
 			lPrim := .F.
+
+			oBrw:Align := CONTROL_ALIGN_ALLCLIENT
 		EndIf
 
 		ACTIVATE DIALOG oDlg CENTERED
