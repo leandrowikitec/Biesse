@@ -2301,7 +2301,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 2
 AAdd(aPergs,{	1,;
 				"Ate Prefixo",;
@@ -2311,7 +2311,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 3
 AAdd(aPergs,{	1,;
 				"De Numero",;
@@ -2321,7 +2321,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 4
 AAdd(aPergs,{	1,;
 				"Ate Numero",;
@@ -2331,7 +2331,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 5
 AAdd(aPergs,{	1,;
 				"De Parcela",;
@@ -2341,7 +2341,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 6
 AAdd(aPergs,{	1,;
 				"Ate Parcela",;
@@ -2351,7 +2351,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 7
 AAdd(aPergs,{	1,;
 				"De Portador",;
@@ -2361,7 +2361,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 8
 AAdd(aPergs,{	1,;
 				"Ate Portador",;
@@ -2371,7 +2371,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 9
 AAdd(aPergs,{	1,;
 				"De Cliente",;
@@ -2381,7 +2381,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 10
 AAdd(aPergs,{	1,;
 				"Ate Cliente",;
@@ -2391,7 +2391,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 11
 AAdd(aPergs,{	1,;
 				"De Loja",;
@@ -2401,7 +2401,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 12
 AAdd(aPergs,{	1,;
 				"Ate Loja",;
@@ -2411,47 +2411,47 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 13
 AAdd(aPergs,{	1,;
 				"De Emissao",;
-				Space(TamSX3("E1_EMISSAO")[1]),;
+				CToD(""),;
 				"",;
 				"",;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 14
 AAdd(aPergs,{	1,;
 				"Ate Emissao",;
-				Space(TamSX3("E1_EMISSAO")[1]),;
+				CToD(""),;
 				"",;
 				"MV_PAR13 <= MV_PAR14",;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 15
 AAdd(aPergs,{	1,;
 				"De Vencimento",;
-				Space(TamSX3("E1_VENCTO")[1]),;
+				CToD(""),;
 				"",;
 				"",;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 16
 AAdd(aPergs,{	1,;
 				"Ate Vencimento",;
-				Space(TamSX3("E1_VENCTO")[1]),;
+				CToD(""),;
 				"",;
 				"MV_PAR15 <= MV_PAR16",;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 17
 AAdd(aPergs,{	1,;
 				"Do Bordero",;
@@ -2461,7 +2461,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 18
 AAdd(aPergs,{	1,;
 				"Ate Bordero",;
@@ -2471,7 +2471,7 @@ AAdd(aPergs,{	1,;
 				"",;
 				"",;
 				50,;
-				.T. })
+				.F. })
 // 19
 AAdd(aPergs,{	1,;
 				"Linha Obs 1",;
