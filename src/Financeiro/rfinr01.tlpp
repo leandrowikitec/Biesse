@@ -425,7 +425,7 @@ If Empty(nResult)
 		// Posiciona o SEA (Titulos enviados ao banco)
 		DbSelectArea("SEA")
 		SEA->(DbSetOrder(1))	// EA_FILIAL+EA_NUMBOR+EA_PREFIXO+EA_NUM+EA_PARCELA+EA_TIPO+EA_FORNECE+EA_LOJA
-		If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_FORNECE+E1_LOJA) ))
+		If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_CLIENTE+E1_LOJA) ))
 
 			// Posiciona o SA6 (Bancos)
 			DbSelectArea("SA6")
@@ -597,7 +597,7 @@ If Empty(nResult)
 							{"&Cancelar"})
 			EndIf  
 		Else
-			GeraMsgErro("Dados de titulos enviados ao banco não encontrados: " + xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_FORNECE+E1_LOJA),;
+			GeraMsgErro("Dados de titulos enviados ao banco não encontrados: " + xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_CLIENTE+E1_LOJA),;
 						lJob,;
 						{"&Cancelar"})
 		EndIf  
