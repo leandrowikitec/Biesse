@@ -239,7 +239,7 @@ If Len(aPergs) > 0 .OR. lJob
 
 			lPrim := .F.
 
-			oBrw:Align := CONTROL_ALIGN_ALLCLIENT
+			oBrw:lMaximized := .T.
 		EndIf
 
 		ACTIVATE DIALOG oDlg CENTERED
