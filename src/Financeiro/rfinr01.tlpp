@@ -104,11 +104,12 @@ Local aDimTela		:= MsAdvSize() as array		//Array com as dimensoes da tela
 Local oTPnlRodap	:= Nil as object
 
 Private cChaveBanco := "" as character
-Private cMod11      := " " as character
+Private cMod11		:= " " as character
 Private cBanco		:= "" as character
 Private __cBanco	:= "" as character
+Private cMarca		:= GetMark() as character
 
-Private lExec       := .F. as logical	
+Private lExec		:= .F. as logical	
 
 Private oDlg		:= Nil as object
 
@@ -208,6 +209,10 @@ If Len(aPergs) > 0 .OR. lJob
 		oDlg:lMaximized := .T.
 
 		@ 001,001 TO 170,350 BROWSE "SE1" MARK "E1_OK" OBJECT oBrw
+		//Informacoes do Browse
+		oBrw := MsSelect():New("SE1","E1_OK",,,,cMarca,{02,1,163,346})
+		//Configuro lista  com exibicao total da tela
+		oBrw:Align := CONTROL_ALIGN_ALLCLIENT
 
 		//Informacoes do rodape da tela
 		oTPnlRodap := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aDimTela[6] * 0.065,.T.,.F.)
@@ -238,8 +243,6 @@ If Len(aPergs) > 0 .OR. lJob
 			RecLock("SE1",.F.),SE1->E1_OK:=IIF(Marked("E1_OK"),oBrw:CCODMARCA,""),MsUnLock(),oBrw:REFRESHLINE() }
 
 			lPrim := .F.
-
-			oBrw:lMaximized := .T.
 		EndIf
 
 		ACTIVATE DIALOG oDlg CENTERED
