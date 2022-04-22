@@ -1,9 +1,11 @@
 #INCLUDE "PROTHEUS.CH"
 #INCLUDE "RWMAKE.CH"
 
+#DEFINE CDIRPDF		"\boleto\"
+
 #DEFINE NFIMLIN		170
 
-Static lBoletoPDF	:= GetMv("ES_BOLPDF",, .F.) as logical	//Verifica se o tipo de mensagem selecionado [ Imprimir / Envio] caso seja envio gera um arquivo PDF
+Static lBoletoPDF	:= .F. as logical	//Verifica se o tipo de mensagem selecionado [ Imprimir / Envio] caso seja envio gera um arquivo PDF
 // Static lEnvioBol	:= GetMv("ES_MAILBOL",, .F.) as logical	//Verifica se o tipo selecionado na mensagem e envio de [ Boleto ]
 // Static lEnvBolNF	:= lBoletoPDF .AND. lEnvioBol as logical	//Verifica se o tipo selecionado na mensagem e envio de [ Boleto + Nota Fiscal ]
 
@@ -50,8 +52,15 @@ If Len(aParams) > 0
 		RpcSetType(3)
 		RpcSetEnv(cCodEmp, cCodFil,,,"FIN",,{"SE1"})
 	EndIf
+EndIf
+
+// Continua se existir ambiente ativo
+If !Empty(FunName()) .AND. !Empty(cEmpAnt)
 
 	aAreas 	:= {SE1->(GetArea()), GetArea()}
+
+	// Defino variavel static de acordo com parametro
+	lBoletoPDF := GetMv("ES_BOLPDF",, .F.)
 
 	DbSelectArea("SE1")
 	DbSetOrder(1)
@@ -98,28 +107,30 @@ Local nOpc			:= 0 as numeric
 
 Local aPergs		:= {} as array
 Local aRet			:= {} as array
-Local aBancos		:= {} as array
+// Local aBancos		:= {} as array
 Local aDimTela		:= MsAdvSize() as array		//Array com as dimensoes da tela
 
 Local oTPnlRodap	:= Nil as object
+Local oFont			:= TFont():New('Verdana',,-16,.F.) as object
+Local oSay1			:= Nil as object
+Local oSay2			:= Nil as object
 
 Private cChaveBanco := "" as character
 Private cMod11		:= " " as character
-Private cBanco		:= "" as character
-Private __cBanco	:= "" as character
-Private cMarca		:= GetMark() as character
+// Private cBanco		:= "" as character
+// Private __cBanco	:= "" as character
 
 Private lExec		:= .F. as logical	
 
 Private oDlg		:= Nil as object
 
 //Preenche as opcoes de Banco
-aAdd(aBancos,"001 - Banco Do Brasil")
-aAdd(aBancos,"033 - Banco Santander")
-aAdd(aBancos,"237 - Banco Bradesco")
-aAdd(aBancos,"341 - Banco Itau")
-aAdd(aBancos,"422 - Banco Safra")
-aAdd(aBancos,"637 - Banco Sofisa")
+// aAdd(aBancos,"001 - Banco Do Brasil")
+// aAdd(aBancos,"033 - Banco Santander")
+// aAdd(aBancos,"237 - Banco Bradesco")
+// aAdd(aBancos,"341 - Banco Itau")
+// aAdd(aBancos,"422 - Banco Safra")
+// aAdd(aBancos,"637 - Banco Sofisa")
 
 Tamanho  := "M"
 titulo   := "Impressao de Boleto com Codigo de Barras"
@@ -135,11 +146,11 @@ nLastKey := 0
 
 dbSelectArea("SE1")
 
-aPergs := MyPerg()
-
-//Preenche parametros para rotina utilizar envio de boleto automatico
-If lJob
-
+// Se nao for job, executo perguntas para filtrar titulos
+// Senao preenche parametros para rotina utilizar envio de boleto automatico
+If !lJob
+	aPergs := MyPerg()
+Else
 	MV_PAR01 := SE1->E1_PREFIXO
 	MV_PAR02 := SE1->E1_PREFIXO
 	MV_PAR03 := SE1->E1_NUM
@@ -161,6 +172,8 @@ If lJob
 	MV_PAR19 := ""
 	MV_PAR20 := ""
 	MV_PAR21 := ""
+	MV_PAR22 := GetMv("ES_BOLPDF",, .F.)	// Gera Boleto
+	MV_PAR25 := .T.							// Envia docs. por e-mail
 
 	//Define variaveis Private com conteudo para geracao de boleto em job
 	// If IsInCallStack ("U_RFATA00")
@@ -208,11 +221,11 @@ If Len(aPergs) > 0 .OR. lJob
 		@ 001,001 TO 400,700 DIALOG oDlg TITLE "Seleção de Titulos"
 		oDlg:lMaximized := .T.
 
-		@ 001,001 TO 170,350 BROWSE "SE1" MARK "E1_OK" OBJECT oBrw
 		//Informacoes do Browse
-		oBrw := MsSelect():New("SE1","E1_OK",,,,cMarca,{02,1,163,346})
-		//Configuro lista  com exibicao total da tela
-		oBrw:Align := CONTROL_ALIGN_ALLCLIENT
+		@ 001,001 TO 170,350 BROWSE "SE1" MARK "E1_OK" OBJECT oBrw
+
+		//Configuro lista com exibicao total da tela
+		oBrw:oBrowse:Align := CONTROL_ALIGN_ALLCLIENT
 
 		//Informacoes do rodape da tela
 		oTPnlRodap := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aDimTela[6] * 0.065,.T.,.F.)
@@ -220,10 +233,10 @@ If Len(aPergs) > 0 .OR. lJob
 		//Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
 		oTPnlRodap:Align := CONTROL_ALIGN_BOTTOM
 
-		@ 010,010 SAY oSay1 PROMPT "Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999")) SIZE 070, 010 OF oTPnlRodap COLORS 0, 16777215 PIXEL
-		@ 010,050 SAY oSay2 PROMPT "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99")) SIZE 070, 010 OF oTPnlRodap COLORS 0, 16777215 PIXEL
-		@ 010,310 BMPBUTTON TYPE 01 ACTION (lExec := .T.,Close(oDlg))
-		@ 010,280 BMPBUTTON TYPE 02 ACTION (lExec := .F.,Close(oDlg))
+		oSay1 := TSay():New( 010, 010,{|| "Qtd Selec.: " + AllTrim(Transform(nQtdSel,"@R 999999999"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,080,020)
+		oSay2 := TSay():New( 010, 100,{|| "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,080,020)
+		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 100/* 310 */ TYPE 01 ENABLE OF oTPnlRodap ACTION (lExec := .T.,Close(oDlg))
+		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 130/* 280 */ TYPE 02 ENABLE OF oTPnlRodap ACTION (lExec := .F.,Close(oDlg))
 
 		If lPrim
 			SE1->(dbGoTop())
@@ -238,8 +251,8 @@ If Len(aPergs) > 0 .OR. lJob
 			oBrw:OBROWSE:BLDBLCLICK := {|| IIF( !Marked("E1_OK"),;
 											Eval({|| nQtdSel++, nVlrSel+=SE1->E1_VLCRUZ}),;
 											Eval({|| nQtdSel--, nVlrSel-=SE1->E1_VLCRUZ}) ),;
-			oSay1:CCAPTION := "Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999")),;
-			oSay2:CCAPTION := "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99")),;
+			oSay1:SetText("Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999"))),;
+			oSay2:SetText("Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))),;
 			RecLock("SE1",.F.),SE1->E1_OK:=IIF(Marked("E1_OK"),oBrw:CCODMARCA,""),MsUnLock(),oBrw:REFRESHLINE() }
 
 			lPrim := .F.
@@ -247,74 +260,74 @@ If Len(aPergs) > 0 .OR. lJob
 
 		ACTIVATE DIALOG oDlg CENTERED
 
-		dbGoTop()
-		//Variaveis criadas para consolidacao dos fontes de boletos
-		aRet := {}
-		aPergs  := {}
+		If lExec
+			dbGoTop()
+			//Variaveis criadas para consolidacao dos fontes de boletos
+			aRet := {}
+			aPergs  := {}
 		
-		/*
-		3 - Radio
-		[2] : Descrição
-		[3] : Numérico contendo a opção inicial do Radio
-		[4] : Array contendo as opções do Radio
-		[5] : Tamanho do Radio
-		[6] : Validação
-		[7] : Flag .T./.F. Parâmetro Obrigatório ?
-		[8] : String contendo a validação When
-		*/
-		aAdd(aPergs, {3, "Selecione o banco para impressão de boletos", 1, aBancos, 100,, .T.})
-		While Empty(aRet)
-			ParamBox(aPergs ,"Parametros ",aRet)
-		Enddo
+			/*
+			3 - Radio
+			[2] : Descrição
+			[3] : Numérico contendo a opção inicial do Radio
+			[4] : Array contendo as opções do Radio
+			[5] : Tamanho do Radio
+			[6] : Validação
+			[7] : Flag .T./.F. Parâmetro Obrigatório ?
+			[8] : String contendo a validação When
+			*/
+			// aAdd(aPergs, {3, "Selecione o banco para impressão de boletos", 1, aBancos, 100,, .T.})
+			// While Empty(aRet)
+			// 	ParamBox(aPergs ,"Parametros ",aRet)
+			// Enddo
 
-		cBanco := Left(aBancos[aRet[1]],3)
-		// Se funcao de re-impressao, esta posicionado no SE1
-		// __cBanco := cBanco
+			// cBanco := Left(aBancos[aRet[1]],3)
+			// Se funcao de re-impressao, esta posicionado no SE1
+			// __cBanco := cBanco
 
-		//Posiciona o SEA (Titulos enviados ao banco)
-		// DbSelectArea("SEA")
-		// SEA-(DbSetOrder(1))	// EA_FILIAL+EA_NUMBOR+EA_PREFIXO+EA_NUM+EA_PARCELA+EA_TIPO+EA_FORNECE+EA_LOJA
-		// If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_FORNECE+E1_LOJA) ))
+			//Posiciona o SEA (Titulos enviados ao banco)
+			// DbSelectArea("SEA")
+			// SEA-(DbSetOrder(1))	// EA_FILIAL+EA_NUMBOR+EA_PREFIXO+EA_NUM+EA_PARCELA+EA_TIPO+EA_FORNECE+EA_LOJA
+			// If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_FORNECE+E1_LOJA) ))
 
-			//Posiciona o SA6 (Bancos)
-			// DbSelectArea("SA6")
-			// SA6-(DbSetOrder(1))
-			// If SA6->( DbSeek(xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON) ))
+				//Posiciona o SA6 (Bancos)
+				// DbSelectArea("SA6")
+				// SA6-(DbSetOrder(1))
+				// If SA6->( DbSeek(xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON) ))
 
-				// cSubConta := SA6->(GetSubConta(A6_COD, A6_AGENCIA, A6_NUMCON))
+					// cSubConta := SA6->(GetSubConta(A6_COD, A6_AGENCIA, A6_NUMCON))
 
-				// Posiciona o SEE (Parametros de bancos)
-				// DbSelectArea("SEE")
-				// SEE->(DbSetOrder(1))	// EE_FILIAL+EE_CODIGO+EE_AGENCIA+EE_CONTA+EE_SUBCTA
-				// If SEE->(DbSeek(xFilial("SEE")+SA6->(A6_COD+A6_AGENCIA+A6_NUMCON)+cSubConta))
+					// Posiciona o SEE (Parametros de bancos)
+					// DbSelectArea("SEE")
+					// SEE->(DbSetOrder(1))	// EE_FILIAL+EE_CODIGO+EE_AGENCIA+EE_CONTA+EE_SUBCTA
+					// If SEE->(DbSeek(xFilial("SEE")+SA6->(A6_COD+A6_AGENCIA+A6_NUMCON)+cSubConta))
 
-					If lExec
 						
-						cMsg := "Deseja Imprimir ou Enviar via e-mail?"
-						nOpc 	:= Aviso("",cMsg,{'Imprimir','E-mail'},1,"Impressão Boletos - " + FunName())
+			cMsg := "Deseja Imprimir ou Enviar via e-mail?"
+			nOpc 	:= Aviso("",cMsg,{'Imprimir','E-mail'},1,"Impressão Boletos - " + FunName())
+					// nOpc := 2
+					
+					// If  nOpc == 1 //Imprimir
+					// 	lPDF := .F.
+					// 	Processa({|lEnd|MontaRel(lJob)})
+					// Else
+
+						// cMsg	:= "Deseja Enviar Boleto ou Enviar Boleto + NF ?"
+						// nOpc 	:= Aviso("",cMsg,{'&Boleto','Boleto+&Nota'},1,"Impressão Boletos - " + FunName())
 						// nOpc := 2
-						
-						// If  nOpc == 1 //Imprimir
-						// 	lPDF := .F.
+
+						// If  nOpc == 1 //Boleto
+						// 	lPDF := .T.
+						// 	lEnvioBol := .T.
 						// 	Processa({|lEnd|MontaRel(lJob)})
 						// Else
-
-							// cMsg	:= "Deseja Enviar Boleto ou Enviar Boleto + NF ?"
-							// nOpc 	:= Aviso("",cMsg,{'&Boleto','Boleto+&Nota'},1,"Impressão Boletos - " + FunName())
-							// nOpc := 2
-
-							// If  nOpc == 1 //Boleto
-							// 	lPDF := .T.
-							// 	lEnvioBol := .T.
-							// 	Processa({|lEnd|MontaRel(lJob)})
-							// Else
-							// 	lPDF := .T.
-							// 	lEnvioBol := .T.
-							// 	lEnvBolNF := .T.
-								Processa({|lEnd|MontaRel(lJob)})
-							// EndIf
-						// Endif
-					EndIf
+						// 	lPDF := .T.
+						// 	lEnvioBol := .T.
+						// 	lEnvBolNF := .T.
+			Processa({|lEnd|MontaRel(lJob)})
+						// EndIf
+					// Endif
+		EndIf
 		// 		Else
 		// 			GeraMsgErro("Subconta da agência e conta não encontrado no cadastro de parâmetros de bancos: " + xFilial("SEE") + SA6->(A6_COD+A6_AGENCIA+A6_NUMCON),;
 		// 						lJob,;
@@ -362,7 +375,6 @@ Return cFilePrint
 Static Function MontaRel(lJob as logical, cFilePrint as character)
 
 // Local cFilePrint	:= "" as character
-Local cDirPDF		:= "\boleto\" as character
 Local cSfxNomArq	:= GetMv("ES_BOLSUFX",, "boleto_") as character
 Local cSubConta		:= '' as character
 
@@ -377,13 +389,11 @@ Local aAreas		:= {SM0->(GetArea()), GetArea() } as array
 
 Local oPrint		:= Nil as object
 
-Private cLocal		:= "" as character
-
 Private cNroDoc		:=  " " as character
 Private nVetor		:= 0 as numeric
 Private nContB		:= 0 as numeric
-Private nTotItau	:= 0 as numeric
-Private nTotSemNN	:= 0 as numeric
+// Private nTotItau	:= 0 as numeric
+// Private nTotSemNN	:= 0 as numeric
 Private nTotImpEnv	:= 0 as numeric
 
 Private dVencRea	:= CTOD("") as date
@@ -414,20 +424,20 @@ aDadosEmp    := {	AllTrim(SM0->M0_NOMECOM),													; //[1]Nome da Empresa
 aEval(aAreas, {|x| RestArea(x) })
 
 // Monta nome do PDF com estrutura: Sufixo do MV + num. titulo + prefixo do titulo
-cFilePrint		:= cSfxNomArq + AllTrim(SE1->E1_NUM) + AllTrim(SE1->E1_PREFIXO)
+cFilePrint := cSfxNomArq + AllTrim(SE1->E1_NUM) + AllTrim(SE1->E1_PREFIXO)
 
-oPrint:= FwMSPrinter():New(cFilePrint, 6, .T., cDirPDF, .T.,,,,,,, .F.)
+oPrint:= FwMSPrinter():New(cFilePrint, 6, .T., CDIRPDF, .T.,,,,,,, .F.)
 oPrint:SetPortrait()
 oPrint:SetResolution(78)
 
 nResult := 0
-If !lIsDir(cDirPDF)
-	nResult := MakeDir(cDirPDF)
+If !lIsDir(CDIRPDF)
+	nResult := MakeDir(CDIRPDF)
 Endif
 
 If Empty(nResult)
 
-	oPrint:cPathPDF := cDirPDF
+	oPrint:cPathPDF := CDIRPDF
 
 	DbSelectArea("SE1")
 	dbGotop()
@@ -442,7 +452,7 @@ If Empty(nResult)
 		// Posiciona o SEA (Titulos enviados ao banco)
 		DbSelectArea("SEA")
 		SEA->(DbSetOrder(1))	// EA_FILIAL+EA_NUMBOR+EA_PREFIXO+EA_NUM+EA_PARCELA+EA_TIPO+EA_FORNECE+EA_LOJA
-		If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_CLIENTE+E1_LOJA) ))
+		If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO) ))
 
 			// Posiciona o SA6 (Bancos)
 			DbSelectArea("SA6")
@@ -461,35 +471,35 @@ If Empty(nResult)
 					// 	cBanco := SE1->E1_PORTADO
 					// EndIf
 					
-					If cBanco == "001"
+					// If cBanco == "001"
 						// __cBanco    := "001"
-						cChaveBanco := "0013333 6278"
-					ElseIf cBanco == "341"
+						// cChaveBanco := "0013333 6278"
+					// ElseIf cBanco == "341"
 						// __cBanco    := "341"
 						// aAdd(aBancos,{5,	'3410174 32626-4   '	,.F., 200,'.T.',.T.})
 						// aAdd(aBancos,{5,	'3410174 026732    '	,.F., 200,'.T.',.T.})
 						// aAdd(aBancos,{5,	'3410174 066894    '	,.F., 200,'.T.',.T.})
 						// aAdd(aBancos,{5,	'3410174 05777     '	,.F., 200,'.T.',.T.})
-					ElseIf cBanco == "237"
+					// ElseIf cBanco == "237"
 					
 						// __cBanco    := "237"
-						cChaveBanco := "23733677707007"
+						// cChaveBanco := "23733677707007"
 						
-					ElseIf cBanco == "422"
+					// ElseIf cBanco == "422"
 						
 						// __cBanco    := "422"
-						cChaveBanco := "42202800003525339"
+						// cChaveBanco := "42202800003525339"
 					
-					ElseIf cBanco == "637"
+					// ElseIf cBanco == "637"
 						
 						// __cBanco    := "637"
-						cChaveBanco := "637"+"3689 "+"4845013   "
+						// cChaveBanco := "637"+"3689 "+"4845013   "
 						
-					ElseIf cBanco == "033"
+					// ElseIf cBanco == "033"
 						
 						// __cBanco    := "033"
-						cChaveBanco := "0333689 0130065423"
-					EndIf
+						// cChaveBanco := "0333689 0130065423"
+					// EndIf
 
 					IF !Vazio(SE1->E1_PORTADO)
 						If ALLTRIM(SE1->E1_PORTADO) # SA6->A6_COD
@@ -503,13 +513,13 @@ If Empty(nResult)
 					// EndIf
 					
 					//Posiciona o SA6 (Bancos)
-					DbSelectArea("SA6")
-					DbSetOrder(1)
-					If !DbSeek(xFilial("SA6")+cChaveBanco)
-						msgInfo("Agência e conta não encontrados no cadastro de banco")
-						SE1->(DbSkip())
-						Loop
-					EndIf
+					// DbSelectArea("SA6")
+					// DbSetOrder(1)
+					// If !DbSeek(xFilial("SA6")+cChaveBanco)
+					// 	msgInfo("Agência e conta não encontrados no cadastro de banco")
+					// 	SE1->(DbSkip())
+					// 	Loop
+					// EndIf
 					
 					//Posiciona o SA1 (Cliente)
 					DbSelectArea("SA1")
@@ -553,7 +563,7 @@ If Empty(nResult)
 					SumAbatRec(SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,SE1->E1_MOEDA,"V",,@nVlrAbat)
 					nVlrAbat   +=  SE1->E1_DECRESC
 					
-					IF __cBanco=="237"
+					IF SEE->EE_CODIGO == "237"
 						// Nosso Numero + Digito Verificador
 						cNroDoc := CalcNoNu(SEE->EE_CODCART)
 					Else
@@ -621,18 +631,18 @@ If Empty(nResult)
 		SE1->(DbSkip())
 	EndDo
 Else
-	GeraMsgErro("Não foi possível criar o diretório " + cDirPDF + " para a geração do arquivo do boleto em PDF.", lJob, {"&Sair"})
+	GeraMsgErro("Não foi possível criar o diretório " + CDIRPDF + " para a geração do arquivo do boleto em PDF.", lJob, {"&Sair"})
 EndIf
 
 If !lJob
 	
-	If nTotItau > 0
-		msgInfo("Total de títulos novos selecionados para recebimento no Itaú: " + AllTrim(Str(nTotItau)))
-	EndIf
+	// If nTotItau > 0
+		// msgInfo("Total de títulos novos selecionados para recebimento no Itaú: " + AllTrim(Str(nTotItau)))
+	// EndIf
 	
-	If nTotSemNN > 0
-		msgInfo("Total de títulos sem o Nosso Número informado: " + AllTrim(Str(nTotSemNN)))
-	EndIf
+	// If nTotSemNN > 0
+	// 	msgInfo("Total de títulos sem o Nosso Número informado: " + AllTrim(Str(nTotSemNN)))
+	// EndIf
 	
 	If nTotImpEnv > 0
 		msgInfo("Total de títulos impressos/enviados: " + AllTrim(Str(nTotImpEnv)))
@@ -641,7 +651,7 @@ If !lJob
 EndIf
 
 // Verifica se é Envio de Email para geração de Arquivo PDF
-If lBoletoPDF
+// If lBoletoPDF
 	
 	If !Empty(cFilePrint)
 		//Se existe aquivo PDF antigo, apaga arquivo
@@ -654,31 +664,38 @@ If lBoletoPDF
 		cFilePrint := FileNoExt(oPrint:cFilePrint) + ".PDF"
 
 		//Se gerou arquivo .REL, converto para PDF
-		If File(FileNoExt(oPrint:cFilePrint)+".REL")
-			FClose(oPrint:nHandle)
-			File2Printer(oPrint:cFilePrint, "PDF" )
-			sleep(1000)
-			FErase(oPrint:cFilePrint)
-		Endif
+		// If File(FileNoExt(oPrint:cFilePrint)+".REL")
+			// FClose(oPrint:nHandle)
+			// File2Printer(oPrint:cFilePrint, "PDF" )
+			// sleep(1000)
+			// FErase(oPrint:cFilePrint)
+		// Endif
 
 	Endif
 
-	// Chama rotina de envio de e-mail [ RFA01EnvBol() ] *
-	If !IsInCallStack("U_RFATJ01")
-		RFA01EnvBol(cDirPDF,aTitulo,lJob)//TODO: Necessario colocar o envio do Boleto em outro fonte
+	// Chama rotina de envio de e-mail - RFA01EnvBol se for definido para enviar por e-mail
+	If MV_PAR25
+		RFA01EnvBol(aTitulo,lJob)
 	EndIf
+
+	// Se nao for job e parametro de para gravar arquivo na máquina local estiver preenchido,
+	// executo para cada documento gerado
+	If !lJob .AND. !Empty(MV_PAR26)
+		AEval(aTitulo,{|x| CpyS2T(CDIRPDF + x[1], Alltrim(MV_PAR26)) })
+	EndIf
+
 	SE1->(DBCLEARFILTER()) //Limpa o Filtro da tabela SE1
 	
 	FreeObj(oPrint)
 	oPrint := Nil
-Else
-	If !lJob
-		oPrint:EndPage()     // Finaliza a página
-		oPrint:Preview()     // Visualiza antes de imprimir
-	Else
-		cFilePrint := FileNoExt(oPrint:cFilePrint) + ".TXT"
-	EndIf
-EndIf
+// Else
+// 	If !lJob
+// 		oPrint:EndPage()     // Finaliza a página
+// 		oPrint:Preview()     // Visualiza antes de imprimir
+// 	Else
+// 		cFilePrint := FileNoExt(oPrint:cFilePrint) + ".TXT"
+// 	EndIf
+// EndIf
 
 Return cFilePrint
 
@@ -736,7 +753,7 @@ Local cNomCli		:= ALLTRIM(SE1->E1_NOMCLI) as character
 Local _cPortado		:= "" as character
 Local cXFil			:= SE1->E1_FILIAL as character
 Local cXTipo		:= SE1->E1_TIPO as character
-Local cLogo			:= "\system\bradesco.png" as character
+Local cLogo			:= GetLogoBanco(SEE->EE_CODIGO) as character	//\system\bradesco.png"
 
 Local nI			:= 0 as numeric
 Local nPosVet		:= 0  as numeric
@@ -1110,7 +1127,8 @@ oPrint:Line (nRow3+2930,100,nRow3+2930,2300  )
 
 oPrint:Say (nRow3+2950,1500,"Autenticação Mecânica - Ficha de Compensação"				, oFont8)
 
-oPrint:FWMSBAR("INT25",68,2,aCB_RN_NN[1],oPrint,.F., Nil,.T.,0.020,0.75,.F.,"Arial",'',.F.,0.5,0.5,.T. )
+// oPrint:FWMSBAR("INT25",68,2,aCB_RN_NN[1],oPrint,.F., Nil,.T.,0.020,0.75,.F.,"Arial",'',.F.,0.5,0.5,.T. )
+oPrint:FWMSBAR("INT25",68,2,aCB_RN_NN[1],oPrint,.F., Nil,.T.,0.020,1.5,.F.,"Arial",'',.F.,1,1,.T. )
 
 For nI := 100 to 2300 step 50
 	oPrint:Line(nRow3+3065, nI, nRow3+3065, nI+30)
@@ -1124,7 +1142,7 @@ _cPortado := SE1->E1_PORTADO
 // Guarda todos os titulos Gerados no vetor [ aTitulo]
 // Verifica se o Envio e somente de Boleto
 // Caso contrario envia Boleto + Nota
-If lBoletoPDF
+// If lBoletoPDF
 	// Pesquisa no vetor1
 	nPosVet:=aScan(aTitulo, {|x| x[1] == cFilePrint})
 	
@@ -1132,7 +1150,7 @@ If lBoletoPDF
 		aAdd(aTitulo,{cFilePrint, _cNum, _cPrefix, _cParcel, cCodCli, cLojaCli, cNomCli, _cPortado, oPrint, cXFil, cXTipo })
 	EndIf
 	
-EndIf
+// EndIf
 
 Return cFilePrint
 
@@ -1340,6 +1358,7 @@ Local cParte4		:= "" as character
 Local cParte5		:= "" as character
 Local cDigital		:= "" as character
 Local cX6SantSof	:= "" as character
+Local cBanco		:= SA6->A6_COD as character
 
 Local aRet			:= {} as array
 
@@ -1894,7 +1913,6 @@ Return Str(nRest,1)
 	@author Calabro'
 	@since 12/07/2015
 	@version version
-	@param cLocal, character, (Diretorio onde encontra os boletos PDF gerados)
 	@param aTitulo, array, (Array com as informacoes dos titulos a serem enviados por e-mail)
 	@param lJob, logical, (Verifica se processo esta' em modo job ou via tela)
 	@return Nil, Nulo
@@ -1903,8 +1921,7 @@ Return Str(nRest,1)
 	@see (links_or_references)
 	/*/
 
-Static Function RFA01EnvBol(cLocal as character,;
-							aTitulo as array,;
+Static Function RFA01EnvBol(aTitulo as array,;
 							lJob as logical)
 
 Local cTitulo		:= "" as character											// registro
@@ -1922,6 +1939,8 @@ Local cNFEs			:= "" as character											// Pega o Numero da Nota Fiscal de Se
 Local _cCliente		:= "" as character
 Local _cLoja		:= "" as character
 Local cLayHTML		:= BuscaHTML(AllTrim(GetMV("ES_RF01HTM",, ""))) as character
+Local cUsrAuth		:= "" as character
+Local cPswAuth		:= "" as character
 
 Local nCont			:= 0 as numeric												// Contador
 Local nX			:= 0 as numeric												// Contador
@@ -1932,7 +1951,7 @@ Local nSmtpPort		:= 0 as numeric												// Porta do Servidor SMTP    (587)
 Local nConfirmou	:= 0 as numeric												// Retorno -> Verifica se o usuario confirmou ou cancelou através da rotina (MDTEC02)
 Local nOpc			:= 0 as numeric	 
 
-Local lAuth			:= GetMV('ES_RF01AUT',, .F. ) as logical
+// Local lAuth			:= GetMV('ES_RF01AUT',, .F. ) as logical
 Local lPermite		:= .F. as logical											// Parâmetro que permite ou não envio de link de RPS com o campo Chave de Acesso em branco
 
 Local aFiles		:= {} as array												// Localiza todos os registros contigos na na pasta informada
@@ -1953,6 +1972,8 @@ If WF7->( DbSeek(xFilial("WF7")+cCadWF))
 	nSmtpPort := WF7->WF7_SMTPPR
 	cUser := AllTrim(WF7->WF7_CONTA)
 	cPass := AllTrim(WF7->WF7_SENHA)
+	cUsrAuth := AllTrim(WF7->WF7_AUTUSU)
+	cPswAuth := AllTrim(WF7->WF7_AUTSEN)
 Else
 	cPopAdd := ""
 	cSmtpAdd := "wikitec.smtp.com.br"
@@ -1960,10 +1981,12 @@ Else
 	nSmtpPort := 587
 	cUser := "teste@wikitec.com.br"
 	cPass := "wikitec123"
+	cUsrAuth := "teste@wikitec.com.br"
+	cPswAuth := "wikitec123"
 EndIf
 
 // Busca todos os arquivos do local em pdf e guarda no vetor
-aFiles  := Directory(cLocal + "*.PDF", "D") 
+aFiles  := Directory(CDIRPDF + "*.PDF", "D") 
 
 // Apresenta os dados dos arquivos encontrado na pasta
 nCont := Len( aFiles )
@@ -1981,7 +2004,7 @@ While nX <= nCont
 	nPos := aScan(aTotArq, {|x| Upper(x) == Upper(cTitulo)}) //Pesquisa no vetor
 	
 	If nPos == 0
-		MsgAlert("Não foi possivel enviar o boleto [ "+cTitulo+" ] pois o mesmo não encontra - se na pasta [ "+cLocal+" ] ")
+		MsgAlert("Não foi possivel enviar o boleto [ "+cTitulo+" ] pois o mesmo não encontra - se na pasta [ "+CDIRPDF+" ] ")
 	Else
 		aAdd(aBolEnv,{cTitulo})
 	EndIf
@@ -2001,7 +2024,7 @@ While nX <= nCont
 	nPos:= aScan(aFilBol, {|x| x == cArqPDF}) //Pesquisa no vetor
 	
 	If nPos == 0
-		aAdd(aFilBol,cLocal+cArqPDF)
+		aAdd(aFilBol,CDIRPDF+cArqPDF)
 	EndIf
 	
 	nX++
@@ -2029,8 +2052,8 @@ If nCont > 0
 		EndIf
 		
 		// Autenticação do Servidor
-		If nErro == 0 .And. lAuth
-			nErro := oMailServer:smtpAuth(cUser, cPass)
+		If nErro == 0 .AND. !Empty(cUsrAuth) .AND. !Empty(cPswAuth)
+			nErro := oMailServer:smtpAuth(cUsrAuth, cPswAuth)
 			If nErro <> 0
 				GeraMsgErro("[ERROR]Falha ao autenticar: " + oMailServer:getErrorString(nErro), lJob)
 				oMailServer:smtpDisconnect()
@@ -2278,9 +2301,9 @@ Return cRetMail
 
 Static Function GeraMsgErro(cMensagem as character, lJob as logical, aBotoes as array)
 
-cMensagem := If(Empty(cMensagem), "", FunName() + DToC(Date()) + Time() + " - Sem mensagem definida.")
+cMensagem := If(Empty(cMensagem), FunName() + DToC(Date()) + Time() + " - Sem mensagem definida.", cMensagem)
 
-aBotoes := If(Len(aBotoes) == 0, {"Sair"}, aBotoes)
+aBotoes := If(ValType(aBotoes) == "A" .AND. Len(aBotoes) > 0, aBotoes, {"Sair"})
 
 If !lJob
 	Aviso("Inconsistência", cMensagem, aBotoes,, "Atenção:")
@@ -2543,6 +2566,28 @@ AAdd(aPergs,{	4,;
 				90,;
 				'U_RFIR01VldPar("' + AllTrim(GetMv("ES_FUNXML",,"RFATR01XML")) + '")',;
 				.F. })
+
+// 25
+AAdd(aPergs,{	4,;
+				"Envia docs. por e-mail?",;
+				.F.,;
+				"Se sim, marque esta opção",;
+				90,;
+				'',;
+				.F. })
+
+// 26
+AAdd(aPergs,{	6,;
+				"Salva docs. em?",;
+				Space(230),;
+				"",;
+				"",;
+				"",;
+				180,;
+				.F.,;
+				Nil/*"Arquivos XLS|*.XLS|Todos os Arquivos|*.*"*/,;
+				"C:\",;
+				GETF_RETDIRECTORY + GETF_LOCALFLOPPY + GETF_LOCALHARD + GETF_NETWORKDRIVE})
 
 ParamBox(aPergs, cTitulo, @aRet,,,,,,,FunName()+"1", .T., .T.)
 
@@ -2985,3 +3030,250 @@ If File(cLayHTML)
 EndIf
 
 Return cConteudo
+
+/*/{Protheus.doc} GetLogoBanco
+	(Busca logo do banco na pasta bolto do servidor)
+	@type Static Function
+	@author Calabro'
+	@since 21/04/2022
+	@version version
+	@param cCodBanco, character, (Codigo do banco a ser considerado para buscar o logo)
+	@return cPathLogo, character, (Caminho onde o logo se encontra)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function GetLogoBanco(cCodBanco as character)
+
+Local cPathLogo		:= "" as character
+
+// Defino o caminho que encontra-se o logo do banco
+cPathLogo := CDIRPDF + cCodBanco + ".png"
+
+// Se nao encontrou, busco o logo a partir da BASE64
+If !File(cPathLogo)
+	cPathLogo := ConvB64ToLogo(cCodBanco)
+EndIf
+
+Return cPathLogo
+
+/*/{Protheus.doc} ConvB64ToLogo
+	(Converto uma imagem BASE64 para o formato png)
+	@type Static Function
+	@author Calabro'
+	@since 21/04/2022
+	@version version
+	@param cCodBanco, character, (Codigo do banco a ser considerado para buscar o logo)
+	@return cPathLogo, character, (Caminho onde o logo se encontra)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function ConvB64ToLogo(cCodBanco)
+
+Local cPathLogo	:= "" as character
+
+Do Case
+
+	// Logo do Santander
+	Case cCodBanco == "033"
+
+		cPathLogo += "iVBORw0KGgoAAAANSUhEUgAAARMAAABPCAYAAADIkiGAAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQnAAAEJwBJs06NAAAJSBJREFUeF7tnQmYXNVx76u7Z5/RNmhFICTsmABiE3kGvmDWxGCDTYLxAhjMiwQY5z2W8BBgsB2zB0IkyGfDByIYHMCOsYMd/EVgI4yN"
+		cPathLogo += "w2L21diGkQQIzUiaGY1m7Z7ufvWre8/V7Z6evRkkcf7fnLnbWarq1KlTZ7m3E3mFeHh4eIwTyfDo4eHhMS54Y+Lh4VEWeGPi4eFRFnhj4uHhURZ4Y+Lh4VEWeGPi4eFRFnhj4uHhURZ4Y+Lh4VEWeGPi4eFRFnhj4uHhURZsM8YkLzn953f2e3hsr9gmjEm/hp61a+Xd"
+		cPathLogo += "6/85uKHgHsHDw2P7wDbjmWy+/d+k9pKlgQFRB6VCDwQPD4/tA9vMW8OrEwmp0mPNqlXSeOSRZlAkYY88PDy2A2wTnkn32tVSp8d6DT2LF0uup1syakxsHsXDw2O7wDZhTHIbW6MhTXVTk3Tce7fklbIE/zw8PLYLbBOttSKfkV49ZjVAUPeScyTdskb6/TDHw2O7wTZh"
+		cPathLogo += "TJLVzJaoh5KqMKNSo6Hvxu/YPYY6Wcn4ZWMPj20c28QELHMk7XX1NkOCdcOgYF4mv/ycVO19gJ6p15LISEoq7dzDw2Pbw7bhmdTWScdhhxgxKQ1V6qGk9dj2fy+SnkRvOBnrDYmHx7aMCTUmDFnYR4InsnX4EjxrXHqheSZ9waUNdbK/ekR673/AJmMnCm6fCyHaOIfz"
+		cPathLogo += "pgGaXXBwfNg9i2c3g7CjIZSB4zOjpyYfj9II9cbpQ4GO7ICYUGOS0eKSakiazztPEnqeSldKmklWFfDkT58ocvgnglWdbL81V5aKu5d+XSo0zUShwlV0OPlr9CQS0q8hqzS74ABPDL84kohJY5s43tEmj1UuaZWB4xOPsTKR9xsLhwDyQm/cQgJ6w/UOpxshJnzOpPXR"
+		cPathLogo += "R6X3qKNk2uomSe02P1TNjKTyldL2ytOS2fcgU1CMCeCYWHaVTDv/solRXKQRVja9Lsav463Vkn/9JUlsbpeOde9JZTovtdMbRRpqJD9lqsgeu8vkXeZLatpMS2MGaQdTGONLQ7atRfq2dEtaw+Tdtf50iOpRGngidJqZTe3Sl90s/Ru6pH72zpLfaarNCe5wwJhMFDIa"
+		cPathLogo += "1p25JN+uxa4/66x8n17n8lkLPAPu+YZUhR03aXhXQ9eaJosTj1sukGd/Pm1HQP59b72e33jpJfl3FizIN4d0OHo2hIFzAs8Jbx/+V/l3rrs+n+3uCvLKWXbbN5QH5NG9cmW+6bBD8u9On228Uidtr7xqdehRGujQhsM/YbIiILe2FbeET3c8TOgwxzyOH/9c3T3t4W67"
+		cPathLogo += "TXLPPmWW2z0DUy6/TLo40aFOmx6YkGX+pOuSwDNhhiIV+S3lQypfIYl00iZ+e/9luazbfU/JX3ud1DY1Wbn0zMznuDmC+HQwzwl1j/1SEpcslWx32ujc3mFj/BDZV1+Xyb9+Qqo2ro/4BTtkD1sudPWIPPab4DURDcgsX7WDjnEUE2pMmHitbX3PzhFuy8XftMbrDAqo"
+		cPathLogo += "mjdfJt+4zNR4sgaaJEvFifvuldanf2vDoXIjkdeBloa01nr3Tcul48ILrGwAHQQUoToMUOtMhWtu7phfsEAqG3XoswPD8eoxMnxY5DWhxgS4np0NajWPPCxd9//Art1MN/MNtf/w95LRRolXAjA8oOesrwUTnLnyks1EWaVmmX3uMek+/wKb+IU+0UBJBAxa7xFHS/qL"
+		cPathLogo += "J0j25FOk8+hPSs9++5qi8MxRlPyMxtlxOx8Pj0FR3lY5DPK1lZLUBkoDTOowhl6e1Ro8Ft7D6UkEC8NZHUTUXX+NDXeIS8AfqXzxJelQ76TcgzPnqnd893Y7z3Ch9EFjh54mly+TWa3NMvPRh2XKDx6QGffeIzv/8iGZ88QTMr27S6a//Jwk7r7VjEvNJ44mteRylZJP"
+		cPathLogo += "QLmHx4cDE2pMWELtPuIoK5SenzmRhqYmab7mOvM4qjQGO12rdOxTc9LfSL/2/hgRmiSGBeOT//FP35dxOgYt9b0fWlkAGvGiZq1cKQ3nnS+pqTOj4Rj7K5i3YSUjWaNh4QEy6bSzZdYLL8rkkz5ncVg29fD4MGFCjQnzI5NP/ttgqKO9vpsTSV11pSTaWmwSlF0bWItK"
+		cPathLogo += "HdzMXn6dGRyMCLtiMSi9Dz1UMDFYDtjkakuLpJUmN7EI+vbbS1LHHKNGJGNGjmXjKg2VaviYZ+Ga3bkYFoZneSULj6QypM+/9fwhR31tePLhQNn2mdDAWcGgMSXCNkSTyq5ZLdUztVevrdGnSUmvXS0tuy2w75fQcPFQGE70nbtEZtx0uzZKJYeNPSGazz5bUrfdZvMX"
+		cPathLogo += "lRqvs3GOTPnFg9KwaJE9xxAEG83y2uD79X9lgUEYKdJNv5fO3fcMzUCA1KlfkUn//j0zEhgQtSpjhjOAZoQ0IzwxM1KvvCLpl96QLa+/JhVvvimJdW9bPMPkBsnMnqvu0RyZtOdeIn/+MZFddpKqmbsVeGfkzWYyjFiubaNs/uMfJbH2bcmo15fa2Ca5t9+V3HvNaqzT"
+		cPathLogo += "KqMqSc6ZJcn58ySx555St9ceUrXXPtKvXhbpjb5Q/uSLQYRWVrjSF14QcMFQVeuictVKqf7IHlKRZdYoQDYZzHBVTa6zfTcOeHMVyUAG0MpGxPaXn5fkE7+T7Lp1RqPjPaJx17lSPWtnye2xq+Tm7ymT9v4zGwJXxXVET50s02uUz3eaJL+m2eQpze9JRccGSaxvDeLG"
+		cPathLogo += "5FmjHUX9gftLcsGf2yP0Lq/eZHwxIA5kwVwdesCcGDS0/u5/JPnyy5L9w1uSW/MHqdzQYnH766dKZoGWo6i+eUX0rhk5Mxyepl5shLD10Vmhu07X2l9T+p/8dZR3xMNHPyLdu82ThkOPkKkHHxTs83G0p7WEAsXI23wgst78p1ekZl2brcr1Na+T/KYNIi3NOrbvtKgm"
+		cPathLogo += "81kN0v9n+8r0b19hbXjU7cgWiMcJ9lSks8F+BM63NK/Oty1fln9nv31tHwZ7RHiez+VsX0LLsqui/Rqsvbv9GpueenzAHhLyIg6BvScuHXk3X39NtP/Ele32iowW3aubov0jLlAG9DrexgNLr5mRH+edj6+K9iA4/hxv8SOBZ8Tj3I5330VuEchzy7PP2p4Y0rm4Lg+3"
+		cPathLogo += "P8ZkGLvmnHvw2fqj+yyfONxeGejdcuOyKA314NK6fOOBZ01nLAkycQjrnv08phshrS6No5N7nLtrVyZH9riwt6W4Lti7wbO4LF2e8fQu8Ix7xN/wmU/lW196yvIs5r8AKgf0APqRv9NtV47L05XBOfesjPAeofXuW8MMAxgvmjdlW3jr9XzLyadE9MVlEK9HjsiQenP1"
+		cPathLogo += "ZG0sBvLmeVMYnzzitMSDy3PN0Z+MaBotSpvhMQBL1vvcc7JpyWLZOGu+5M6/QKpffMmsct/mwGI77HT2BYKdjS/y0mexWlO8h4ReOHPJuTbUAXgybjK2YunXpV29nPbPftomZunxButZhgPeU3r67AKaKKP35z+2lR56jPHAvCfNPNnbLG2nnCpdhx4llY/9xqw/Aard"
+		cPathLogo += "CpIVpUe8LvO8NLgVLY6dq98MLmLIbN5gH5YiHxcXkJfbH8PkN/lmKEMDcckbPvOfP1k2nXWmxRsODAdJS52QP3m4wD1kOGnOdP2/FWwj7371NVm//19Iv+oGc2XkAU2kgx7oNDmE145OJ4uajesl19Vm8ePIvrlG6vUZQ2GXn4vjZEk+BCcHJ6fcf/237brecv8P7N5g"
+		cPathLogo += "wPvp27hG3j78cMmd/hXTbZcX+bq0rhwnF3MU9HowOH0nffreH8hG9Y5T991r16wqshgQxNhaj+RGGeyBot5av36ZeTbmPYeIPOHN7dJgZ1vz4egC+XGED1ZP6+bvrP81/RgWD4aS37CwF/UUfFmeBpI+8EDJ3fE9I94I1GBifOOtYOijCmXunrpmc1eutPkSmHBLqxmt"
+		cPathLogo += "oLbv/3uQbzoQCPGnfP4r+l+hSkygVOJThuWnCtF/0KHSoUaF4QpzM7iPjr5hoXGhKX388cE1la+BMjqPP0k61KBAf5Cvuo4ctHSrsNBNLQUqyhDGYX5l06dOtT0zxq8G+Ac0QIZ78AdfDCN44hTHKWgpxD1bSxvGdzKigds5eWugHIaMjj6egcrbV0jrDdcaf0PJjvIi"
+		cPathLogo += "3krA+Npzvp2TF0OcLS8/LemFe0tC69h4D/mGFsevo9ddQ6Orc8D/ujBdAbJZ0yXg8qNhcATkZXLV4ORgzzUvJ+MebZR0htSVq1vK44gselvWSMfeB0vdr5/QuwrkCy1h3iAu44hK4oXPS8ENIzsefVQ2nnqyGRDaA7Q54xrv4LiOAz4S114nbVdcZvlAP6XRqZaQVKBn"
+		cPathLogo += "GpycXX6OxvzCj9oxGI6PDsW0jRgImNWZNrXoneodYE1BPEOIhaH+n/yXncfBxGbuM58KFIZrDdM09P7DxZLoyUi2SoPmxtPaBbsEu2IHAWl5FbBSjQo7VzvuvBlpjniDm1WCYucLv2YVaEoHXVqh1nDUoGzQXpuelR6WuQXGzyjCUHtK8Eagn/xNYS6/VGp+9UggIxRR"
+		cPathLogo += "g2vUvYtPlez9P5GaZ5+VqS8/Z0GeelyqblxmyjqUQpaExmc/TM2D90v1M08G34Z55VWp0/wpp/vMJRYtanAajC719vjKHXMTg0Lppl6Zv8KbQ/lZQieYN6HHmpnzzZAwYZ3q65aeo04wo2begMbBu6HeehYskMzl35D6x1cZjRUhjRWrVkla6QdQAvcjUVbKJnSTp3ZY"
+		cPathLogo += "Tp6Wt8qzYvky6T36k6ZPTqbQQyNuXXqp1RMNCRNC/eHtsjDQ/oUl5v1AAwH6kXEfmxSvuFZSq1ZKg5ZBWfCCjHOLz7AyyH9QaHn5Te3S+4VTbEEC+ZmHpenYayV33yW5l56S+jXrrP6Sem37m/Q58nObOiu/dYMZbOh3eufgZALdGPqe6643+SIP5GK6oXLqU92sP/FU"
+		cPathLogo += "jaE0jWU1MhzujBqMq3h3xY0VbRwdm9OIj80Y+zEWjIP0jPNJ78bKLpAvYCzIOJCxpBt7lgouj3jg3R/GtyMBtBCXI/MwEQ/h3ACBe8br4jPym1atsvg2xh5qbBnOEzhe47S68TDvu3SvWWfRieeOBNKSzngPaYGONVd8k2gFaF21MqLVxd1yz31Rnm4uyeVN6HnmyQHj"
+		cPathLogo += "aULLD1fY88HmTBz9zDVQP7yL5AJy4WhyUQaMhzAtaeJH6tniKigjDq6ZW0NexHVlQ3MxNi69KHge07/4XJoh5IMAX8zbkHdx/sydAfhw+sO8g4sL7y6Noz9ejjsnML9DPMcvoXjOBPmgc+QJ/cQ1/V18quXNc2h39JAv91u+eILRa3Ud1jc6D4I0gWIyn2R5h/mSP3QB"
+		cPathLogo += "RzNAJlxH84NB8lFhJMY+QuDW583qbf76pZJV98r1GGaBNQywiGpl6Y3arr7K7uGG2cy+ntYsWiTZc4Me0oYQoQXv03x71qy2np8VAPI3a21PB8Isrj7Hq+CI9eXdn7YlZxk9w313A0tO78Nx6kWXSn7pRUG/rPw4uKFYpQ7j+o86ysbOnd+/28aW0G70FwHrTs8Mttx6"
+		cPathLogo += "SyCnkE56wrbDDpF5K38plfPmECVwSzU+R4LxXZUI7o8Q1gPF6CZtnHfLm9l/jZg88CCZrD1dHEbjs28EF4MA+ZJPItlg80m23yYMeIPsvUEu+aqcpNpapFflCQ3UIUd477/+GplyzbWSrWY1IkYn8gqv85mk0QPgaySIxzNeg9Ogx9YjdcwQYOp550tCPZ/ouQZL+/s3"
+		cPathLogo += "7NxtU6Be7TMYPAvBef7SSyL6yZPgnkWhr9fyiqeNEMZPqTT7NX83J4gnjMc3419vM3niBSNLRgFupTKn9xtvuU1Yh3GePXJK8L4b+6WoIbfaFYOrN+iiLdvKKQhlUpLOUcDV1YiAa4+b3/Yfd5ghcQIApsRhKEDIbPaOe6Trt4/asAADYYZJMfMfrzYDgIIZ9Bz0XvaP"
+		cPathLogo += "FheDwmcAzK0cCvrcyg/jUSnM33TecaspvKvskkDuCF//qIgp/3S9pNVNxYVHmTAsNATgKoSX3piIe2/GXHslwJYr7W+rOlNBKDH0529fEdxU+kjP/pmp311hilFQidASouD+KID7G29UoGBiWnmlG+HOlOOPDcbo9iAAy4ZjLTuQZVAew9SOF563TgZdoQ45dqr7vtNF"
+		cPathLogo += "/8/KtOXikGcrM0w/AKH8hwM8FfMOotTkHc57pT51jN0iPukIvVu2TvDCA0Pbyib13xTcp/57VS8mX3ixpYu2DJSgmY7A5TsAYXy2BjggH3Qt+bUlpheAHFzdxSWQnzZTJqmRhh50ClrQ/O7Xf6+xU4FhHgLBN3lUD0gZo93aCicl+BkOJfkcDNYLacPIfDHwJuhhaWSl"
+		cPathLogo += "Kg+4+zCGsWj/+/NtzZvxKONS9gYglOSddwRCCUHc7D13SdejDxlT6ddeLhDkUIhoUbpgLr3kHOkcxZfu2SfDDPu0z/2tzPrDi1KhPahNhGmFkR8Bb4vAOSsMyc+fLGv/+ljpfnt1WEkBUFg8ACrY5grsbtDYkzpur9t7r6GN3PsIjC0yTU4LVl2cfKEt39k2rDKOBPCb"
+		cPathLogo += "eea5KC/KYIxf9+2LVYmDzX10FhMNPEbKll12jerEId8T+JjEMbqf/LXRTTxnpBNfPTP4JgkdyAj0qrgM4Ca4N7+xOtB3DbQljjVfOH5E+p78X4sK8kbHepqY78KclCr1/cWoatJcvv/8WaSI5ploIxsJaJAsQW7++c+UUb6whr2lekQav3x6MJFFXhrwVCAs++2r7Xnv"
+		cPathLogo += "409EFTpikJfmQ7r++/5zxGnpaWx4pYpCQ2vUYc9OrTrq1OFA1357WT7m/WiAenp16J3yyMO2GS/3yvOmhM5DYRUo89YfChonCsNOYHhkheeDREFjDpU50R00qHIg+Ztg+Zt8KQk51B/wcf1PfWqT+oD4R/v6k8MXzqYxqzuVDeD/5GOPNF5A3BMdDZz3UPXaG2ZWrHNS"
+		cPathLogo += "nUKfWP1seWzVoKE1DJVr1xfoFUh1bwnPJh4xTRoeRO5d9ZAdYSLuTZSCy5wjAeOzWXtxvjzFNRVqjV0bcN0dt0Qv9jkDlXvsN/bZga477xwgtJGCBt/+k/8wAzgi0NNYwHMKjAo7ORtOO13mvPCqJFetslUoQAOhV0EJMCg4pmv3WWS7fBkSWs+lYCdqMap3WWDH+N6A"
+		cPathLogo += "DwbBpxfjcgdB0xkfqOO+374QDYcpgxIScxZY/nQqeLsTDTdsqK8YWvjQ6IZ8ro6N/l0D+p2OjAVu6bX77TeDHELZm3ehbaT6iKMlOUio0CAaei8M3nAvBrTFPeSJwuhL/FOwYWospOKdsPz73neXBZWhbQ0R0mDrjzxGKr94QpQvisd5z5dOsw1CFn+00AqiwVe5vQFj"
+		cPathLogo += "AXMpCgwDdDYceaTs9LMHbdmRJTp4cg0RevmSyeYbr47ebLaK7egpoB+eU3PdVvMP2DV5HwHPmfD7NSYjMH22pOpGbNo/cDDki6B1zBaE6knBfMZ4gXwqOrd+39gNnzEozpMrFazNaMBbwsA5RDJWbPPDnPGS5zZo1XzzClutwQMIXqILrHL+nHMLCGIyiskv7iHk0cLl"
+		cPathLogo += "heoGJYwd9iFgpdaN8yuPOcY+QcCKgIMrr/LmFbZXw427q7IDfbhcX9oUYkzr+dsRnNmYeNUeHPGhyUjoIg76hz4WmJHQ8xwbgk6qv6EuosENnwH/rdwSwdoDRzqwML5D7cxZpXV9DO1ntIi33REhu8eeNnQYE5RxmhVsbVh8djCjnq5UIoIcp3/84GDMGIK4TnBOyGNC"
+		cPathLogo += "OCwZD6wqzPgpRXrE8vNyXON3ltmqT0SnVhrHxB/fCuIqstPcd9sCcLeno33cBm5bwFBzBvDHl+cAHYlJY+N6+6zldoNkMJBgRQovFPRkerbyPQ57YlKYNceMlNMbApsNk4vPEBkmsCmO4K7zmq5vl11NN5mPKsB42s8IEWj7CEEvM/nEE4Pdg3Zn7LCvrD36kPRrpowf"
+		cPathLogo += "GUawHJZiPFgmID7MVOr00+263OC7K6xGVf/daZGBpafA8PS9FbwBy3mlNqh4k0N2iZdet/MBlb4DAd6rDj4k4pBGQwPKd6y36+0BvF0N3fDiDCIdBXMSgbc6dtCeqj8WbF/HWAHml1JnLpHpK+4cdZh27z22QghcBz2RGJ1N0AZfdcxRNu4FYzUoNCzSdi8+x6worr5z"
+		cPathLogo += "91MfGbhcNyZoxVMxGzRMOe6zNt9RTjDUYcs/SpZYuNDuwVOx/WcJsHL3j0U8O5nlf/dCeBaDI7GI1Pe/TxkFVK4ER1PxRF+xp5I/YGFwJ2wsDBPST4S8a50Mx1th7hMLaOMzDfFBKvS0P/5MUO/2ZKBeFcugFA9sRCN/PgFB52yT1CpXvJ++B+61ZwTzXlRO5OnuDRbQ"
+		cPathLogo += "8aGW28vSrobAqOoKS8w7G1OUWQgz4kLlGi0omPmQzXfcNkAhxwNooidxbikvFOLxuHmZktBK6NEBFjGoNFMGdMQFRTw1z/kRKnZJgsxjD9uRvsDNC1U01lsaeojq3XY35TOZhc977rnLXh5jX4srw97UdEZPD6RPp/MlZ+yLoWY+PBsHiuoRpbRNhnrer8wVe1/2Bm9I"
+		cPathLogo += "rkHP8TKdDKG/4i8ONr6pE5oe97puX2HPaY7Fb2PH02ZywZusnJcTo1mBaThgn62xQ4OY+Od/sZ2moGDOK2z0yMD4zG81Q0VsGg3IkG/JcHTvnmFU8jevkAxzigp2ULvPmRKPQAeM4Yh23arF4Rwdd8PwUihfKyuNUeVvH25RRir/8kipevD+4KYKuHgSaCSgUSGY7iXn"
+		cPathLogo += "2FIq7j4C7/3TO+NimspwbnXV8mU2UWpbx6OmMBDBy3s19uYmHxfCuNGICMFHa9jOXKgOFbka2yvT89BDkrjjHivT9seoLJj3qdjnQOMPvvhafZ+6rubmh7Jixr71lLNsByjlBEoYcE6ZBEpkF2VsPeH9xYB63Gqico2NdoQ/6s6U/oEHjfYInGfor4Pdr9A/ad8DpF89"
+		cPathLogo += "2ahONCR+9Yh1IsZ3UWWT1n0wPNm5xToE67XHoGPjBQ20cuF+tr/IAZ4qNq6XtiuvVOlUFngBGJZg70wglKqOrqDONXAsBRvaL73I9AGgQ5xvPOE4+/og2yZq0zUFBpAyrWNXHUHaTBVQV31r37XnYDQGs1wYVYnsiXD7JyYf9znJ/3CFCaqwmY0MTilpcD3f+a42Vnae"
+		cPathLogo += "ZqTqsV8GEcYIlI/GXLXiFqk77/xAIbSSh/J+MDZUSs9Jp0pz4yxpX/K/7TsmfCWOd02omHh6zjPvrJZN3/imtB17rPGAqrs3gKsO/4TUzpsXGCFNT6OpPvkUMwrxHcMVjzwsG790oiQ2tVuetktXlQQlRR6dT/9WOv7PebacPhaDPWoobQVQWpQYQ/Xuu27dB6TgnN8V"
+		cPathLogo += "Qk4FlKlis8s5s/Y95UA7np2mSv+5Z0WmHCm6TmTz8qsH+FNc9yd77TWI/K232z3rtYtpmwAEjTUp9eHWeQd4gPfmS8+zOA7Epd4A30dpP22xnYPBZsbQz0lf/TvTWbdpk3ZR/+Jrsv6j+0u3yjeXLfp5XPREgWe85dU/SudNy+VtHU5uufra4MEHhFEZE5iwTUam8DmZ"
+		cPathLogo += "8oXF9mX2zsMOsYwsMyrdhWFAAyFW3/U3SI8q3+annw4ejACuPBtTalnumu+21jz1uDQs/qopswle6R2KGnapdrz8vCRa37NeIcnLfMefJD3zF0hLMiHrNP1qDetmzLHzdzT07rZAqq+60uK7ntq58Q033mBG1wyQlk8DaTzySKnGO1GezQBrGgxL6oc/lQ3Tp0n7EYfJ"
+		cPathLogo += "uiu/Je2qGBgzyksddKj9iBO9FfGHQiKQxPhQymCFilu76CDJN84xGQOTk4a0yqlVad342U9bQD5r6+ql7xc/1aQaQxvLzhd9TbrCeTb4oBTS5y+43OK3ffkMabnhWnn3n26QDV/6G2lL1EpOjY298q/x4dw6HzIYAcg/PvoYK+wXBrTUqSedJL2H/5WZibi+1V53szQn"
+		cPathLogo += "qoxm6Cds1LrbkFKP9fMn2wegMITFBrMAKl8+HVn7o/vM4BiPoUHhN6Z6Vb7rVZ7onpPxu/vvZzq4Lqne38K9JX3+BTJZjU/1XnuSekQItGnoTna0GHNOuKP2RuzCA+zN16R6AvazECoIAo1mMNeuGMwJ9Dz2C+lb8b0hG30cCBtrbkqtZXHOdxp2fuEFafj4X9o4cjSC"
+		cPathLogo += "Sq192/JCEalQF8iB+zj5KDe0Fv9AF+W76zodWlUcqA1PE8YnfYkx66abpINvj+q5yUeDa1hJNRpTvnmFJFQxMGbRYrJ6OQyNXBkfFHiDtW75t8zDgBbHuwMfqOJ7MvBmntTsGXbftsvXzJLGlQ9YQyRtvI45z99zl301r/aSpVKlxpU84JbfKSI+BuWD4t6GFMr7zDv/"
+		cPathLogo += "1QwDtAHogX8MRV5pTvJmsQbqjnvU6eajP2nx4XuwQTbGyryTk74kfZd/w+45rTXd0oCM+CVFZCwaGl58yWRMOa6TwRCl99/Xzj8ojLy1FcH1+mTAuG+qegLzurvMqLAzlF4a4Y+kAOLyUaSUe7N2GFiZqmRUFONZXmef3Lxa5l58kVZO8MFhVlqK5zmGg6s8R7M75z4B"
+		cPathLogo += "fpyXEI+LIaPnnbRyZTS0gob40iH3eDV/zpPBR3/MdVeQHkUjP4Zo7j7KmlFDMnXlj0yZuCbuUHD0jBVDpWVVatqXz5bOS841fl1ZBOhDJtBPoD5rdttd/+uzZNBY+NxB4zNP2seQAPySjvSuYyDQKJBB6tJLpP7G6+2euf8jAIZn8JmxwRHnJQ73RjOdJt7D1DVN0qm6"
+		cPathLogo += "jecQNOEALh20unpir0jjvbeZPDAsgw1zAAaXofaMK6+wj1khI/Tb0eTKMsOhAR1ExnTW8IxXTEc+aX4g81Io5m1kEh0dissYHVQINqscXtJ7YVTmPv+C1D6+SqqXXmRM2rNYQJHiAQHx9i352HUJuPukN6XTIUN21SrzRHgZr2HmbvbcaNFGzNg1Pjk2FFD2+uM+azRn"
+		cPathLogo += "zl1iNFMeAndCJyfzILTy3J4A/lPxNXffZW8Y8/U4FM9WZRROLgazKyor7aWn3/t9maaGB8XkmxQoHKAMehvKz2ov1fjfK61X58tgfHULI20/9FUDJVtBz5dJVtqr8T1qXMk3o0OSnmqbugygdJVCrrfHhoZ9Yd725bPZcwO+Y2mYDWBOZ+drl0nl/T8JjLjej+ZCwgbG"
+		cPathLogo += "vT4tOzV3bjTwQh7WINWgzH72SftRs3a9j5QsaFrX4/NtYFx+vhWS2qnRhlZ4c9DIRG5/YqC/29s4Q3rgV+knblZDOAdaGkqLeQtq3ONyhfdEbZU9Q3ci/Qnzqpg333Y9V9Bhalynk1DkqIJ/OlTb8zFphuTVuyKu5a80Su2UQLYhGAray6VaFHpYc9znTEYVqlMdhx1S"
+		cPathLogo += "YKBsGBoGaGQOjjrHwE956Smp3C34VKYD6XJVW3mkjtGL/uqaqJ0U6Og4UbafuohAbiocp0iAiczOZ56X3MMrJbm5WdK/b5JaddVcZbijQ1iFBt4mrvr4vpKbMkuqDl0ksv8BMmmf4K1TwHDGanIo5RkOoRfh6KBBd69dLb1vNkliU7N9lDfd2iZ1qVpbIs3PnS2ZGTNl"
+		cPathLogo += "2sJFNsEICdAcDWtiHslgsIrWYB8Peu1VSacDiVVOmSH1i/a3IRr5sWIEPcQHVD4xuRchFm8AlCSMAIpaSkbxfB1N8OK8Opv3AJoeo8Dw1njVYDJa/666EmmNF9Bfs/seUotSh6KIygyvmYx26XmlYsvqt6Qil7A3eKfO21mq1AMIqjRY3bJJaQXUwJ/xXoIX7rt8hwNe"
+		cPathLogo += "VrCsr5nE8olkofkzseomUw0xfpz8oZ+f1ujTG0b/TtPsB9nI2cUhzwE0laDfEOoPdQmsPvVe+2uvS74l2ARZQ8aK7IwZtuUA/TPE6HOATzx1V368rt8PlN2YRMLTXFEcVmjYm0JFO4VA0tmuFunb0i25ja2S7u/hrqGqIvjhouT0RnuhKlHTYB6PyxdZOkWjwukxI4Uf"
+		cPathLogo += "Ixi3xr2YuMKXQlifBvhjxYaGZm+CjsCQAMoEGA3XgKPyYlXi9jHAacB3mH+8HI1C+b1KWY1KeIA8LD9oCy6L4WgBUf7F8UOScMlx/20pnx8c0zjxBg9sCKwYII8wD07YO5EyXy/UiRA0AOqU/1nlqDavcdSnZ9hKwwBmtMN80QtW4tz3ftn/YzKgPmNFF0CT29BCoxTI"
+		cPathLogo += "1BA7L04P/XqPMuNDaDP8nJCn1oPb1YwxQrZcpzWUrJtiuLriVPOKz/s5/XBGARqiskoYR1c2KN4aMd42Uwrl90yA5eiy3SqYQDQBUyNlplDRSRP+4JCeo8Q8jSvjWFFQDrSFdeoqzsF6eEMYgbOQN+vJtt4eHnERhecYMsePK3trmQHM0wjPAfEsDgPpmDDsPifD0ATv"
+		cPathLogo += "jmfnxbhjQTquQ0TP45lzCOPwHER0hgYgotUQnBTPLcXz4YTn7j7paUSR/kTxFC6dHfUkbshiMH7NgITPY9Gc18JekfjnEQro1vhcO3Df8Wu0RR1TSINLp0BXBhjZGOJ6CArodLAst5aDYWSYVCAXECu3OIv3A++PMfHw8PjQIWbGPDw8PMYOb0w8PDzKAm9MPDw8ygJv"
+		cPathLogo += "TDw8PMoCb0w8PDzKAm9MPDw8ygJvTDw8PMoCb0w8PDzKAm9MPDw8ygJvTDw8PMoCb0w8PDzKAm9MPDw8ygJvTDw8PMoCb0w8PDzKAm9MPDw8ygJvTDw8PMoCb0w8PDzKAm9MPDw8ygJvTDw8PMoCb0w8PDzKAm9MPDw8ygCR/w8F3sX3EolfgwAAAABJRU5ErkJggg=="
+
+	// Logo do Bradesco
+	Case cCodBanco == "237"
+
+		cPathLogo += "iVBORw0KGgoAAAANSUhEUgAAAbQAAAB0CAMAAADadTd0AAAAxlBMVEX////MCS9NTlPKAB7++fo/QEZKS1A8PUNISU7Ozs/j4+NCQ0liY2fJAA/KACPMAy3efYp5eXzKABr35eavsLLY2NmEhIeQkZQ4OT/KAB3IAADJABVWWFxsbXH54+dRUlfJycrklJ7s7Oy0tLae"
+		cPathLogo += "n6Gpqau+vr/z8/PwxsuJio3opq7YXm5xcnXV1daVlZijo6XaaXfrtLvQK0XhipXccn/01trSO1DlmqPWU2Xxy88uMDffgY3OGjjqsLfloqjOFTfQKUPUSVzesCLPAAAQeElEQVR4nO2dCXeiPBfH6wJBURipC26VoqJOq23HLtP3mc7y/b/Uy5rchIRFWy09/M+Zc+Zo"
+		cPathLogo += "DCQ/cnNzb0gvKh+tP8+PL6/1i1LvqA+HVtG12nh883Duhn4lfTw0X9pY+37upn4dnQiaO+CMX6/nbuxX0cmgudhG+3O39ovohNAqlfH9uZv7NXRSaBWjpPYeOi20Svv3uRv8FXRiaJXR5blb/AV0amjaz3O3+Avo1NAq7adzN7n4Ojk0rfRFjtbJoVXGZSDyWJ0B2vrc"
+		cPathLogo += "bS68Tg9Nuz53mwuvM0C7OXebC6/TQ9P/nrvNhdfBXX84NP3cbS68cne5Vhu320ZNrxnt9rimHQCvVrqPRypXd2vG6O/j7/VVvV6/cP9drX9/+zEy8oIroR2r7H2tD42bh3h/19ePNSMXthLascqMrP33u7CzH57bObCV0I5VRmTj5+Ql8dO/7NhKaMcqUzdr47fUih40"
+		cPathLogo += "rYR2ImXpZeMfr5vrl1dXl/CL+3YJ7TTK0Mntb+yPXl/u/2ptX9rfe7wX9W2UyUSW0I5Veh+PmB0C6/uxtz4L+ej+wu1n4FY+1bJQK6Edq9QublObTOvX2pgzd2lG7T9vH8FlljVbCe1YpTJ7gaWvx6KxpGujvQvjMsNYK6Edq7QOhnnmtT5MLKu5y4LXcQntw5Xcv1RE"
+		cPathLogo += "/n7kqjYc1sYj1wMZG2Rii0qPXJflW6rnX0I7Vsn9O7oiJdcPxMN33f312/Xjs87EjIf/1n9T7WMJ7Vgld+9/aT+/fP19r7WHGJyeIQwphmbfdrgaLBur9212kmxlEklunO6yOZTUu5qRbUxcvt3UeD5lbmhNU+FLlcyp825tTlHTlCOhgkHTh6OfOd5NWt+3s8b6E6Ch"
+		cPathLogo += "qlCyNDtRD4K7kAoFTWv/EAf1BXp7bmcabodBc7GZuyMbm03FhKZr7XtqH3D9af3w/WW///Ztv3/5/rB+EmzIf7oZZcB2KLRqFZ2EWiGh1YZ7plv/uA7+sKb5qg2Nsevx/7i5XnPQXd2kxx8Ph1Y1TzGxFRCaPg6RXeJ3278bvNFYM9p/HuOp7KcfnNLvBa2KTuBFFg+a"
+		cPathLogo += "/tfr0vr626/RY1RGFw0eXTNG/2Jz30tKPvQYaOrdR3UE9y6KAu3mov52Mx5ruhHlqh8SI1P6sH3DZLWvftQ+Cppc/cC+iN9FQaBVtF+G4XsT7WjKek6bpbT2LyazfZ/EORs0xfSFkCpT9rH5gZ0Ru4uiQIu2oepaWOJylMKs4gdC6GNC9glZ7EzQlEHw0arXnajQPn68"
+		cPathLogo += "K1JEaBGHf2GJ74mhfYLtF2UkX8TUckHztAPU1MWHdIPgLooGDb/8d5MxQKW3byCNvdCJzA3tYirzP6e0srqLrkV7l6umNe/eLZZzK9GqNp2lW2a7it0FD1q953QXi67TS6oxKDNv2AllVtuwIpFHbDfmy8Udp4AYWnRSi9B3jP+kBgfbTxHs/NAsiXy+CT9b9CN1/Qb2"
+		cPathLogo += "kaSqqoRInzibiel/6H+udkSGdTlDYZmpxdxFHNp8ioLSKkKiGq2OhKLLKp05F1xvNzHxvbXu4mW2gyosQD10YgLha2SXGfdYeaLO5KmLth7kh8b7vKOGwWTJw2iZSvC9HHXcrakqlAujSMqcc82GSjwdGU2aidAWJnSLFEnmYHNkSYGXVc1WrJQ1ofwrWTVvaVMwryKF"
+		cPathLogo += "LjDdkm+FAGohtHV6KhoInskjWirkh2aTz/FCrRP1jDf2LBM3L/h2aVLAQqFpzBLdmVQJ2bTE0LayylQoow5bYQfFrqww6xR7yiljDki39CZSrIBs9vHNp0LL5odgGeCVwR/8oZYfWoOYR+w9Qmg26fkIGtu9YVmVsUN3sZWhadkCaNwHQZ1QralPlHgZeUJdE1sF5sLL"
+		cPathLogo += "xAt5Nx9No8Lej8zjdeJCmUON7JJ84/si+aFtSCvNyIwQaIOLKfk+GVpVnjH9Fy+CLPJbCO2OU9a7fAtWOOXxoKF1+fXI06jAQBRi8MxACrQwa52+54PRCMcs63z7mBsa6FrSfgJttwWtTIFWVaE9W6VFYAA0h9/Xbo0bUuFS4pWgoM0F9eCncZdwU+Y2BVpo5x7zQtM1"
+		cPathLogo += "DOUf1z7mhFZfgFao2IYAaFM4ZadAi9pN1yESgWaLmMEaBQ8BhNYT1IO9YifxQUJ2IjT9+UBolSE+vuA/7m8zQZM7DcuVs+wg0P+yyunwCZwBKGiy6y5LkkoFwogZumiKQYQi0OCDoZrVGSKuAmEyB7eq+Jf2XUAITeZOVxGN2MMhM+UDYyzue+NQaOSlar4Tky32KEuS"
+		cPathLogo += "3+HUYDCJuRKMEgJNkdTb3dxqNJwl5a1hO8RWISsK26MYmgUeJ3XuuXGNFiaErDhZ1JlbW6u7cdeAMoC2YCyAogRclT7vnhQ0m7YUypNETiK0drB9bp8bGjn+6u0IaDyZYKEVg6ZICCFJCaEhcwOciCbpYWJhbepqitna9CeML46htci4kiMHtB/dAR685CIKfjKa7tod"
+		cPathLogo += "Q6Ptp/tcdna7zdQdtVJoYinriTb+pbYtaGvkRGhG4FC85PQeXQ2j4PExIy0uVbJAWXaYoL7VXDWdcGq4GzArMjII5Nvwoy4ViL71O6hHu+wRNGBITRK+wnbZtBkkZOr1ZGFod/CSyixqj9UyOa0iafo++JnkJEHTgiToQ1oimkMlmtSuD5/T4pI2FAcamtKiF2CxRTSY"
+		cPathLogo += "K5QYR+gCtmC9EbQF/lAB3qcT9aU6Z26fhkYExzHlx4YDDY5EmO8lA90f1uKuD6empxxhLBYaP9Z8GDSFiQXRxv+WXyHQLW53tGUBWCIZLLZ40IivQy23oxpCkuT2BbnaHswXTjkFHDKkqBUldJnc20/o+2BqEiy2vPBwqJhfj80jP/p44EhT1R0cPxBalnw2sUxhHnUL"
+		cPathLogo += "1lQwtQpdwBARGAASrBMPAJktJmPTBwUXItzdLn3SKJUKlJJHrupOEgnQtCC2IQhG6dehXmKrscgREbxBc7AjoprA6kBo1GQH5aVmlq7mVpOwQD0Wjkw99XFoJIwmU/EPHKkJJzXoMEjqLraXHXS9yt0NWCUFTOrHYAiqiyRo+tAvz3cfwWFJ7GoM57wFmbgj9oigPi4L"
+		cPathLogo += "oDGxqUi9xQSR1AwpLgXQQGpV7cLfDUDRABpxWWQqQLxT6HJTyvdUJGnapaZa8DV328QKhH6opwN6uu4tJECrGL6Z44f5ATQ20BUFwJ4E+xQyrtOC3jYRleiQcKAEQONO+84MxZZdFDRgihCV0HRisUfAVzaBcA2hLZuzUSwvpUImwRWcRVPar2zor0BTJonQ9D9+ea4n"
+		cPathLogo += "kgAtOhBctCEoXxjLtjbU0jiKGXVEfR7UxEluMNDgSpgyRfHUTD8t3BU9NpzgmYymdrxiJZbS8QSzGcyDCPzHavKrToa/yeqeZ+XE0IZhIvRFtFbIHTC2gRuOzQaAJsUqavCTGyJoJvXjVQxaaoxSCWcoXtbAHZzRag/FfkDLAdCYhO1tZmjB7MS1j0Jo+q/g01fhJq78"
+		cPathLogo += "qRloHMI5H3Qkk666EEdlQxIfAC0yZkvulcMFOfD4+fuToLuRsMJJeRM0cCB5hzuKoOlh9OtK/OLTAdCApxc9ggBabJEGJzM/cEvFMD8CGnaQHJNnImUWmpIKjRlpOaBV2t4rarxIlgjaaJ3G7BBodvwL0grSY6FAVFZBna7VaFjOnPiEITQ4KVI+3gFzGriF1YbZXusj"
+		cPathLogo += "6LLNY+/ZlyWe06aZzaPHps5fXwugjYKtxutxwhauA6CB6EU0hSdAA89rB7sYZJIPoUHPfgt/Drou7j1WVZ4QvIVVt2Uy3AILvuIlc6F64klvRiqcpZ4jonl7VvfxocaFpodZ633i+07HQYsWwmJoBA/00SwW2pIT+A8QxdZpwDpP5l2eLPoW7PktosxkMBOr7AeM7Hgz"
+		cPathLogo += "Q8Fgy236iT3GozvUcKhqaLiqCaBpNT8UcvWcHGM+zjymQyPWEZq9GDQwoOiVbDwiAiJeykVGrZZwtAUVwU233EkNhrmoL+DOz12Gs7Hae5IY0x48/a5xoWn+YXX1b2mvFR7niKSbRzBZcZsdQoMreRifAH43J/bIWROKtAJrq8CvgGYW8YYaXMdY8AsYlHQynUL338VV"
+		cPathLogo += "uMAOstne/tU4NP+gmPreOOLwFyE0EJNLd0Tw80wNILLHKoR2AeDALAEvyk+6n41UJAk0J/BEwOKZjVMFAik+6nsYS3FpZ4BWGf74padDq+jr9f0ow4lmRy2u8fwjhkZ6WAWfguxKCA36hBKe1aY8aKAzzRzvWoG7DqKbMMylcnIzcIcIAis1cKueC5MFWgVv50+EVjHS"
+		cPathLogo += "R1l2aJH3ZDeoMFYVhZ5eFmjAxExj6zTKDkbv4Nstyn+IoEG/T2bt2hwPvi2zuIotuwbwiVCq+PbsqAnQsyeWGO7M8/BngoaVDC2jMkb5Z54URAeMScwq05wW7cndzuCoijqDCu+q6qDb7TDhL5zyhI86Faywl1UTQ2v8T92BOW8eizzT+79kNLuzej1rOTWjbagW7AEU"
+		cPathLogo += "DE935Qc/vPjM0Pwjc6qs8JwihkZN95255Szo/ToY2oB+HBRm6xeERu1sk+Sd07Ntu+csWu5Kmkxz7pylILWztJq23WxswEMRZceYZbochGtkEtWBgWH3QervdlMEf+NvQvi80PiKbwuPQbPgCFJUZt8jgJawATUqivMq9N43RUWewu1vEFpwSYRoC4G9CuGe5qhdTNhU"
+		cPathLogo += "YV79CXL0BYOmcvJpLLR6Si0k/jEQvKZBipJk2ESYN2Ch8W4bZ1lFu8txIxaiOnwFoediQVNI9CchjDVgrZxfCv+PkKjHo4ReD4MwJchgcsv6NadDA8mjgaAMNiG3wh3tbqEAfqGgKTOSrUyAxrNB0h1JMxNHYst57pUpib/AvVdNEbV0aJGb4WvDbySJW03F7yGEu+oK"
+		cPathLogo += "BE1GU/DLBGicXKS06OEOhTtC4u+wyMqqyYV2Yc8E1jQNGqJDVgt+hpasy/oCrHiDdWGgse/KJkFzWdD9gjYgfkglINmSysy+EEBzBwm3u8lG1wY/cc1uYWnE3ij1q/kfNiNziWPgpQle1n8uaOR4TCjXF0dmx6LLdtToa5WTm9oqwJgpnllpIH753kyCJfvUbbCHdPam"
+		cPathLogo += "saSLarawY2N3THbVoKAWJ4RyJ9HVyIqk3oGNKqsBcx33e2AfPhe0SYujaWc3j4dpN6QA95SK7gyp4aGsHa/btqRuZlPNHJTs0bcx2bLVNndVU1Wj816Rektvkls5fQVJ0fcqUjaxGgI5t97uvujY2OrGYr73knJhPW41En2QwqeC9r5qznf9fn/npB9c15wP3JKLDCX9"
+		cPathLogo += "0s7dxjsKY7fkn07SdJZedf3BnZMUp1xt/fvr77oW/7SRVaPr17OIPbJfGNrXVQmtgCqhFVAltAKqhFZAldAKqBJaAVVCK6BKaAVUCa2AKqEVUCW0AqqEVkD9KaEVT6l/3oLu7ytPr4YH7SrUZd5z6kpox4r7FrxYbU/+m0x6O1LeY+pKaMfqJf/JgMeqhHas8p3gXkL7"
+		cPathLogo += "FKrnPxmwhHZ2Zf1TMiW0T6TX/Oc5ltDOrnxOfwntU0h0WFwJ7TPr+sQOZAntPXST/0DwEtrZ9fOkfn8J7X2UemBLCe0T6kE/nYksob2X6vv28ESjrYT2fqp/f24bGQ7cKaF9Ll0+7H/my4qW0M6g/wMDyniXLheYowAAAABJRU5ErkJggg=="
+
+	// Logo do Itau 
+	Case cCodBanco == "341"
+
+		cPathLogo += "/9j/4AAQSkZJRgABAQEAYABgAAD/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAEAAAAAAAD/2wBDAAIBAQIBAQICAgICAgICAwUDAwMDAwYEBAMFBwYHBwcGBwcICQsJCAgKCAcHCg0KCgsMDAwMBwkODw0MDgsMDAz/2wBDAQICAgMDAwYDAwYMCAcIDAwMDAwM"
+		cPathLogo += "DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAARCAByAdwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAk"
+		cPathLogo += "M2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAA"
+		cPathLogo += "AAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmq"
+		cPathLogo += "srO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9/KKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi"
+		cPathLogo += "iigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAGlsE0bufahxiuP+N3x48K/s4/DTVvGHjjW9P8ADXhfQ4hLe6jeybIogWVFA4JZ3ZlVUUFnchVBJAojGUpKMVdsmU1FXkdgzYNG5vSvzF8U/wDB19+zvoHiK9srHwb8Z/ENnaymOLUrDRbCO2vFH8ca3F9F"
+		cPathLogo += "MoPpJEjeqis//iLV+AX/AETX48f+CrR//llXsRyDMWrqjL7jh/tbBr/l4vvP1Mor8tR/wdpfAE/803+O3/gq0f8A+WVH/EWl8Af+ib/Hb/wVaP8A/LKj/V/M/wDnxL7hf2tg/wDn4vvP1JZsCjdz/Wvy2P8AwdofAFj/AMk2+PH/AIKtH/8AllXVfBf/AIOif2bvit45"
+		cPathLogo += "tNF1ax+I3w6t72VYI9V8UaXappyOxwBJJa3Nw0S5IzJIqogO5mVVZhnUyPMKabnRkreRcM0wknaNRfefpAOlFVbHVY9QtYpoWjmhmUOkkbbkZSMgg9CD6+4qzuryzuunqhaKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAC"
+		cPathLogo += "iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAGuevtX4c/8HUXxl1rxJ+0J8PPhfulj8N6LoK+K2jSbEd3e3M9zaq7ptwGhhtpQjbicXUo+Xq37iOeGr8J/wDg5ZsY5/8AgoT4cYjLf8IDYLn2/tDVK+t4Gw8K+b04TV1r+R8nxtip"
+		cPathLogo += "YfLJTg7O6Py9/wCEcYH/AFXT36Uf8IySP9WfzrvP7Ljx0pf7Lj/u1/R/1CKWx+BrNZo4IeGdv8H60f8ACMcfc/Wu9/sqH+7R/Zkf+RR9RiP+2JnCDw4V/wCWf/j1CeHP3gYx8Dn3/Pr7cf8A167o6XFnpR/ZkY/h/HFH9nwelhxzaonc/bb/AINl/j9q3xL/AGKNW8E6"
+		cPathLogo += "xNfXknwx1o2OnyzMJFi0+eMTQQqxO/EcnnqFbhI/KVTtAVP0oxmvyr/4NdrZbb4YfF5V+VTrFgQM9P8AR36V+qxTkV/MPFGHhQzWtTgtOb/gn9D8M4iVfLaVSXVAXw1Ak3dKbKN0J9q/ln/4KEf8HGX7ZfwJ/b3+N3gnwp8Ym0vwv4Q8fa9oukWZ8J6HP9ks7bUZ4YY/"
+		cPathLogo += "MksmkfaiKu52ZjjJJJJrwT3z+pymGXb6V/IKf+Doz9uoH/kuX/ll+Hv/AJBrqPhN/wAHXf7aXgLxauoax4+8N+ObVV+fTtb8JafFavyOS1jFbTZxkcSgYJ6cEAH9aoORRXxn/wAEXP8AgsF4b/4K8/s43/iax0T/AIRLxh4VvxpniTQDerdraO6s9vcwyABnt5kVsF0V"
+		cPathLogo += "lkimTDCMSP8AZeeKAFooJpAc0ALRRQDmgAoozRmgAooJxRmgAopN1LQAUUE0ZoAKKKKAGs+DTTMwHTknAzx/n/61LIny/wBK/mC/4KK/8HCX7YPwE/4KW/Fz4d+E/jA2leEfDPjq+0fTLL/hFNDuGtLWO6ZI4/Nls2kbauAGdmY4ySSSSAf0/g5WmNNtcLjrWV418baX"
+		cPathLogo += "8MvBmseINcvIdO0PQLObUdQvJchLW3hjaSSRsZOFRSxx2H4V+Wn7Kn/By5o//BQf/grF8Pfgn8JfClxa/DrVX1WTVfEeujbfauLbTbuaMWtsrYt4zJCj+ZKzSOhCmKE5yAfrIDkUU1TgfrTqACijNGeKACmGQjt3pJpTGCfl4Hevwx/4ORv+Cv8A8YPDP7aXgX9m/wDZ"
+		cPathLogo += "k8ReJNM8a2PlTeIf+EeiWW/1HULwL9i01QULfJA3nMEYo32uPdhojgA/c4yEA/d4Gakr5H/4JKfsq/Gr9nn4CR6h+0F8WvE3xO+J3iRIrjULa6vVm03w2oDEWtsEAV5Pn/ezchmUKmEXc/1urZWgBaazFadXy9/wVk/4Kh+Ef+CUX7LNx8RPE+mXPiG+vL1NI0LQ7a5F"
+		cPathLogo += "vNq986u6xmQq3lRKiO7y7X2gDCMzKrAH06Z8Ee/680ef+HOBx/n8q/kn+Mf/AAcl/ttftc+N47Hwz40uPCzSN59poHgTQo4TmNJGbaxWa8kXYWZlaVkxGGKgruFL4Z/8HGv7cn7Kfj+G18QfEHVNa+yzC5vPD/jjQoZluw0eAkjGOO8jjKlWAimjyfmBOTkA/rpByKK+"
+		cPathLogo += "Of8AgjP/AMFe/Cv/AAVv/Z1u/Emm6evhvxl4VnjsPFXh83H2j7BNIGMM8T4Ba2mEchRmCkNFKhB2bm+xgcigAoopsjsqnaM0AIZGB6Cmi4zjv61+Df8Awcnf8F//AIyfsfftuab8JfgL40g8H/8ACH6JDdeKrgaJZahLc6hdhZ44D9st5VVIrUwSBocbmvHD5KAD6R/4"
+		cPathLogo += "NgP+CvPjz/gpb8HfiDoPxc16DxF8R/AWpw3K6klhb2LX2mXSMIgYreOOLfFNFMpZVGUliBGRuYA/VgHIopFPy0tABRRRQAUUUUAFFFFAEbdK/Br/AIOb9cXS/wDgoN4d3sI1X4fWDlj0H/Ex1P8A/XX7yyNwfpX8+v8AwdXXv2T/AIKA6GucBvhlYk55/wCYjq39QPyr"
+		cPathLogo += "6bhHFPDY/wBvHeMZP7kz5XjDDKvgPZS2bX5nyZ8Xfgr8RPgBaWdx458F+JfCMOoSNFaSatYPapcuoDMilwAWVSCcZxkdc0z4nfB/x98FNI0zUPGHhDxF4XsdaJWwn1Kxe3jvCFDHyywG/Csrcdjmv0Z/4L3/AA30P4wfEr9nfwz4n8daV8N9B1bXvEYu/E2pqklppapp"
+		cPathLogo += "aSK0ivLEp3PGseTIvLqcscAx/wDBcn4PeCvF37LPgXxJr3xW8P8Ag6X4b6VqeqeH7O7giaTx5N9hhCWtqWuI9rN5SYKCbHnrhWGN3yuUfSZxWIr5dTxVFR+sTqRla7sotpNeba1XTfY8nFeFNCMK0qUm+SKa21bV9T8uf+EmOM/1pB4mYj/a7jd0r62+BP8AwSV8Pz/s"
+		cPathLogo += "zeHfin8bvjJofwg0HxZBBc6RbXqwQM0U6mS38ye4lRBNLCDKIERmEYyzBg6JxX/BQf8A4JoH9jn4RaH8TPCvj7S/iR8OfEFzFaxX9vHGssDTIzQSB4ZJYbiCTYQJY3GGdBtOQx/YMN46cMVsxWWxrS5m3FNpqLkt0ns35HxdTw5zGnh/rLhdWvvrb0PBtGvr7xHrVnp2"
+		cPathLogo += "n2txfahqE8draW0CNJNdTSOEjjRVBLMzsqgAEksB3re+Kfw+8XfA3xBDpPjPw9rHhbVbm3+1xWWqW5trl4d7IJPLb5gpZWAY4B2t1wa9m/aZ/ZJ17/gll4L+D3xe8M/EqPVPEni+6RtMjbwhbbdGmk083Akxcy3MMzorFFLQgg4kBUquMXTP2ItZ/aA/Yj+Jf7W3jD4r"
+		cPathLogo += "avq3iS1uby51Szv9D+03OpNbNDGqi6W4jSGNQyqkSW5jiRAirgADGp4wYR1aOOpVY/U5SdPmd+Z1G7JJdrnRHgOfs5UJJ+2Sul05e5+kn/BrHf8A9ofC/wCMLc/LrNgP/JeSv1fY/LX5F/8ABprdm5+EnxoYnP8AxPNP/wDSZzX66LyK+J4rqKpmtaa7/oj9O4Ypezy2"
+		cPathLogo += "lDsv1GyjETV/F1+3I0n/AA/B+MG0tu/4XlrGMc8/29NjHv2Ff2jT/wCqav4mf+CoOgXXin/grR+0RpenxrJfal8W/Edrbxl1TzJJNYuVVdzEAZJHJIA3cmvnz3j+2ZOB3/Gvyd/4O3dR+CZ/4JueILXxdN4P/wCFwNc6bJ4IimeH+3iVvoftJhXPnfZxatdbyQYgXXPz"
+		cPathLogo += "lM/jMf8Ag1z/AG6u3wN/8vPw/wD/ACfXmX7Vf/BEj9qf9iD4dN4u+JPwf17RvDNu2251Oxu7LWLawGQA1w9jNN5CFiBvl2rkgA5IFAH6Wf8ABkb8N/FR+LHxy8YRyXFv4JXSNP0adGklSK/1FppJoyq48uRoIVl3EtujF2gAIlYj9VP+Cwv/AAWW8Bf8Ehfg5peq+IdJ"
+		cPathLogo += "uvFnjDxRI8Xh/wANWl4tq995e3zZZZmVjDAgdQZBG5LMoCnkj4g/4NO/+CpHw3+J/wALpf2cYfAnhX4W+MPD8U2u2aaQ8wt/GoLKLm5c3EkszXqL5e8PK+YkHlLHFB5cf0//AMFmf+CYX7H/AO0ddw/Fb9pXxNL4BvLewPhy28RTeMG0tcBJp4beCG4Z4HmTE8qRRxEu"
+		cPathLogo += "TIXWQDAAPye8Yf8AB6h+0dda7O2h/DP4I6dpL7Tb29/ZapeXEY2gEtKl9CrZbcRiNcAgc43H7C/4JJf8Hadj+1x8e/DHws+M3gHTfBOveMruLTNH8RaBcyyaXNfSBUit5raYtLCJZsokglkAaWNWVVDTUeB/+Dij9gz/AIJwfszaZ8JfhFo/jb4heH9HsBZr/Z3hmOxT"
+		cPathLogo += "X5jbqsl1fyXgtTJNPgCaTyCSxO2MptFfgxrHxh03xt/wUFl8eeBdFb4d6Vqnj/8At/QNK0uYW58NRSagJ7eGB4QgjMIKKpjCBCi7duBgA/sC/wCCrP7bmrf8E9v+CfPxA+MuiaHp3iHVPB8di8GnX0zxW9x9o1C2tDuZPm+UTlhjqVA4zX5e/scf8HiuneP7H4haz8Zv"
+		cPathLogo += "BPh7wjpXhXQlvNGstCv5LjU/EeoPPHFHZxJKQuNpkdpOFRUyewb7a/4Oa49n/BDX47f9cdI/9Pmn1+HH/Bqh+w74D/bY/wCChmqn4jaHYeKdB8AeGLjXYNH1GCO5sdQu2nt7aL7RDIrLLGizSvsOAXWMnIUqwB7L41/4PWPjnfeP2n8N/CX4S6X4X84MNP1FtR1G/EW4"
+		cPathLogo += "kr9qjuII923A3fZ8AgttI+Ufrf8A8ETP+C3fhX/gsB8NvEH2fw9J4I8e+CzANb0Oa9F1DJFNvEd1aylUaSImNgylA0bFVJIZHc/4OFf2XvCXx2/4JD/FxNZ0uxa58B6BJ4i0C6FlG82kXFliX9wSMxiSONoW2kfu5GGD0P4yf8GZOpXC/wDBVHxXapcTR28/w41F5Ykk"
+		cPathLogo += "KpKVv9N2lgOGxubGc4ycUAfv/wD8FHP+ClXw3/4JifAC78e/Ea+ZUYm30jR7R0bUteusA+RbxsRnaDl3YhY15J5AP4T/ABQ/4PUvjtq3iqSTwb8JPhFoOjMD5dnrQ1LWLtDvYgmeG5tVPyFBxEMlWbgMFXif+DwP9pLUPin/AMFSbXwH9q1D+xfhT4as7aGylRFhS8vE"
+		cPathLogo += "F5PNFhiTvhktEZmCnNvjbhQ7/uV/wQ0/Yg8Ffsbf8E1vhfa+F9LtLfVvGnhrTfEfiXUvKX7VrN7dW6zsZZAqlo4/OMcSn7iKBySzMAfGn/BIf/g680L9tD40aH8MfjF4P0r4d+LPEkkNloutaXeSyaPqd8+EW2kilDSWrSSECMmSVWLhCVIBf9hdV8RWug6Jc6lf3EFj"
+		cPathLogo += "Y2ML3FzPcSLHFbxoCzO7sQqqFBJJOAASTjmvyQ/aD/4NBPhN8ef2wPGXxGh+I3iLwP4Z8UatBq1v4W8NaTBb/wBkuQDeCK4kaQDzZd8kQWFVgL7QrgKB1H/B1D+0d4i/ZH/4JDW3hLSdd8QX2qfEXU7HwXf69LNHBe3loLeW4u3maBI033S25jlWKNI2WeVdqqQhAPCf"
+		cPathLogo += "+Chn/B5N4d+GfjHVfDP7PvgKz8dSabI9u3ivxFdPDpM8qll3W1rCVmuISdpEjSwk8gJgh6+dfg9/wesfHDR/Gsc3jr4QfCjxJoHlurWOgSahol60n8BFxNPeIFHdfJJOeCK6D/g0C/4JoeBf2hNa8efHXx54d0nxR/whep2+heF7G/hS6tLG/wDLFzPetC4IMsSvbLCx"
+		cPathLogo += "zsZ5GGXVWT9sP+Cjv/BPHwH/AMFHv2YfEfgHxtouk3t9c6fcJoGtXFilxfeG71gpiuraTKuhEscRdVdVlRWjfKMwIBR/4Jpf8FUvhZ/wVS+DM3iz4a6hKt5pMkdtr+g6hti1Tw/M6bkE0YYhopAG8uZC0cmyRQ2+ORU+lK/kJ/4NzP2rvEP7If8AwV9+HekQ3t7Do/xA"
+		cPathLogo += "1Q+C/ENjbhZI74XBaK3LBmUDyrvyn8wHcqhwAwYo39ekbl0yaAFflD9K/iy/4K6c/wDBZn48f9lN1P8A9LWr+01/uH6V/Fl/wVz/AOUzHx4/7Kbqf/pa1AH9CX/BzX/wVG17/gnX+zlofhvR/Cuj+JIPjdp2veG72W9upYZNOj+yxR+ZEIxhm/0pj82Puj1yP5vf+CbH"
+		cPathLogo += "7d2qf8E2v2wfC/xh0XQLDxNqXhaG9hh0+9uZIbeYXNpLbNuZMnCiYtj1x9a/sA/4KX/DvQfGn7Cvxiuta0XSdXn0nwJr01i97ZRXDWcn9nzHfGXU7G+VeR/dHpX8wf8AwbDeGtL8d/8ABaT4U6TrWm2Or6ZcWmuedaX1ulxBLjR7xl3I4KnBUEZHBA9KAP6DP+COP/BX"
+		cPathLogo += "yb/goh+wR40+OnxE0nw78OtP8Ea7qFhqH2a8eSztrKzsra6kuZHkwVwszk9sIPWvzT/a9/4PVfFUfj6/s/gZ8J/DEWg2dzsttX8aSXN1PqcI3fvPsttJB5G7gqDLIQFyeW2p+23x8/YX+F/7Qv7N/iX4T694VtbXwD4o2vqGl6G8mjiV1dJFfdaGNiweKI4OQ3lgMGHy"
+		cPathLogo += "1+UPwJ+Lf/BLX/gh3+0F4h8XeB/iRdePvGmo2dtb2semsPF0WgwlHErWN7DAII3m3ATbrl3HCKEUspAPnf4I/wDB658ZdM8awyfEX4RfDHxBobMBJD4be/0e8RcHLLJPPdIxGVIGwZ2kZG4Efvf+xX+2X4L/AG/v2YfC/wAV/h9dXNx4b8VW7SRRXkPk3ljNG7RzW08e"
+		cPathLogo += "SFlilR0O1mRtoZGdGV2/mI/4OE/+CwHwj/4Kz+LvBmpfDn4X6z4U1Hwn9ohvfEmt29pb6prNvIkHlW8qQNIdkTrMU3zMBvJUKZGFfrJ/wZqaveax/wAEn/EEF1eXlzb6V8R9Ut7OKWdnS1iNjp0pjjUnCIZJZX2rgb5HbG4k0AeGft0/8HavxG/ZL/bW+Jfwp0/4R+B9"
+		cPathLogo += "Y0/wP4lutDgvbnU7qOW5jilKB3C5AbA5xxnpX7Y2HwP8H6d4yk8RWnhXwzb+IJJHlfVE0uFb13dSHYzBd5LKcMScsCwOa/jj/wCC0Tf8bjP2gO+34g6gOf8Arua/tIBwW+v+FAH4mf8ABV//AIOk/iB/wTr/AG//AIh/BvRvhb4P8SaZ4NewWDUr3ULmG4m+0afa3h3q"
+		cPathLogo += "vy8NOy8HkKDX7NfDXxHJ4w+Huh6xNFHBNq1hBeSRxncsbSRq5UHuAT1r+Rj/AIOeHx/wXL+OmO0ui49v+JFp1f1sfApf+LI+DeT/AMgOy5/7YJQB1lfg7/we/wDg7xBqXw+/Z51y2tb6Twtpd/rljqFwgY20F5PHYPbK/wDCJGjt7rZu5ISTHev3irzn9p/9l/wP+2L8"
+		cPathLogo += "Gde+HvxE0K18R+E/EVv5F3aXC/cPVJY3HzRzRt8ySKQyMAQRxQB+FX/BsN/wWR/Zh/Y0/Zj1D4a/EZrf4Y+OrrWZby58U3Ng89p4mhfHkLLcwxs8DQAsnlzYiAw6yb5XRf0s/wCCmn7GHwj/AOC9H7F1/wCH/BfjL4b+IvEmkzRX3hTxjpd/FrMegTG4C3AEtrISYp4o"
+		cPathLogo += "JYGQkoXRW2mSBCn5Z/tnf8GX3xD8LeK76++BPxJ8O+KvDu1pYdM8XM+m6vBzhIRPDE9vcEryZGFuM8be5/PP4/f8Et/2sv8AgmNdx+OvFHw68feA4/DsqTDxZod0txbaU7sIkc6hYyOtvuaVYwWdCzSBepxQB/QT/wAEI/8AggH4m/4I/wDxT8T+LdU+MGm+Mo/GGiNp"
+		cPathLogo += "N/4fsvDf2WCK4jukkguVvHmaRtsSzKYxEgJuOS3loT+nqfdr8Mv+DZH/AIL7+Ov2rfjBH+z78btZPijxBdadLdeD/ElwoXULw2sIeWwufLUCdjBHJOs8mJD5MokaRmQj9zgMCgArkPjv8ZND/Z5+DHizx54mma38PeDdIuta1F02+Z5FvE0rhAzKpcquACwyxAzzXXZx"
+		cPathLogo += "+Vfjt/weHftyn4G/sS6D8HdE1ZbbxD8XtREupQQyL5w0azKySBgMsglujbKD8u9Ypk+ZQ4oA/Fv9iX4AeKP+C4v/AAV0gsfEOprpd78Ttf1HxT4lv4YZJYtOtgZbudIlLhgvC28Q3fJvjGQq5rsP+CLP7RGpf8EpP+C1vh7T/Gcy6bZwa9efDXxmqXIiggWa4No7yu+B"
+		cPathLogo += "5MF5HBO+4fdgJwDjH1R/waf/ALQ/7O37Eui/Fb4kfFv4reCfB/jDxFNb+GtH0/UgyX9tp8Src3EwcK37m4lkt1wMfNYkkH5cfNP/AAck+JPgr8Wf+Cit58Svgl468O+MtC+I2k21/rY0piEsNViBtpgVCIAJoooJiSWZ5WmZsZBIB/XRFLuHTocVJXx7/wAEMf28h/wU"
+		cPathLogo += "G/4Jo/Dfxpfah/aHi7TbT/hG/FTvMsk39qWSiOSSUgKBJcR+Td7QOBdqOcHH2EOlABRRRQAUUUUAFFFFAEMq5Rvwr+dv/g7W1YWH/BRHw/GO/wALrA9en/Ez1ev6KJBlMetfzhf8HfVjcW//AAUj8HTzWtxHp+pfDGyto7gxkRSOmp6qZVVuhZBLEWAyQJEJxuGfa4fh"
+		cPathLogo += "z4n2S3lGSXq00jzc2pqpQs+6/Bo9P/4OpboWfgj4MsfmxruucEdf9EhBOO/t756da5z/AIOStTi0n4A/szXEm3bG+ouflyuP7NsgAOefyOQe/wB2vhT/AIKGf8FZviN/wUqtvDNn440L4f6HYeFb27vrT/hHbW8hmne4jWN1kae5mVhtQY2qvfORxXpnxC/4L7/ET4tf"
+		cPathLogo += "sh6t8J/E3gD4a61/aHh6bw6mveVcx3lvG9p9l+0mJndPtQQkl08tSThUQDFfkuV+FfEeW0csrRpRlPDVarkr9JvRq+9ux6eIzTCVqldOTSnGKT9O59X/ALYXwV+Cn/BPH9nr4Xx/tR3Pxq/aG8X6ys40nw/c+MdQ/sfR7mCG3+0i0j+1xR20NvHLHErl5HkL52KpxFtf"
+		cPathLogo += "8FO/Fek+Lf8Ag308Ha3oPglvh3oGpahoNzpnhtrl7z+yrZrpzEpldVaQuhWXeRlhLuy2ct8maF/wcQfEBvg3oHhjxp8Jvg78UNT8KxwnTdX8S2M1y5nhi8uG8mhZmVrrO4vLE0JfewG0ksfL/wBqn/gtJ8av2zP2a5Phj46j8B31jc6lFq1zrdppk9rqkjxXb3EMQKT/"
+		cPathLogo += "AGdY4wwjUCENsjXLF9ztx0vC/inGYzDVcZS96lWc5S59HFt25YpWVk1v1Ov+18BToShB6ONvPpuz7o/4L3W9xef8E8P2ZNahhabS7G909J7nIMMJm0M+VufoN5VsHPO0+wLvg7oeoaF/wbKfFK41KzmtY9e0/VtTsfNXa09q91CkcuOoVzESmcbl2sMqwJ+Xv2Xv+Dg7"
+		cPathLogo += "4m/s3/ADTPhzfeC/A3j7RdBso9M0qfWDNb3MVpFjybeYxlo5kixEqfIjKka5LnDDlvjl/wAF6fjp+0X8AfH3w68V6d8OL7S/iGJ4ry6TS72O80i2k8sJbWhF1sWOLysKZUlcl3ZmdmJroj4c8WrBUsi+rx9nRxKre05vijzN7d7M5v7QwEqzxrk+b2fIlbZn6gf8Ghd/"
+		cPathLogo += "9u+DXxqx/Drmm55zgm1ev2K3YFfjb/wZ2aFqUX7Nfxi16e0kXSdU8U2ljaXW9Ss81vZhp1Cg7sIs8J3EYJfAJKsF/ZAc1+sZ419dnbuvwSPOy2n7PDxj6/mOn/1TV/Fh+35qdvoX/Baz41X15MltZ2fxs1yeeZ/uxRprk7Mx9goJ98V/aZNJmI+v1FfgZ+2F/wAGgPxK"
+		cPathLogo += "/af/AGtvin8SrH4weB9Ls/iF4v1bxJBZz6ZdyS2cd5ezXCROw6sqyBSRgZBryzuP04X/AIL6fscIMH9oT4f5/wCvmT/43Xh//BQv/g4z/ZC8FfsoeOLHTvHWifFrWvEmg3umWPhXSrWS6TWXmjEBiuJJITbwwkS5cz/ejWTZHMw8tvzxP/BkX8VM/wDJcPh//wCCm8/x"
+		cPathLogo += "rV8F/wDBkd44m8Q28evfH7wnp+mnc0k2n+G7i8uMgcBY3miU56El/lHOGzigD5Q/4NXPhjr3jb/gtJ8OtU0mNprHwVpusaxrMgY7YbR9PnswxK54ae6gAzgEsPxi/wCDoL9pXxt8Zv8Agrv8QPCviLVtRl8O/DV7fSfDGkSSFbbSYJLK2mmkjQAfvLiRvMaQguw8tSxS"
+		cPathLogo += "ONV/ox/4Jaf8EiPhV/wSe+Fl1ofgCC+1LWtdKSa74k1URtqWrOBlYyyIoit0JbZCowN3zF2LOfmX/guB/wAG2/h3/gqL8QD8T/Bniq3+HvxSa0hs9Re6sftGl+IkhXZC1x5eJYp0TannDzAY4kQx4AZQDl/2Ov8AggV+wD8Fv2R/DfxU8R3mg/E3w5c6Pb39z4+8V+IZ"
+		cPathLogo += "dN0S48xDG0/2fzo7e3RpJCqxTb5IWCoXMisx/nt+P3i7wb8Qf+ClHi3XvhzZWum/D/WPiLcXnhq1tLAafBb6c+os1skduFUQoISoWPau0YGBjFfp/wDs6f8ABlP8VNU8e2//AAtf4ufD/RfDMU0bSr4SS81O/u0BzJGhure2SEkYAkxKFLZKNt2t6z+1p/wZrL4l+PDa"
+		cPathLogo += "x8C/iRo3gHwdHZWf2bTtWW9vr+C7hiRJZ/PViT5kiifjAV5GCqqKooA+8/8Ag5uYt/wQ2+OnGMwaP/6e9PNfk1/wZMtu/bu+LX/Yg/n/AMTC1r9rP+ChP7EfjT9vv/glZ4g+CepeJNB0rx54q0rSrfUtaEEsmm/bLW7tLm5lVAA+yRreTaDgjeM18p/8EF/+Df3xl/wS"
+		cPathLogo += "D/aO8ZeMfEXxC8M+MLXxR4b/ALEitdNsp4JYX+0wz7yZDjaFjIx1JYUAfXH/AAWtjB/4JH/tGe3gHVjj/t3evwV/4MyDn/grB4m/7Jtqf/pfplf0Wft9fs+X37Wv7FfxR+GOm6jZ6PqHjzw5eaJb3t0jPDavPGUDuF5IGc8V+dP/AAQy/wCDdPxp/wAEmP2ytT+Jev8A"
+		cPathLogo += "xI8K+L9P1Lwrd6Atpp9jcW80bzXNrKshL5XaPszDrn5hQB+cX/B4J+zZffCv/gqTa+PWtdRGh/FXw3Z3UV5K6tA95ZILO4giG1SuyGOzdlYsc3Gd2DtX9yP+CFX7bfg39sj/AIJrfC2fwzq1jea34L8N6d4b8SabG4W40i+tYFt2V4t7sscnkl4nJw6EHg7lX0X/AIKO"
+		cPathLogo += "f8E3fhv/AMFPPgBdeA/iNYy7Y2N1o+sWiquo+H7oDieCRgcZ4Dow2yLwRwCPwn+J3/Blb8eNO8VyR+Dfix8I9d0UBvLutb/tHSbpyHYAGCK2ukHyhTxKfmZlGQAzAH0V/wAFEf8Ag7k1j9mb9ujxl4D+Gfgn4efEnwB4XFtZW+spqk7S6heeWHu2SaImLy1d/JQKpO+B"
+		cPathLogo += "n3sHCr69/wAHNvwJ8cfti/8ABFbw346bwtN4f8S+BrzTfHHiDw2l493JpNvLaSQ3ce8wI0zWzXKM7MsQCRTufuAHl/8Agk1/waZeHf2R/jBofxG+N3i7SfiR4g0Fo7zTPDen2DLodpdhT+9mecB7rY/Ma+VCAYw7BshF/Y7UtAttd0S60++ht76zvYnguIJohJDPG4Ks"
+		cPathLogo += "jq2QykEgg5z3zQB/Ov8A8GgP/BS/wP8As+at44+BXxA8QaV4V/4TTU7fXvC15qMsdra3t8YxbTWTTuRiWRVtjCpOGZJFX52QP+2X/BRv/goh4B/4Jv8A7MHiL4geNNY0m0vrTT7iTQdFnvlgvPEt6oVYrW2TDO5MkkId0RhCjNI+1VYj8vf+ChH/AAZu+GfiX4x1bxL8"
+		cPathLogo += "AfH0HgEao8tw3hbxBavcaXFM29wltcw5mgg3CNfLeKYqNxV8ARn5v+D3/BlR8b9b8bw2/jv4vfCfw74fEbs97oMd/rd4sg+4ot5obRCpPVvPBUchW6UAfNP/AAbd/ss61+1r/wAFiPh5rL6feXmi+Ab+Txpr97APLisHt1eS23NwPnvTbpsXJYF+NqsR/XVbpsiFfOX/"
+		cPathLogo += "AATY/wCCXXwq/wCCWnwVbwf8NdLmjuNUeK517XL1/O1LxBcxx+Wsk0nRUUbtkMYWOPe5Cb5HZvpHFACP9w/Sv4sv+Cuf/KZj48f9lN1P/wBLWr+0qaXYren+fXAr8If2z/8Ag0n+I/7UX7b3xG+LVj8XvA+lWHjTxZeeIYLGfTLqSW1jmuGlEbsCAWUEAkcEg0Afr5/w"
+		cPathLogo += "UNlEf7AfxzLEKB4A17J7D/iXXH+Nfy4f8GvOtWPhn/gtx8HrjULyzsY501i0ie5nWJJJpdJvI4o1JPzO8jBVUcsSAMniv65dY0m18TaPdWF9bx3VjfRPb3MEq7kmjddrKw9CpIx71/On+0//AMGV/wATrT4palJ8IPip8P8AUPB91czS2UHi1r2w1DT4WfMMDNb29wlw"
+		cPathLogo += "yIQhlHl7ym4Rru2qAfbv/B21+1N4i+D3/BMObR/A/iKbTZPF3jG08I+LDptyBNFYy6fc3T2cxTLRCdY4Ay5UvE5Q7o5GVvzU/wCDZX/gk3+zv/wUvf4hX/xd1rUNc8TeE7m2Fn4GtL+TTFlsW+Z76SWMia4V5B5O2F08naS5ZpoSv6WfsD/8G2um/Cf/AIJh/EP9nr42"
+		cPathLogo += "eINI8WTfELXovEaah4egeOTw1ex2sEcU1rNOoZpEkSQbzGgaN3RhiR1r4G+IX/BlZ8crHx40PhT4t/CfWPDZYAX2qpqOm35AY5P2aOC4TcFCnAn5PGeNxAOU/wCDoL4X/sq/svp8L/hD+z/oPgTR/GHhu4v7nxguggXl3Yp5dvbW9ve3rtJKZi0MzeRJKXT5pHVTMHk/"
+		cPathLogo += "Qj/gzHcp/wAEqPGGMNt+JmpdO2dN0rr/AJ/KvLbr/gzO8HWf7GF/4dsPiIdT+N97qFrdR+Kr22mt9I0+BGYTWkVnHIxKuj/66UyMzxRlRCrMtfYX/BBn/gk78RP+CR3w28d+B/Fvjzw7438N+JNSt9Z0qPTbe4t2026MbQ3O4SZUrKiW2NpBBhOd2RgA/nL/AOC5Hhu9"
+		cPathLogo += "8G/8Flvj9DqtpcWc0njW51BY2UeY0E5W4hcDPO+GRHUEjhx0r+u74ffte/Dj4n/s1aR8YNM8YaBF8Ndc02LV4tfvr6Ozs7eB9v8Ar5JCFhdWPlukhDI4ZWAYED8+/wDguJ/wbc6F/wAFPPiDN8UPAvii18CfFh7KG0vft9uZtJ8RCFSkTTmMGaGZI/LQzKJQY4408vID"
+		cPathLogo += "D4b/AGYf+DKv4h3vxAWT4zfFrwXpPhe3eNpIPBYutQ1C+TcfMj8y8t4I7fjG2QpOMk/IcDIB+bf/AAWb/aw0H9uL/gp58YPid4XmW58M+INXjg0m5WKSEXtpaW0NnDPskAdfNjt1k2uqsu/BAPFf2Y/Ar/kiHg3/ALAdl/6TpX4fftrf8Gc2pfGn9o/XNf8AhZ468D/D"
+		cPathLogo += "7wCbTTbDR9Dn025lnt1tNPtrSSSaRMCSaaaGSaSTlneZmY7mOf3R+G/h6Twj8PtC0mSZJ5NK0+CzaRFIWQxxqhYD0JBNAG3X88X/AAeBT/G34A/tN+D/ABV4b8dfFTSfhH480WG2nsbHxPex6LBrdpJKHUW6SiKF2tmtpFyg8xkmZSxWTb/Q7XkX7Z/7Efw4/b++Bepf"
+		cPathLogo += "Dn4o6BB4g8Nag6XEK5MV1pl0gYRXdtMvzQzpuYBl4ZXdGDI7owB+Zn/BAX/g4n+EvxA/ZN8J/Cz43eONF+H/AMRvAdhHpUWqeI777Np3iSzh+SC4+2THy0uFjCJIk0gLsokTIdki+kP+CiX/AAX4/ZS/Z3/Zr8VSf8J98O/jNqmraVPZWXg/QNStvEMeuvMjR+RdeS0k"
+		cPathLogo += "EVsQW84zMB5QYBZHZI3/ADL/AGkP+DKL4hWHimeT4SfGTwbrmkzTForfxfaXOl3NnETJhGltY7lJmVVjHmbIg7FztTaA3M/DH/gyp+Omo+IVi8ZfFr4TaDpqsn7/AERNQ1icKWAciKW3tV3BclR5nzMAMrywAPln/g2o+D+sfFn/AILRfB/+z7d5rXwtNe69qc8cRmjs"
+		cPathLogo += "7a3sph5jkfdDytBEGPG+ZO+BX9RH7b3/AAUs+C//AATg0Pw/qXxm8Zf8IdYeKJ5bXTJv7Hv9RFzLEqtIuLSGYphXU/PjPbODjz7/AIJU/wDBHT4U/wDBJv4fajYeA/7U1jxF4i8v+3vEerusl9qQjLGOIBQI4YULttSMZOQXZyFI8v8A+C+v/BHjxN/wWB+Hnw80Lwz4"
+		cPathLogo += "y0PwfN4K1K7v7iXU7Sa4W5WeFI1CeX0IKE8+ooA+of2NP2+fhX/wUN+FuoeMvg74pHjDw1pupyaJc3n9m3mn+XeRxQzPF5d1FFIdsdxESwUr84AJIIH8sv8AwXw/ax1j/gpB/wAFffGVn4Zhk1u00HVY/h54Rs7Cb7Z/aC207QAwkcSfabt5pU28YljGWwGP76f8Epv+"
+		cPathLogo += "CTXxK/4Jdf8ABNj4pfB/SfHvhzUPiB4w1jU9Y0DxDBbzQ2ejz3Wm2lnBK6MrM7QyWxm2gbWwq5XJYfJv/BML/g01179jL9uPwH8UvH3xG8IeMNF8D3b6rbaTZaZMrzXyI32WQmX5QIptkwIG4NEuMdQAfP1r/wAGSfxYltIfO+Nnw9im2DzFTS711R8DcAxALAHgEgZA"
+		cPathLogo += "zgZxXnH7YH/Bov8AFb9lL9mXxx8R4/iZ4R8Xf8IRpMutXGkWOm3UVxd28O1pjGxyNyRb3wRzsxxnI/qCtbdYolUDAXOABjGar+INGstf0W80/UbS1vtPvoWt7q2uY1khuInUq6OjAqyspIIIwQSDxQB/OJ/wZk/tqH4cftPeOvgXq2pFdN+I2nrr+hW802EGpWSt56RK"
+		cPathLogo += "WA3y2rM7kKWK2KngLz+2v7bX/BXf9nz/AIJ0eMdG0D4yfED/AIQ7VvEFm2oWEH9hanqHnwK5Rn3WlvKq/MCMMQeM4xzX5U/A/wD4NJ/ih+yh+2VoHxV+HPxk8Hx2fgnxSut6FZanY3QuZbOG4LR29zKq7d0kOI5GVcAu+AeM/Tv/AAXk/wCCCPi7/gr98ZvAfibw38QP"
+		cPathLogo += "Dfg6z8H6LNpcsGpWU87zvJOZQ6+XhQAMD6igD9C/2Wv2pfA/7aHwK0P4l/DfXF8SeCfEhuP7N1EWdxZ/afIuJbaX91cRxyrtlhkX5kGduRlSCfQq+a/+CRf7E+q/8E6/+Cevw/8Ag3rmt6f4k1LwadS87UbCN47e4+06ld3i7Vf5htW4VTnupNfSlABRRRQAUUUUANYZ"
+		cPathLogo += "FfI3/BXX/gkv4R/4KwfAqx8Oa1qj+GPFXhm5a98N+IoLQXT6Y8iqs0LxFl8y3lVE3oHQloonBBjAP13imvEH/nV0akqU1UhuhSSasz+a26/4M9P2n1uZRB46+BEtuHxG8ms6tE8iA8EoNNYKSOcBjg8bj1qP/iD1/amKjPjb4C/L0zr2rnH/AJTP/wBdf0qmH5vvNS+X"
+		cPathLogo += "XurijMVa0/wRyfUaL0sfzU/8Qef7U4P/ACO3wFxyede1c9f+4ZTT/wAGeX7VGP8AkdvgH/4PtX/+Vlf0sbKXbVf605j1n+CKWCo72P5px/wZ5ftTFf8AkdPgL/4PtX9v+oZ/nP0x0Pwr/wCDOX48ar4xhh8afFD4T+HdBGTLe6IdR1i8U/L8qwzW1qhBXd8xl4IAwckj"
+		cPathLogo += "+jbZxTRAC2TWc+J8xlFxc9H5IFgqK6HlX7F/7G/gf9hH9nbw/wDDP4e6fPp/hzw/G2HuJPNu9RuHJaa6uJMDzJpXJZiAFHCoqIqIvq4TbTguBRXhSk5PmluzpSsrINvP/wBemhMU6ikMMU3yhmnUUANEQX1oMQY9/wA6dRQA3yRuz/n/ADzQ0QanUUANMSsc0GJT/hTq"
+		cPathLogo += "KAG+Xx1agxg+tOooAasYUeuKPKXP8+OtOooAaYlYf4U7bxRRQA0RKD9etHkL/k06igBojUCnUUUAIUBz7+lIExTqKAG+WCKPKGc06igBohUf5/CgxgmnUUANMQNBiUn8/wBadRQA0xKQffr70CJQR7dKdRQA1Ygvr+NKFwKWigApNvNLRQA0xg/X19KQ26nrk/U0+igB"
+		cPathLogo += "uz/9dBjye9OooAb5S5oWJV6cD0HQU6igAppTNOooAb5Yz3/OgJj/AD1p1FACBOPWloooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKK"
+		cPathLogo += "KACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q=="
+EndCase
+
+If !Empty(cPathLogo)
+	Decode64(cPathLogo, CDIRPDF + cCodBanco + ".png")
+	cPathLogo := CDIRPDF + cCodBanco + ".png"
+EndIf
+
+Return cPathLogo
