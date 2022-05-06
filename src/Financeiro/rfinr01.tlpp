@@ -1938,7 +1938,7 @@ Local cHtml			:= "" as character											// Guarda o Texto feito em HTML
 Local cNFEs			:= "" as character											// Pega o Numero da Nota Fiscal de Serviço
 Local _cCliente		:= "" as character
 Local _cLoja		:= "" as character
-Local cLayHTML		:= BuscaHTML(AllTrim(GetMV("ES_RF01HTM",, ""))) as character
+Local cLayHTML		:= AllTrim(GetMV("ES_RF01HTM",, "")) as character
 Local cUsrAuth		:= "" as character
 Local cPswAuth		:= "" as character
 
@@ -2175,15 +2175,17 @@ If nCont > 0
 		RestArea(__aArea)
 
 		// Montagem do HTML para cliente
-		// Verifico se existe pasta definida para buscar HTML por filial
-		If !Empty(cLayHTML) .AND. BuscaHTML(cLayHTML)
+		// Verifico se existe pasta definida para buscar HTML custommizado por filial
+		// Senao, utilizo layout padrao
+		If !Empty(cLayHTML) .AND. !Empty(BuscaHTML(cLayHTML))
 			cHtml := BuscaHTML(cLayHTML)
+			cHtml := ConvMacros(cHtml)
 		Else
-			cHtml := MontaHtml()
+			cHtml := MontaHtml(aTitulo)
 		EndIf
 
-		oMessage:cSubject        := "Atenção: Ref. Boleto(s) e Link de Nota Fiscal Nº "+IIF(cNFEs == "" ,aTitulo[1][2],cNFEs)+" - "+aTitulo[1][3]
-		oMessage:cBody       := cHtml // -> Boleto + Nota
+		oMessage:cSubject := "Atenção: Ref. Boleto(s) e Link de Nota Fiscal Nº "+ AllTrim(IIF(cNFEs == "" ,aTitulo[1][2],cNFEs))+" - "+AllTrim(aTitulo[1][3])
+		oMessage:cBody := cHtml // -> Boleto + Nota
 
 		// Para solicitar confimação de envio
 		If GetMv("ES_BOLCNFM",, .F.)
@@ -2941,13 +2943,14 @@ Return If(!Empty(nPos), aBancos[nPos], Array(3))
 	@author Calabro'
 	@since 16/01/2022
 	@version version
+	@aparam aTitulo, array, (Array contendo os dados do titulo)
 	@return cHtml, character, (Conteudo Html gerado)
 	@example
 	(examples)
 	@see (links_or_references)
 	/*/
 
-Static Function MontaHtml()
+Static Function MontaHtml(aTitulo as array)
 
 Local cHtml		:= "" as character
 Local cChaveNfe	:= If(!Empty(SF2->F2_CHVNFE), SF2->F2_CHVNFE, If(!Empty(SF2->F2_NFELETR), SF2->F2_NFELETR,"")) as character
@@ -3019,6 +3022,7 @@ Return cHtml
 	(examples)
 	@see (links_or_references)
 	/*/
+
 Static Function BuscaHTML(cLayHTML as character)
 
 Local cConteudo		:= "" as character
@@ -3277,3 +3281,38 @@ If !Empty(cPathLogo)
 EndIf
 
 Return cPathLogo
+
+/*/{Protheus.doc} ConvMacros
+	(Converte as  macros do HTML custommizado para conteúdos a serem buscados das tabelas)
+	@type Static Function
+	@author Calabro'
+	@since 05/05/2022
+	@version version
+	@param cHtml, character, (Conteudo HTML a ser convertido)
+	@return cHtml, character, (Conteudo HTML apos conversao)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function ConvMacros(cHtml as character)
+
+cHtml := StrTran(cHtml, "%NOMEFANTASIA%", AllTrim(Posicione("SA1", 1, xFilial("SA1")+SF2->(F2_CLIENTE+F2_LOJA), "A1_NREDUZ")))
+cHtml := StrTran(cHtml, "%RAZAOSOCIAL%", AllTrim(SA1->A1_NOME))
+cHtml := StrTran(cHtml, "%ENDERECOCLIENTE%", AllTrim(SA1->A1_END))
+cHtml := StrTran(cHtml, "%DATAVENCIMENTO%", DToC(SE1->E1_VENCREA))
+cHtml := StrTran(cHtml, "%VALORTOTAL%", cValToChar(SE1->E1_VALOR))
+cHtml := StrTran(cHtml, "%NUMERONOTA%", AllTrim(SF2->F2_DOC))
+cHtml := StrTran(cHtml, "%SERIENOTA%", AllTrim(SF2->F2_SERIE))
+cHtml := StrTran(cHtml, "%CHAVENFE%", AllTrim(SF2->F2_CHVNFE))
+cHtml := StrTran(cHtml, "%MESANOFATURAMENTO%", Month2Str(SF2->F2_EMISSAO) + "/" + Year2Str(SF2->F2_EMISSAO))
+
+// WK_Generico():GetConteudo("WBC_PEDID_FINANCEIRO","TIPO","")
+// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%RAZAOSOCIAL%"		, 'AllTrim(Posicione("SA1", 1, xFilial("SA1")+SF2->(F2_CLIENTE+F2_LOJA), "A1_NOME"))'))
+// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%NUMERONOTA%"		, 'AllTrim(SF2->F2_DOC)'))
+// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%SERIENOTA%"			, 'AllTrim(SF2->F2_SERIE)'))
+// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%MESANOFATURAMENTO%"	, 'Month2Str(SF2->F2_EMISSAO) + "/" + Year2Str(SF2->F2_EMISSAO)'))
+// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%VALORTOTAL%"		, 'cValToChar(SF2->F2_VALBRUT)'))
+// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%CHAVENFE%"			, 'AllTrim(SF2->F2_CHVNFE)'))
+
+Return cHtml
