@@ -1929,7 +1929,7 @@ Local cArqPDF		:= "" as character											// Nome do arquivo
 Local cCadWF		:= AllTrim(GetMV("ES_MAILBOX",, "")) as character			// Nome da conta Workflow cadastrada
 Local cPopAdd		:= "" as character											// Endereço do Servidor POP
 Local cSmtpAdd		:= "" as character											// Endereço do Servidor SMTP
-Local cUser			:= AllTrim(GetMv("ES_RF01CNT",, "noreply@" + Lower(AllTrim(SM0->M0_NOME)) + ".com.br"))
+Local cUser			:= "" as character //AllTrim(GetMv("ES_RF01CNT",, "noreply@" + Lower(AllTrim(SM0->M0_NOME)) + ".com.br"))
 Local cPass			:= "" as character											// Senha do Servidor
 // Local cEmailCCo		:= AllTrim(GetMv("ES_MAILCCO",, "")) as character			// Email a qual irá a copia oculta
 Local cRecebe		:= "" as character											// Retorno -> Utilizado para verificar qual o tipo de email o usuario selecionou
@@ -2123,7 +2123,7 @@ If nCont > 0
 		_cCliente := Alltrim(SA1->A1_COD)
 		_cLoja    :=Alltrim(SA1->A1_LOJA)
 
-		oMessage:cFrom := GetMv("ES_BOLFROM",,"noreply@nomedaempresa.com.br")
+		oMessage:cFrom := AllTrim(GetMv("ES_BOLFROM",,"noreply@nomedaempresa.com.br"))
 
 		// Rotina de Envio Automatico de Boleto *
 		
