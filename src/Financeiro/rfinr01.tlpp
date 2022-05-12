@@ -96,14 +96,14 @@ Return cFilePrint
 
 Static Function ExecBoleto(cPrefixo as character, cNumTit as character, lRet as logical, lJob as logical)
 
-Local cMsg			:= "" as character
+// Local cMsg			:= "" as character
 // Local __cNomBcoL	:= "" as character
 Local cFilePrint	:= "" as character
 Local cIndexName	:= '' as character
 Local cIndexKey		:= '' as character
 Local cFilter		:= '' as character
 
-Local nOpc			:= 0 as numeric
+// Local nOpc			:= 0 as numeric
 
 Local aPergs		:= {} as array
 Local aRet			:= {} as array
@@ -233,8 +233,8 @@ If Len(aPergs) > 0 .OR. lJob
 		//Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
 		oTPnlRodap:Align := CONTROL_ALIGN_BOTTOM
 
-		oSay1 := TSay():New( 010, 010,{|| "Qtd Selec.: " + AllTrim(Transform(nQtdSel,"@R 999999999"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,080,020)
-		oSay2 := TSay():New( 010, 100,{|| "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,080,020)
+		oSay1 := TSay():New( 010, 010,{|| "Qtd Selec.: " + AllTrim(Transform(nQtdSel,"@R 999999999"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
+		oSay2 := TSay():New( 010, 100,{|| "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
 		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 100/* 310 */ TYPE 01 ENABLE OF oTPnlRodap ACTION (lExec := .T.,Close(oDlg))
 		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 130/* 280 */ TYPE 02 ENABLE OF oTPnlRodap ACTION (lExec := .F.,Close(oDlg))
 
@@ -303,8 +303,8 @@ If Len(aPergs) > 0 .OR. lJob
 					// If SEE->(DbSeek(xFilial("SEE")+SA6->(A6_COD+A6_AGENCIA+A6_NUMCON)+cSubConta))
 
 						
-			cMsg := "Deseja Imprimir ou Enviar via e-mail?"
-			nOpc 	:= Aviso("",cMsg,{'Imprimir','E-mail'},1,"Impressão Boletos - " + FunName())
+			// cMsg := "Deseja Imprimir ou Enviar via e-mail?"
+			// nOpc 	:= Aviso("",cMsg,{'Imprimir','E-mail'},1,"Impressão Boletos - " + FunName())
 					// nOpc := 2
 					
 					// If  nOpc == 1 //Imprimir
@@ -2266,7 +2266,7 @@ cQuery  += " JOIN " + RetSQLTab("SU5") + CRLF
 cQuery  += "   ON SU5.U5_CODCONT = AC8.AC8_CODCON " + CRLF
 cQuery  += "  AND SU5.D_E_L_E_T_<>'*'  " + CRLF
 cQuery  += "WHERE AC8.D_E_L_E_T_<>'*' " + CRLF
-cQuery  += "  AND AC8_CODENT = '"+_cCliente+"'+'"+_cLoja+"' " + CRLF
+cQuery  += "  AND AC8_CODENT = '"+_cCliente + _cLoja"' " + CRLF
 cQuery  += "  AND SU5.U5_EMAIL LIKE '%@%' " + CRLF
 
 MpSysOpenQuery(cQuery, cAlias)
