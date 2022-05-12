@@ -2266,7 +2266,7 @@ cQuery  += " JOIN " + RetSQLTab("SU5") + CRLF
 cQuery  += "   ON SU5.U5_CODCONT = AC8.AC8_CODCON " + CRLF
 cQuery  += "  AND SU5.D_E_L_E_T_<>'*'  " + CRLF
 cQuery  += "WHERE AC8.D_E_L_E_T_<>'*' " + CRLF
-cQuery  += "  AND AC8_CODENT = '"+_cCliente + _cLoja"' " + CRLF
+cQuery  += "  AND AC8_CODENT = '" + _cCliente + _cLoja + "' " + CRLF
 cQuery  += "  AND SU5.U5_EMAIL LIKE '%@%' " + CRLF
 
 MpSysOpenQuery(cQuery, cAlias)
