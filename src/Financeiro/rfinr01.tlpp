@@ -1959,6 +1959,7 @@ Local aTotArq		:= {} as array												// Verifica a quantidade de registro na
 Local aBolEnv		:= {} as array												// Vetor que verifica se existe boletos a serem enviados
 Local aFilBol		:= {} as array												// Vetor que armazena os registros que serão enviados e excluidos
 Local aEmails		:= {} as array												// Array para o Parambox para adicionar mais e-mails
+Local aAreas		:= {GetArea()}
 
 Local oMailServer := TMailManager():New() as object								 // Objeto função de enviar e-mail
 Local oMessage    := TMailMessage():New() as object								 // Atributo do Objeto
@@ -2141,8 +2142,6 @@ If nCont > 0
 		cChaveNfe 	:= ""
 
 		// Localiza Chave Nfe
-		__aArea := GetArea()
-
 		__lRPS  := .F.
 		dbSelectArea("SF2")
 		dbSetOrder(1)
@@ -2171,8 +2170,6 @@ If nCont > 0
 				cChaveNfe := SF2->F2_CHVNFE
 			EndIf
 		EndIf
-
-		RestArea(__aArea)
 
 		// Montagem do HTML para cliente
 		// Verifico se existe pasta definida para buscar HTML custommizado por filial
@@ -2231,8 +2228,8 @@ If nCont > 0
 			GeraMsgErro("Não desconectou: " + oMailServer:GetErrorString( nErro ), lJob)
 			Return
 		EndIf
-		
-		
+
+		AEval(aAreas, {|x| RestArea(x) })
 	Else
 		GeraMsgErro("Cliente não encontrado!", lJob)
 	EndIf
