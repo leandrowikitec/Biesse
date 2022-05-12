@@ -2186,7 +2186,7 @@ If nCont > 0
 			cHtml := MontaHtml(aTitulo)
 		EndIf
 
-		oMessage:cSubject := EncodeUTF8("Atenção: Ref. Boleto(s) e Link de Nota Fiscal Nº ")+ AllTrim(IIF(cNFEs == "" ,aTitulo[1][2],cNFEs))+" - "+AllTrim(aTitulo[1][3])
+		oMessage:cSubject := "Aten&ccedil;&atilde;o: Ref. Boleto(s) e Link de Nota Fiscal N&ordm; " + AllTrim(IIF(cNFEs == "" ,aTitulo[1][2],cNFEs))+" - "+AllTrim(aTitulo[1][3])
 		oMessage:cBody := cHtml // -> Boleto + Nota
 
 		// Para solicitar confimação de envio
