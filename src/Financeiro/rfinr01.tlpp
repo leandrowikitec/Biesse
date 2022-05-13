@@ -565,7 +565,7 @@ If Empty(nResult)
 					
 					IF SEE->EE_CODIGO == "237"
 						// Nosso Numero + Digito Verificador
-						cNroDoc := CalcNoNu(SEE->EE_CODCART)
+						cNroDoc := U_MyCalcNoNu(SEE->EE_CODCART)
 					Else
 						// Aqui defino parte do nosso numero. Sao 8 digitos para identificar o titulo.
 						// Abaixo apenas uma sugestao
@@ -1154,10 +1154,9 @@ _cPortado := SE1->E1_PORTADO
 
 Return cFilePrint
 
-/*/{Protheus.doc} CalcNoNu
-	(Define nosso numero para calculo e impressao de boletos.  
-	usado no boleto do bradesco)
-	@type Static Function
+/*/{Protheus.doc} MyCalcNoNu
+	(Define nosso numero para calculo e impressao de boletos usado no boleto do bradesco)
+	@type User Function
 	@author Calabro'
 	@since 13/10/2003
 	@version version
@@ -1167,12 +1166,12 @@ Return cFilePrint
 	@see (links_or_references)
 	/*/
 
-Static Function CalcNoNu(cCodCartei as character)
+User Function MyCalcNoNu(cCodCartei as character)
 
 Local nCont		:= 0 as numeric
 
 If Empty( SE1->E1_NUMBCO )
-	cNroDoc := SUBS(SE1->E1_CLIENTE,2,5) + STRZERO(SE1->(RECNO()),6)
+	cNroDoc := Right(NOSSONUM(),11)
 Else
 	cNroDoc := Substr(SE1->E1_NUMBCO,1,11)
 EndIf
@@ -2186,7 +2185,7 @@ If nCont > 0
 			cHtml := MontaHtml(aTitulo)
 		EndIf
 
-		oMessage:cSubject := "Aten&ccedil;&atilde;o: Ref. Boleto(s) e Link de Nota Fiscal N&ordm; " + AllTrim(IIF(cNFEs == "" ,aTitulo[1][2],cNFEs))+" - "+AllTrim(aTitulo[1][3])
+		oMessage:cSubject := "Atenção: Ref. Boleto(s) e Link de Nota Fiscal Nº " + AllTrim(IIF(cNFEs == "" ,aTitulo[1][2],cNFEs))+" - "+AllTrim(aTitulo[1][3])
 		oMessage:cBody := cHtml // -> Boleto + Nota
 
 		// Para solicitar confimação de envio
