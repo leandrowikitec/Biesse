@@ -18,7 +18,7 @@ User Function MyCalcNoNu(cCodCartei as character)
 Local nCont		:= 0 as numeric
 
 If Empty( SE1->E1_NUMBCO )
-	cNroDoc := Right(NOSSONUM(),11)
+	cNroDoc := Right(AllTrim(NossoNum()),11)
 Else
 	cNroDoc := Substr(SE1->E1_NUMBCO,1,11)
 EndIf
