@@ -1,0 +1,62 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "RWMAKE.CH"
+
+/*/{Protheus.doc} MyCalcNoNu
+	(Define nosso numero para calculo e impressao de boletos usado no boleto do bradesco)
+	@type User Function
+	@author Calabro'
+	@since 12/05/2022
+	@version version
+	@return cNroDoc, character, (Nosso numero calculado com digito verificador)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function MyCalcNoNu(cCodCartei as character)
+
+Local nCont		:= 0 as numeric
+
+If Empty( SE1->E1_NUMBCO )
+	cNroDoc := Right(NOSSONUM(),11)
+Else
+	cNroDoc := Substr(SE1->E1_NUMBCO,1,11)
+EndIf
+
+cNroDoc  := cCodCartei + cNroDoc		// Carteira + nosso numero
+
+cCombina := "2765432765432"				// 13 posicoes
+aResulta := {}
+
+For nCont := 1 To 13
+	
+	nVal1 := Val( SubStr( cNroDoc,  nCont, 1 ) )
+	nVal2 := Val( SubStr( cCombina, nCont, 1 ) )
+	
+	AAdd( aResulta, nVal1 * nVal2 )
+Next
+
+nTotProd  := 0
+For nCont := 1 To Len(aResulta)
+	nTotProd := nTotProd + aResulta[ nCont ]
+Next
+
+nResulta := Int(nTotProd / 11)
+nResto   := nTotProd - ( nResulta * 11 )
+
+If nResto >= 1
+	
+	_cDigito := Alltrim(Str( 11 - nResto))
+	
+	if _cDigito == "10"
+		cDigVerif := "P"
+	Else
+		cDigVerif := Alltrim(Str( 11 - nResto))
+	Endif
+Else
+	cDigVerif := "0"
+Endif
+
+cNroDoc  := Substr(cNroDoc,3,11) + cDigVerif
+
+Return cNroDoc

@@ -566,7 +566,11 @@ If Empty(nResult)
 					
 					IF SEE->EE_CODIGO == "237"
 						// Nosso Numero + Digito Verificador
-						cNroDoc := U_MyCalcNoNu(SEE->EE_CODCART)
+						If FindFunction("U_MyCalcNoNu")
+							cNroDoc := U_MyCalcNoNu(SEE->EE_CODCART)
+						Else
+							cNroDoc := CalcNoNu(SEE->EE_CODCART)
+						EndIf
 					Else
 						// Aqui defino parte do nosso numero. Sao 8 digitos para identificar o titulo.
 						// Abaixo apenas uma sugestao
@@ -1157,7 +1161,7 @@ _cPortado := SE1->E1_PORTADO
 
 Return cFilePrint
 
-/*/{Protheus.doc} MyCalcNoNu
+/*/{Protheus.doc} CalcNoNu
 	(Define nosso numero para calculo e impressao de boletos usado no boleto do bradesco)
 	@type User Function
 	@author Calabro'
@@ -1169,7 +1173,7 @@ Return cFilePrint
 	@see (links_or_references)
 	/*/
 
-User Function MyCalcNoNu(cCodCartei as character)
+Static Function CalcNoNu(cCodCartei as character)
 
 Local nCont		:= 0 as numeric
 
