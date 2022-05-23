@@ -96,8 +96,6 @@ Return cFilePrint
 
 Static Function ExecBoleto(cPrefixo as character, cNumTit as character, lRet as logical, lJob as logical)
 
-// Local cMsg			:= "" as character
-// Local __cNomBcoL	:= "" as character
 Local cFilePrint	:= "" as character
 Local cIndexName	:= '' as character
 Local cIndexKey		:= '' as character
@@ -107,30 +105,15 @@ Local cFilter		:= '' as character
 
 Local aPergs		:= {} as array
 Local aRet			:= {} as array
-// Local aBancos		:= {} as array
 Local aDimTela		:= MsAdvSize() as array		//Array com as dimensoes da tela
+
+Local lExec		:= .F. as logical	
 
 Local oTPnlRodap	:= Nil as object
 Local oFont			:= TFont():New('Verdana',,-16,.F.) as object
 Local oSay1			:= Nil as object
 Local oSay2			:= Nil as object
-
-Private cChaveBanco := "" as character
-Private cMod11		:= " " as character
-// Private cBanco		:= "" as character
-// Private __cBanco	:= "" as character
-
-Private lExec		:= .F. as logical	
-
-Private oDlg		:= Nil as object
-
-//Preenche as opcoes de Banco
-// aAdd(aBancos,"001 - Banco Do Brasil")
-// aAdd(aBancos,"033 - Banco Santander")
-// aAdd(aBancos,"237 - Banco Bradesco")
-// aAdd(aBancos,"341 - Banco Itau")
-// aAdd(aBancos,"422 - Banco Safra")
-// aAdd(aBancos,"637 - Banco Sofisa")
+Local oDlg		:= Nil as object
 
 Tamanho  := "M"
 titulo   := "Impressao de Boleto com Codigo de Barras"
@@ -173,15 +156,10 @@ Else
 	MV_PAR20 := ""
 	MV_PAR21 := ""
 	MV_PAR22 := GetMv("ES_BOLPDF",, .F.)	// Gera Boleto
+	MV_PAR23 := GetMv("ES_DNFPDF",, .F.)	// Gera Danfe
+	MV_PAR24 := GetMv("ES_GERXML",, .F.)	// Gera XML
 	MV_PAR25 := .T.							// Envia docs. por e-mail
 	MV_PAR26 := ""							// Caminho de destino para salvar documentos
-
-	//Define variaveis Private com conteudo para geracao de boleto em job
-	// If IsInCallStack ("U_RFATA00")
-	// 	cBanco := __cBanco := "237"
-	// EndIf
-// Else
-// 	MyPerg()
 EndIf
 
 If Len(aPergs) > 0 .OR. lJob
@@ -236,8 +214,8 @@ If Len(aPergs) > 0 .OR. lJob
 
 		oSay1 := TSay():New( 010, 010,{|| "Qtd Selec.: " + AllTrim(Transform(nQtdSel,"@R 999999999"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
 		oSay2 := TSay():New( 010, 100,{|| "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
-		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 100/* 310 */ TYPE 01 ENABLE OF oTPnlRodap ACTION (lExec := .T.,Close(oDlg))
-		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 130/* 280 */ TYPE 02 ENABLE OF oTPnlRodap ACTION (lExec := .F.,Close(oDlg))
+		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 100 TYPE 01 ENABLE OF oTPnlRodap ACTION (lExec := .T.,Close(oDlg))
+		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 130 TYPE 02 ENABLE OF oTPnlRodap ACTION (lExec := .F.,Close(oDlg))
 
 		If lPrim
 			SE1->(dbGoTop())
@@ -267,89 +245,10 @@ If Len(aPergs) > 0 .OR. lJob
 			aRet := {}
 			aPergs  := {}
 		
-			/*
-			3 - Radio
-			[2] : Descrição
-			[3] : Numérico contendo a opção inicial do Radio
-			[4] : Array contendo as opções do Radio
-			[5] : Tamanho do Radio
-			[6] : Validação
-			[7] : Flag .T./.F. Parâmetro Obrigatório ?
-			[8] : String contendo a validação When
-			*/
-			// aAdd(aPergs, {3, "Selecione o banco para impressão de boletos", 1, aBancos, 100,, .T.})
-			// While Empty(aRet)
-			// 	ParamBox(aPergs ,"Parametros ",aRet)
-			// Enddo
-
-			// cBanco := Left(aBancos[aRet[1]],3)
-			// Se funcao de re-impressao, esta posicionado no SE1
-			// __cBanco := cBanco
-
-			//Posiciona o SEA (Titulos enviados ao banco)
-			// DbSelectArea("SEA")
-			// SEA-(DbSetOrder(1))	// EA_FILIAL+EA_NUMBOR+EA_PREFIXO+EA_NUM+EA_PARCELA+EA_TIPO+EA_FORNECE+EA_LOJA
-			// If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_FORNECE+E1_LOJA) ))
-
-				//Posiciona o SA6 (Bancos)
-				// DbSelectArea("SA6")
-				// SA6-(DbSetOrder(1))
-				// If SA6->( DbSeek(xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON) ))
-
-					// cSubConta := SA6->(GetSubConta(A6_COD, A6_AGENCIA, A6_NUMCON))
-
-					// Posiciona o SEE (Parametros de bancos)
-					// DbSelectArea("SEE")
-					// SEE->(DbSetOrder(1))	// EE_FILIAL+EE_CODIGO+EE_AGENCIA+EE_CONTA+EE_SUBCTA
-					// If SEE->(DbSeek(xFilial("SEE")+SA6->(A6_COD+A6_AGENCIA+A6_NUMCON)+cSubConta))
-
-						
-			// cMsg := "Deseja Imprimir ou Enviar via e-mail?"
-			// nOpc 	:= Aviso("",cMsg,{'Imprimir','E-mail'},1,"Impressão Boletos - " + FunName())
-					// nOpc := 2
-					
-					// If  nOpc == 1 //Imprimir
-					// 	lPDF := .F.
-					// 	Processa({|lEnd|MontaRel(lJob)})
-					// Else
-
-						// cMsg	:= "Deseja Enviar Boleto ou Enviar Boleto + NF ?"
-						// nOpc 	:= Aviso("",cMsg,{'&Boleto','Boleto+&Nota'},1,"Impressão Boletos - " + FunName())
-						// nOpc := 2
-
-						// If  nOpc == 1 //Boleto
-						// 	lPDF := .T.
-						// 	lEnvioBol := .T.
-						// 	Processa({|lEnd|MontaRel(lJob)})
-						// Else
-						// 	lPDF := .T.
-						// 	lEnvioBol := .T.
-						// 	lEnvBolNF := .T.
 			Processa({|lEnd|MontaRel(lJob)})
-						// EndIf
-					// Endif
 		EndIf
-		// 		Else
-		// 			GeraMsgErro("Subconta da agência e conta não encontrado no cadastro de parâmetros de bancos: " + xFilial("SEE") + SA6->(A6_COD+A6_AGENCIA+A6_NUMCON),;
-		// 						lJob,;
-		// 						{"&Cancelar"})
-		// 		EndIf  
-		// 	Else
-		// 		GeraMsgErro("Agência e conta não encontrados no cadastro de banco: " + xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON),;
-		// 					lJob,;
-		// 					{"&Cancelar"})
-		// 	EndIf  
-		// Else
-		// 	GeraMsgErro("Dados de titulos enviados ao banco não encontrados: " + xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_FORNECE+E1_LOJA),;
-		// 				lJob,;
-		// 				{"&Cancelar"})
-		// EndIf  
 	Else
 
-		// lPDF := !IsInCallStack("U_RFATA00")
-		// lEnvioBol := .T.
-		// lEnvBolNF := .T.
-		// MsgRun("Aguarde...Verificando títulos para impressão de boletos...",__cNomBcoL+" - Emissão de Boletos",{|| MontaRel(lJob, @cFilePrint)})
 		MontaRel(lJob, @cFilePrint)
 	EndIf
 
@@ -377,9 +276,12 @@ Static Function MontaRel(lJob as logical, cFilePrint as character)
 
 // Local cFilePrint	:= "" as character
 Local cSfxNomArq	:= GetMv("ES_BOLSUFX",, "boleto_") as character
-Local cSubConta		:= '' as character
+Local cSubConta		:= "" as character
+Local cArqDanfe		:= "" as character
+Local cArqXML		:= "" as character
 
 Local nVlrAbat		:= 0 as numeric
+Local nX			:= 0 as numeric
 
 Local aDadosEmp		:= {} as array
 Local aDadosTit		:= {} as array
@@ -387,14 +289,14 @@ Local aDadosBanco	:= {} as array
 Local aDatSacado	:= {} as array
 Local aBolText		:= { MV_PAR19, MV_PAR20, MV_PAR21 } as array
 Local aAreas		:= {SM0->(GetArea()), GetArea() } as array
+Local aDanfes		:= {} as array
+Local aXML			:= {} as array
 
 Local oPrint		:= Nil as object
 
 Private cNroDoc		:=  " " as character
 Private nVetor		:= 0 as numeric
 Private nContB		:= 0 as numeric
-// Private nTotItau	:= 0 as numeric
-// Private nTotSemNN	:= 0 as numeric
 Private nTotImpEnv	:= 0 as numeric
 
 Private dVencRea	:= CTOD("") as date
@@ -467,61 +369,13 @@ If Empty(nResult)
 				SEE->(DbSetOrder(1))	// EE_FILIAL+EE_CODIGO+EE_AGENCIA+EE_CONTA+EE_SUBCTA
 				If SEE->(DbSeek(xFilial("SEE")+SA6->(A6_COD+A6_AGENCIA+A6_NUMCON)+cSubConta))
 
-					// Rotina MDFIN13 utilizada para envio de boleto automatico
-					// If Type("__cBanco") <> "C"
-					// 	cBanco := SE1->E1_PORTADO
-					// EndIf
-					
-					// If cBanco == "001"
-						// __cBanco    := "001"
-						// cChaveBanco := "0013333 6278"
-					// ElseIf cBanco == "341"
-						// __cBanco    := "341"
-						// aAdd(aBancos,{5,	'3410174 32626-4   '	,.F., 200,'.T.',.T.})
-						// aAdd(aBancos,{5,	'3410174 026732    '	,.F., 200,'.T.',.T.})
-						// aAdd(aBancos,{5,	'3410174 066894    '	,.F., 200,'.T.',.T.})
-						// aAdd(aBancos,{5,	'3410174 05777     '	,.F., 200,'.T.',.T.})
-					// ElseIf cBanco == "237"
-					
-						// __cBanco    := "237"
-						// cChaveBanco := "23733677707007"
-						
-					// ElseIf cBanco == "422"
-						
-						// __cBanco    := "422"
-						// cChaveBanco := "42202800003525339"
-					
-					// ElseIf cBanco == "637"
-						
-						// __cBanco    := "637"
-						// cChaveBanco := "637"+"3689 "+"4845013   "
-						
-					// ElseIf cBanco == "033"
-						
-						// __cBanco    := "033"
-						// cChaveBanco := "0333689 0130065423"
-					// EndIf
-
 					IF !Vazio(SE1->E1_PORTADO)
 						If ALLTRIM(SE1->E1_PORTADO) # SA6->A6_COD
 							SE1->(DbSkip())
 							Loop
 						EndIf
 					EndIf
-					
-					// If Type("__cBanco")  == "C" .AND. __cBanco == "341"
-					// 	cChaveBanco := "341"+SubStr(cChaveBanco,4,5)+SubStr(cChaveBanco,9,10)
-					// EndIf
-					
-					//Posiciona o SA6 (Bancos)
-					// DbSelectArea("SA6")
-					// DbSetOrder(1)
-					// If !DbSeek(xFilial("SA6")+cChaveBanco)
-					// 	msgInfo("Agência e conta não encontrados no cadastro de banco")
-					// 	SE1->(DbSkip())
-					// 	Loop
-					// EndIf
-					
+
 					//Posiciona o SA1 (Cliente)
 					DbSelectArea("SA1")
 					DbSetOrder(1)
@@ -600,8 +454,8 @@ If Empty(nResult)
 					aCB_RN_NN[3]                            				,;	// [6] Nosso número (Ver fórmula para calculo)
 					E1_PREFIXO                              				,;	// [7] Prefixo da NF
 					E1_TIPO	                           						,;	// [8] Tipo do Titulo
-					E1_PARCELA}													//[9] Parcela
-					
+					E1_PARCELA}													// [9] Parcela
+
 					// Rotina utilizada para envio de boleto automatico
 					If lJob
 
@@ -617,6 +471,7 @@ If Empty(nResult)
 						EndIf
 					EndIf
 
+					// Grava a data que foi enviada para o cliente
 					GrvHistSE1(aCB_RN_NN, cNroDoc)
 				Else
 					GeraMsgErro("Subconta da agência e conta não encontrado no cadastro de parâmetros de bancos: " + xFilial("SEE") + SA6->(A6_COD+A6_AGENCIA+A6_NUMCON),;
@@ -639,70 +494,53 @@ Else
 	GeraMsgErro("Não foi possível criar o diretório " + CDIRPDF + " para a geração do arquivo do boleto em PDF.", lJob, {"&Sair"})
 EndIf
 
-If !lJob
-	
-	// If nTotItau > 0
-		// msgInfo("Total de títulos novos selecionados para recebimento no Itaú: " + AllTrim(Str(nTotItau)))
-	// EndIf
-	
-	// If nTotSemNN > 0
-	// 	msgInfo("Total de títulos sem o Nosso Número informado: " + AllTrim(Str(nTotSemNN)))
-	// EndIf
-	
-	If nTotImpEnv > 0
-		msgInfo("Total de títulos impressos/enviados: " + AllTrim(Str(nTotImpEnv)))
-	EndIf
-	
+// Se nao for job, informo usuario na tela de quantos boletos foram impressos
+If !lJob .AND. nTotImpEnv > 0
+	msgInfo("Total de títulos impressos/enviados: " + AllTrim(Str(nTotImpEnv)))
 EndIf
 
-// Verifica se é Envio de Email para geração de Arquivo PDF
-// If lBoletoPDF
-	
-	If !Empty(cFilePrint)
-		//Se existe aquivo PDF antigo, apaga arquivo
-		If File(FileNoExt(oPrint:cFilePrint)+".PDF")
-		 	FErase(FileNoExt(oPrint:cFilePrint) + ".PDF")
+If !Empty(cFilePrint)
+	//Se existe aquivo PDF antigo, apaga arquivo
+	If File(FileNoExt(oPrint:cFilePrint)+".PDF")
+		FErase(FileNoExt(oPrint:cFilePrint) + ".PDF")
+	EndIf
+
+	oPrint:Preview()
+	//Armazeno caminho que encontra-se o boleto
+	cFilePrint := FileNoExt(oPrint:cFilePrint) + ".PDF"
+Endif
+
+// Verifica se deve gerar rotina de impressao de Danfe caso esteja compilada no repositorio
+If MV_PAR23 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", ""))
+
+	For nX := 1 to Len(aTitulo)
+
+		// U_RFATR01(SF2->F2_DOC, SF2->F2_SERIE, SA1->A1_YLAYDNF, "1", IsBlind()) //TODO: VOLTAR PARA RFATR01
+		cArqDanfe := &("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", "") + "('" + aTitulo[nX][2] + "', '" + aTitulo[nX][3] + "', Nil, '1', " + If(lJob, ".T.", ".F.") + ")")
+
+		If File(cArqDanfe)
+			AAdd(aDanfes, cArqDanfe)
 		EndIf
+	Next nX
+EndIf
 
-		oPrint:Preview()
-		//Armazeno caminho que encontra-se o boleto
-		cFilePrint := FileNoExt(oPrint:cFilePrint) + ".PDF"
+// Chama rotina de envio de e-mail - RFA01EnvBol se for definido para enviar por e-mail
+If MV_PAR25
+	RFA01EnvBol(aTitulo, aDanfes, aXML, lJob)
+EndIf
 
-		//Se gerou arquivo .REL, converto para PDF
-		// If File(FileNoExt(oPrint:cFilePrint)+".REL")
-			// FClose(oPrint:nHandle)
-			// File2Printer(oPrint:cFilePrint, "PDF" )
-			// sleep(1000)
-			// FErase(oPrint:cFilePrint)
-		// Endif
+// Se nao for job e parametro de para gravar arquivo na máquina local estiver preenchido,
+// executo para cada documento gerado
+If !lJob .AND. !Empty(MV_PAR26)
+	AEval(aTitulo,{|x| CpyS2T(CDIRPDF + x[1], Alltrim(MV_PAR26)) })
+	// Excluo documentos apos gravacao em local escolhido por usuario
+	AEval(aTitulo,{|x| FErase(x[1]) })
+EndIf
 
-	Endif
+SE1->(DBCLEARFILTER()) //Limpa o Filtro da tabela SE1
 
-	// Chama rotina de envio de e-mail - RFA01EnvBol se for definido para enviar por e-mail
-	If MV_PAR25
-		RFA01EnvBol(aTitulo,lJob)
-	EndIf
-
-	// Se nao for job e parametro de para gravar arquivo na máquina local estiver preenchido,
-	// executo para cada documento gerado
-	If !lJob .AND. !Empty(MV_PAR26)
-		AEval(aTitulo,{|x| CpyS2T(CDIRPDF + x[1], Alltrim(MV_PAR26)) })
-		// Excluo documentos apos gravacao em local escolhido por usuario
-		AEval(aTitulo,{|x| FErase(x[1]) })
-	EndIf
-
-	SE1->(DBCLEARFILTER()) //Limpa o Filtro da tabela SE1
-	
-	FreeObj(oPrint)
-	oPrint := Nil
-// Else
-// 	If !lJob
-// 		oPrint:EndPage()     // Finaliza a página
-// 		oPrint:Preview()     // Visualiza antes de imprimir
-// 	Else
-// 		cFilePrint := FileNoExt(oPrint:cFilePrint) + ".TXT"
-// 	EndIf
-// EndIf
+FreeObj(oPrint)
+oPrint := Nil
 
 Return cFilePrint
 
@@ -794,31 +632,25 @@ nRow1 := -100
 oPrint:Line (nRow1+0150,500,nRow1+0070, 500)
 oPrint:Line (nRow1+0150,710,nRow1+0070, 710)
 
-oPrint:SayBitmap(nRow1+0054,100,cLogo,380,090) 													// o arquivo com o logo deve estar abaixo do rootpath (Data\system)
+oPrint:SayBitmap(nRow1+0054,100,cLogo,380,090) 										// o arquivo com o logo deve estar abaixo do rootpath (Data\system)
 oPrint:Say (nRow1+0115,513,aDadosBanco[1]+GetDVBanco(aDadosBanco[1])[2],oFont21 )	// [1]Numero do Banco
 
 oPrint:Say (nRow1+0104,1900,"Comprovante de Entrega",oFont10)
 oPrint:Line (nRow1+0150,100,nRow1+0150,2300)
 
 oPrint:Say (nRow1+0170,100 ,OemToansi("Beneficiário:"),oFont8)
-// If __cBanco=="422"
-// 	oPrint:Say (nRow1+0220,100 ,"BANCO SAFRA S/A",oFont10)				//Nome + CNPJ
-// ElseIf __cBanco=="637"
-// 	oPrint:Say (nRow1+0220,100 ,OemToAnsi("BANCO SOFISA SP CNPJ 60.889.128/0001-80"),oFont10)				//Nome + CNPJ
-// Else
-	oPrint:Say (nRow1+0190,100 ,aDadosEmp[1]+" - "+aDadosEmp[6],oFont9)				//Nome + CNPJ
-	oPrint:Say (nRow1+0215,100 ,aDadosEmp[2],oFont9)									//End
-	oPrint:Say (nRow1+0240,100 ,aDadosEmp[3] + " - " + aDadosEmp[4],oFont9)			//Bairro + CEP + Compl
-// EndIf
+oPrint:Say (nRow1+0190,100 ,aDadosEmp[1]+" - "+aDadosEmp[6],oFont9)				//Nome + CNPJ
+oPrint:Say (nRow1+0215,100 ,aDadosEmp[2],oFont9)								//End
+oPrint:Say (nRow1+0240,100 ,aDadosEmp[3] + " - " + aDadosEmp[4],oFont9)			//Bairro + CEP + Compl
 
 oPrint:Say (nRow1+0170,1060,OemToansi("Agência/Código Beneficiário:"),oFont8)
 oPrint:Say (nRow1+0220,1060,StrTran(aDadosBanco[3]+"/"+aDadosBanco[4]+IIF(Empty(aDadosBanco[5])," ","-"+aDadosBanco[5]),'--','-'),oFont10)
 
 oPrint:Say (nRow1+0170,1510,"Nro.Documento:",oFont8)
-oPrint:Say (nRow1+0220,1510,"  "+aDadosTit[7]+aDadosTit[1],oFont10) //Prefixo +Numero+Parcela
+oPrint:Say (nRow1+0220,1510,"  "+aDadosTit[7]+aDadosTit[1],oFont10)				//Prefixo +Numero+Parcela
 
 oPrint:Say (nRow1+0270,100 ,"Pagador:",oFont8)
-oPrint:Say (nRow1+0320,100 ,SUBSTR(aDatSacado[1],1,40),oFont10)				//Nome
+oPrint:Say (nRow1+0320,100 ,SUBSTR(aDatSacado[1],1,40),oFont10)					//Nome
 
 oPrint:Say (nRow1+0270,1060,"Vencimento",oFont8)
 oPrint:Say (nRow1+0320,1060,StrZero(Day(aDadosTit[4]),2) +"/"+ StrZero(Month(aDadosTit[4]),2) +"/"+ Right(Str(Year(aDadosTit[4])),4),oFont10)
@@ -864,7 +696,7 @@ oPrint:Line (nRow2+0710,100,nRow2+0710,2300)
 oPrint:Line (nRow2+0710,500,nRow2+0630, 500)
 oPrint:Line (nRow2+0710,710,nRow2+0630, 710)
 
-oPrint:SayBitmap(nRow2+0610,100,cLogo,380,090)							// o arquivo com o logo deve estar abaixo do rootpath (Data\system)
+oPrint:SayBitmap(nRow2+0610,100,cLogo,380,090)											// o arquivo com o logo deve estar abaixo do rootpath (Data\system)
 oPrint:Say (nRow2+0685,513,aDadosBanco[1]+GetDVBanco(aDadosBanco[1])[2],oFont21 )		// [1]Numero do Banco
 oPrint:Say (nRow2+0694,1800,"Recibo do Pagador",oFont10)
 
@@ -881,24 +713,15 @@ oPrint:Line (nRow2+0910,1480,nRow2+1050,1480)
 
 oPrint:Say (nRow2+0730,100 ,"Local de Pagamento:"										,oFont8)
 oPrint:Say (nRow2+0745,400 ,"PAGÁVEL EM QUALQUER BANCO ATÉ A DATA DO VENCIMENTO"		,oFont10)
-// If __cBanco != "422"
-// 	oPrint:Say (nRow2+0785,400 ,"APÓS O VENCIMENTO, SOMENTE NO BANCO " + StrTran(Upper(aDadosBanco[2]), "BANCO ")		,oFont10)
-// EndIf
 oPrint:Say (nRow2+0730,1810,"Vencimento:"												,oFont8)
 cString	:= StrZero(Day(aDadosTit[4]),2) +"/"+ StrZero(Month(aDadosTit[4]),2) +"/"+ Right(Str(Year(aDadosTit[4])),4)
 nCol := 1810+(374-(len(cString)*22))
 oPrint:Say (nRow2+0770,nCol,cString,oFont11c)
 
 oPrint:Say (nRow2+0830,100 ,OemToansi("Beneficiário:")									,oFont8)
-// If __cBanco=="422"
-// 	oPrint:Say (nRow2+0870,100 ,"BANCO SAFRA S/A"										,oFont10)		//Nome + CNPJ
-// ElseIf __cBanco=="637"
-// 	oPrint:Say (nRow2+0870,100 ,OemToAnsi("BANCO SOFISA SP CNPJ 60.889.128/0001-80")	,oFont10)		//Nome + CNPJ
-// Else
-	oPrint:Say (nRow2+0850,100 ,AllTrim(aDadosEmp[1]+" - "+aDadosEmp[6] )				,oFont9) 		//Nome + CNPJ
-	oPrint:Say (nRow2+0875,100 ,aDadosEmp[2]											,oFont9)		//End + Bairro
-	oPrint:Say (nRow2+0900,100 ,aDadosEmp[3] + " - " + aDadosEmp[4]						,oFont9)		//CEP + Compl
-// EndIf
+oPrint:Say (nRow2+0850,100 ,AllTrim(aDadosEmp[1]+" - "+aDadosEmp[6] )					,oFont9) 		//Nome + CNPJ
+oPrint:Say (nRow2+0875,100 ,aDadosEmp[2]												,oFont9)		//End + Bairro
+oPrint:Say (nRow2+0900,100 ,aDadosEmp[3] + " - " + aDadosEmp[4]							,oFont9)		//CEP + Compl
 
 oPrint:Say (nRow2+0830,1810,"Agência/Código "+OemToansi("Beneficiário:")				,oFont8)
 cString := StrTran(Alltrim(aDadosBanco[3]+"/"+aDadosBanco[4]+IIF(Empty(aDadosBanco[5])," ","-"+aDadosBanco[5])),'--','-')
@@ -952,9 +775,7 @@ cString := Alltrim(Transform(aDadosTit[5],"@E 99,999,999.99"))
 nCol := 1796+(374-(len(cString)*22))
 oPrint:Say (nRow2+1030,nCol,cString ,oFont11c)
 
-// If __cBanco != "422"
-	oPrint:Say (nRow2+1070,100 ,OemToAnsi("Instruções de responsabilidade do BENEFICIÁRIO. Qualquer dúvida sobre este boleto, contate o BENEFICIÁRIO."),oFont8)
-// EndIf
+oPrint:Say (nRow2+1070,100 ,OemToAnsi("Instruções de responsabilidade do BENEFICIÁRIO. Qualquer dúvida sobre este boleto, contate o BENEFICIÁRIO."),oFont8)
 
 oPrint:Say (nRow2+1120,120 ,"^ ^ VALORES EXPRESSOS EM REAIS ^^^^ ^",oFont10)
 oPrint:Say (nRow2+1170,120 ,"JUROS POR DIA DE ATRASO..........." + Alltrim(Transform(Round(aDadosTit[5]/300,2),"@E 99,999,999.99")) ,oFont10)
@@ -1000,15 +821,15 @@ oPrint:Line (nRow3+2000,100,nRow3+2000,2300)
 oPrint:Line (nRow3+2000,500,nRow3+1920, 500)
 oPrint:Line (nRow3+2000,710,nRow3+1920, 710)
 
-oPrint:SayBitmap(nRow3+1900,100,cLogo,380,090) 								// o arquivo com o logo deve estar abaixo do rootpath (Data\system)
-oPrint:Say (nRow3+1970,513,aDadosBanco[1]+GetDVBanco(aDadosBanco[1])[2],oFont21 )				//Numero do Banco
+oPrint:SayBitmap(nRow3+1900,100,cLogo,380,090) 											// o arquivo com o logo deve estar abaixo do rootpath (Data\system)
+oPrint:Say (nRow3+1970,513,aDadosBanco[1]+GetDVBanco(aDadosBanco[1])[2],oFont21 )		//Numero do Banco
 
 //Linha Digitavel
 If SA6->A6_COD == "237"
 	cLinDig := MontaLinha(aDadosTit[4])
-	oPrint:Say (nRow3+1934,740,cLinDig,oFont14n)							//	Linha Digitavel do Codigo de Barras
+	oPrint:Say (nRow3+1934,740,cLinDig,oFont14n)										//	Linha Digitavel do Codigo de Barras
 Else
-	oPrint:Say (nRow3+1964,755,aCB_RN_NN[2],oFont15n)						//	Linha Digitavel do Codigo de Barras
+	oPrint:Say (nRow3+1964,755,aCB_RN_NN[2],oFont15n)									//	Linha Digitavel do Codigo de Barras
 EndIf
 
 oPrint:Line (nRow3+2100,100,nRow3+2100,2300 )
@@ -1032,15 +853,9 @@ nCol	 	 := 1810+(374-(len(cString)*22))
 oPrint:Say (nRow3+2060,nCol,cString,oFont11c)
 
 oPrint:Say (nRow3+2120,100 ,OemToansi("Beneficiário:")									,oFont8)
-// If __cBanco=="422"
-// 	oPrint:Say (nRow3+2160,100 ,"BANCO SAFRA S/A"										,oFont10)		//Nome + CNPJ
-// ElseIf __cBanco=="637"
-// 	oPrint:Say (nRow3+2160,100 ,OemToAnsi("BANCO SOFISA SP CNPJ 60.889.128/0001-80")	,oFont10)		//Nome + CNPJ
-// Else
-	oPrint:Say (nRow3+2140,100 ,AllTrim(aDadosEmp[1]+" - "+aDadosEmp[6] )				,oFont9)		//Nome + CNPJ
-	oPrint:Say (nRow3+2165,100 ,aDadosEmp[2]											,oFont9)		//End + Bairro
-	oPrint:Say (nRow3+2190,100 ,aDadosEmp[3] + " - " + aDadosEmp[4]						,oFont9)		//CEP + Compl
-// EndIf
+oPrint:Say (nRow3+2140,100 ,AllTrim(aDadosEmp[1]+" - "+aDadosEmp[6] )					,oFont9)		//Nome + CNPJ
+oPrint:Say (nRow3+2165,100 ,aDadosEmp[2]												,oFont9)		//End + Bairro
+oPrint:Say (nRow3+2190,100 ,aDadosEmp[3] + " - " + aDadosEmp[4]							,oFont9)		//CEP + Compl
 
 oPrint:Say (nRow3+2120,1810,"Agência/Código "+OemToansi("Beneficiário:")				,oFont8)
 
@@ -1095,9 +910,7 @@ cString := Alltrim(Transform(aDadosTit[5],"@E 99,999,999.99"))
 nCol := 1796+(374-(len(cString)*22))
 oPrint:Say (nRow3+2320,nCol,cString,oFont11c)
 
-// IF __cBanco != "422"
-	oPrint:Say (nRow3+2360,100 ,OemToAnsi("Instruções de responsabilidade do BENEFICIÁRIO. Qualquer dúvida sobre este boleto, contate o BENEFICIÁRIO."),oFont8)
-// EndIf
+oPrint:Say (nRow3+2360,100 ,OemToAnsi("Instruções de responsabilidade do BENEFICIÁRIO. Qualquer dúvida sobre este boleto, contate o BENEFICIÁRIO."),oFont8)
 
 oPrint:Say (nRow3+2410,120 ,"^ ^ VALORES EXPRESSOS EM REAIS ^^^^ ^"						,oFont10)
 oPrint:Say (nRow3+2460,120 ,"JUROS POR DIA DE ATRASO..........." + Alltrim(Transform(Round(aDadosTit[5]/300,2),"@E 99,999,999.99"))	,oFont10)
@@ -1134,7 +947,6 @@ oPrint:Line (nRow3+2930,100,nRow3+2930,2300  )
 
 oPrint:Say (nRow3+2950,1500,"Autenticação Mecânica - Ficha de Compensação"				, oFont8)
 
-// oPrint:FWMSBAR("INT25",68,2,aCB_RN_NN[1],oPrint,.F., Nil,.T.,0.020,0.75,.F.,"Arial",'',.F.,0.5,0.5,.T. )
 oPrint:FWMSBAR("INT25",68,2,aCB_RN_NN[1],oPrint,.F., Nil,.T.,0.020,1.5,.F.,"Arial",'',.F.,1,1,.T. )
 
 For nI := 100 to 2300 step 50
@@ -1148,16 +960,12 @@ _cPortado := SE1->E1_PORTADO
 
 // Guarda todos os titulos Gerados no vetor [ aTitulo]
 // Verifica se o Envio e somente de Boleto
-// Caso contrario envia Boleto + Nota
-// If lBoletoPDF
-	// Pesquisa no vetor1
-	nPosVet:=aScan(aTitulo, {|x| x[1] == cFilePrint})
-	
-	If nPosVet == 0
-		aAdd(aTitulo,{cFilePrint, _cNum, _cPrefix, _cParcel, cCodCli, cLojaCli, cNomCli, _cPortado, oPrint, cXFil, cXTipo })
-	EndIf
-	
-// EndIf
+// Pesquisa no vetor1
+nPosVet:=aScan(aTitulo, {|x| x[1] == cFilePrint})
+
+If nPosVet == 0
+	aAdd(aTitulo,{cFilePrint, _cNum, _cPrefix, _cParcel, cCodCli, cLojaCli, cNomCli, _cPortado, oPrint, cXFil, cXTipo })
+EndIf
 
 Return cFilePrint
 
@@ -1436,7 +1244,8 @@ ElseIf SA6->A6_COD == "341"
 		cFatorValor  := fator1() + strzero(SE1->E1_VALOR * 100,10)
 	EndIf
 
-	//	Carteira (3) + Nosso Número (8) + DAC [Agência /Conta/Carteira/Nosso Número](1) + Agencia (4) + Conta (5) + DAC [Agência/Conta Corrente] (1) + 3 zeros
+	// Carteira (3) + Nosso Número (8) + DAC [Agência /Conta/Carteira/Nosso Número](1) + Agencia (4) + Conta (5) +
+	// DAC [Agência/Conta Corrente] (1) + 3 zeros
 	// cCampoL := cCart + cNosso + "0174326264000"
 	cCampoL := cCart + cNosso + AllTrim(SA6->A6_AGENCIA) + AllTrim(SA6->A6_NUMCON) + AllTrim(SA6->A6_DVCTA) + "000"
 
@@ -1928,6 +1737,8 @@ Return Str(nRest,1)
 	/*/
 
 Static Function RFA01EnvBol(aTitulo as array,;
+							aDanfes as array,;
+							aXML as array,;
 							lJob as logical)
 
 Local cTitulo		:= "" as character											// registro
@@ -1935,9 +1746,8 @@ Local cArqPDF		:= "" as character											// Nome do arquivo
 Local cCadWF		:= AllTrim(GetMV("ES_MAILBOX",, "")) as character			// Nome da conta Workflow cadastrada
 Local cPopAdd		:= "" as character											// Endereço do Servidor POP
 Local cSmtpAdd		:= "" as character											// Endereço do Servidor SMTP
-Local cUser			:= "" as character //AllTrim(GetMv("ES_RF01CNT",, "noreply@" + Lower(AllTrim(SM0->M0_NOME)) + ".com.br"))
+Local cUser			:= "" as character											// email do destinatario
 Local cPass			:= "" as character											// Senha do Servidor
-// Local cEmailCCo		:= AllTrim(GetMv("ES_MAILCCO",, "")) as character			// Email a qual irá a copia oculta
 Local cRecebe		:= "" as character											// Retorno -> Utilizado para verificar qual o tipo de email o usuario selecionou
 Local cChaveNfe		:= "" as character											// Guarda a chave da Nota Fiscal
 Local cHtml			:= "" as character											// Guarda o Texto feito em HTML
@@ -1957,7 +1767,6 @@ Local nSmtpPort		:= 0 as numeric												// Porta do Servidor SMTP    (587)
 Local nConfirmou	:= 0 as numeric												// Retorno -> Verifica se o usuario confirmou ou cancelou através da rotina (MDTEC02)
 Local nOpc			:= 0 as numeric	 
 
-// Local lAuth			:= GetMV('ES_RF01AUT',, .F. ) as logical
 Local lPermite		:= .F. as logical											// Parâmetro que permite ou não envio de link de RPS com o campo Chave de Acesso em branco
 
 Local aFiles		:= {} as array												// Localiza todos os registros contigos na na pasta informada
@@ -2025,25 +1834,24 @@ nCont := Len(aBolEnv)
 nPos := 0
 
 While nX <= nCont
-	
+
 	cArqPDF := aBolEnv[nX][1]
-	
+
 	nPos:= aScan(aFilBol, {|x| x == cArqPDF}) //Pesquisa no vetor
-	
+
 	If nPos == 0
 		aAdd(aFilBol,CDIRPDF+cArqPDF)
 	EndIf
-	
+
 	nX++
-	
 EndDo
 
 nCont := Len(aBolEnv)
 
-// Verifica se exitem boletos a serem enviados *
+// Verifica se exitem boletos a serem enviados
 If nCont > 0
 	
-	// Posiciona na tabela de SA1 para *
+	// Posiciona na tabela de SA1 para
 	// pegar os dados do cliente
 	DbSelectArea("SA1")
 	DbSetOrder(1)
@@ -2052,7 +1860,7 @@ If nCont > 0
 		// Pega as configurações informadas do servidor
 		oMailServer:Init( cPopAdd, cSmtpAdd, cUser, cPass, nPopPort, nSmtpPort )
 		
-		// Valida as configurações do servidor para envio de e-mail*
+		// Valida as configurações do servidor para envio de e-mail
 		If( (nErro := oMailServer:SmtpConnect()) != 0 )
 			conout( "Não conectou.", oMailServer:GetErrorString( nErro ) )
 			Return
@@ -2068,7 +1876,7 @@ If nCont > 0
 			Endif
 		EndIf
 		
-		// Limpa o objeto caso existe alguma informação  *
+		// Limpa o objeto caso existe alguma informação
 		oMessage:Clear()
 
 		// Traz o e-mail do contato do cliente filtrado pela codigo do cliente e loja
@@ -2115,8 +1923,8 @@ If nCont > 0
 		// nOpc == 2 indica que usuário cancelou
 		If nConfirmou == 0 .Or. nOpc == 2
 			
-			// Exclui O.S e Boletos Enviada  *
-			For nX := 1 to len(aFilBol)
+			// Exclui O.S e Boletos Enviada
+			For nX := 1 to Len(aFilBol)
 				If FErase(aFilBol[nX]) == -1
 					GeraMsgErro("Falha ao tentar deletar o Arquivo ( FError"+str(ferror(),4)+ ")", lJob)
 				EndIf
@@ -2132,7 +1940,7 @@ If nCont > 0
 
 		oMessage:cFrom := AllTrim(GetMv("ES_BOLFROM",,"noreply@nomedaempresa.com.br"))
 
-		// Rotina de Envio Automatico de Boleto *
+		// Rotina de Envio Automatico de Boleto
 		
 		oMessage:cTo := cRecebe //E-mail do Cadastro de Clientes
 
@@ -2200,9 +2008,19 @@ If nCont > 0
 			oMessage:SetConfirmRead( .T. )
 		EndIf
 		
-		// Adiciona um anexo
-		For nX := 1 to len(aFilBol)
+		// Adiciona anexo de boleto
+		For nX := 1 to Len(aFilBol)
 			oMessage:AttachFile( aFilBol[nX] )
+		Next nX
+
+		// Adiciona anexo de Danfe
+		For nX := 1 to Len(aDanfes)
+			oMessage:AttachFile( aDanfes[nX] )
+		Next nX
+
+		// Adiciona anexo de XML
+		For nX := 1 to Len(aXML)
+			oMessage:AttachFile( aXML[nX] )
 		Next nX
 
 		If( (nErro := oMessage:Send( oMailServer )) != 0 )
@@ -2212,7 +2030,7 @@ If nCont > 0
 			// Grava log de envio e reenvio dos titulos - Flavio Macieira
 			DbSelectArea("SE1")
 			DbSetOrder(1)
-			For nX := 1 to len(aTitulo)
+			For nX := 1 to Len(aTitulo)
 				If SE1->(DbSeek(aTitulo[nX][10]+aTitulo[nX][3]+aTitulo[nX][2]+aTitulo[nX][4]+aTitulo[nX][11]))
 
 					If SE1->(FieldPos("E1_XDENBOL")) > 0
@@ -2224,10 +2042,7 @@ If nCont > 0
 				EndIf
 			Next nX
 
-			// Rotina de Envio Automatico de Boleto *
-			// Grava a data que foi enviada para o cliente
-
-			//Exclui O.S e Boletos Enviada  *
+			// Exclui documentos enviados
 			For nX := 1 to Len(aFilBol)
 				// Verifica se o parametro para salvar arquivo esta' preenchido para nao apagar arquivo nesse momento
 				If Empty(MV_PAR26)
@@ -2631,13 +2446,12 @@ RecLock("SE1", .F.)
 
 	If SEA->EA_PORTADO == "001"
 
-		SE1->E1_NUMBCO	:=	aCB_RN_NN[3]   // Nosso número (Ver fórmula para calculo)
+		SE1->E1_NUMBCO	:=	aCB_RN_NN[3]				// Nosso número (Ver fórmula para calculo)
 		SE1->E1_HIST	:= "BOLETO BB GERADO"
 	ElseIf SEA->EA_PORTADO == "341"
 
-		SE1->E1_NUMBCO	:= Substr(aCB_RN_NN[3],1,8)   // Nosso número
+		SE1->E1_NUMBCO	:= Substr(aCB_RN_NN[3],1,8)		// Nosso número
 		SE1->E1_HIST	:= "BOLETO ITAU GERADO"
-		// nTotItau++	//Total de títulos passados ao portador Itaú
 	ElseIf SEA->EA_PORTADO == "237"
 		
 		SE1->E1_NUMBCO 	:= Substr(cNroDoc,1,12)
@@ -2675,7 +2489,7 @@ Return Nil
 
 User Function RFIR01VldPar(cRotina as character)
 
-Local lRet		:= FindFunction(cRotina) as logical
+Local lRet		:= FindFunction(cRotina) as logical		// TODO: VERIFICAR MSG DE NAO COMPILADA
 
 If !lRet
 	Aviso( "Rotina não disponível", "Essa rotina não encontra-se disponível para utilização" + CRLF +;
@@ -2977,9 +2791,7 @@ cHtml += "		<table border = '0' width='100%'>"
 cHtml += "		<tr>"
 cHtml += "			<td>"
 cHtml += "				<font face='Arial' size='2' color='Black'>"
-
-cHtml += "Aten&ccedil;&atilde;o: Ref. aos documentos e Link de Nota Fiscal Nº "+ AllTrim(SF2->F2_DOC) + " - " + AllTrim(SF2->F2_SERIE)
-
+cHtml += "					 Aten&ccedil;&atilde;o: Ref. aos documentos e Link de Nota Fiscal Nº "+ AllTrim(SF2->F2_DOC) + " - " + AllTrim(SF2->F2_SERIE)
 // Se Envia Boleto com link da Nota
 If !Vazio(cChaveNfe)
 	cHtml += "				</font>"
@@ -3010,12 +2822,118 @@ cHtml += "				<font face='Arial' size='2' color='Black'>"
 cHtml += 					FWFilName(cEmpAnt, cFilAnt)
 cHtml += "				</font>"
 cHtml += "				<br></br>"
-// cHtml += "				<font face='Arial' size='2' color='Black'>"
-// cHtml += "					<b>Este e-mail de boleto substitui o boleto físico.</b>"
-// cHtml += "				</font>"
 cHtml += "			</td>"
 cHtml += "		</tr>"
 cHtml += "		</table>"
+cHtml += "		<div align='center'>"
+cHtml += "			<table width='100%'>"
+cHtml += "				<tr>"
+cHtml += "					<td height='20px'></td>"
+cHtml += "				</tr>"
+cHtml += "				<tr>"
+cHtml += "					<td width='93%' class='style4'>"
+cHtml += "						<p align='right'><font size='1'>Powered by <a href='http://www.wikitec.com.br/'>Wikitec/Protheus</a></font>"
+cHtml += "					</td>"
+cHtml += "					<td class='Mini'>"
+cHtml += "						<a href='http://www.wikitec.com.br/'>"
+cHtml += "							<img width='60' height='18' alt='' "
+cHtml += "								src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAATYAAABcCAIAAABrxg52AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEJsAABCbAXSJnEsAAC"
+cHtml += "								TQSURBVHhe7Z0HXBVXvsfzcbNvn9eoiZuyKfuSzdtNNptN2V2T7GbzsrveCvYYo2BvsXAb1UJvItJBQKzYu4AgKKL0jqICogJ2URFpgnTy/mfuude5M7fMvVyuGOb7+X/84J0zZ2bOnN8"
+cHtml += "								5/1PnhZ9YWFgGMaxEWVgGNaxEWVgGNaxEWVgGNQMl0d6+PpX19eEfWVhYDMWUEq191F5S3ZBcXBuTUr3+yOX1RyrB/A9XBsdd3pN+I73s4flrjfXNHTg0CwsLA0wg0fqWzsM5t30PVs4P"
+cHtml += "								KeS7Zom8i4SeBUKPfDXzLLDwLuG7ZCyPLAmNv5JZXtfe2YPPZ2Fh0U6/JHqzri0yqXpucLHALdfC56zAPY/vkslzTtdmIGCFVi09c1ZElsTl32183InjYmFh0YSREn3Q2L41tWaKT46iw"
+cHtml += "								tStTLrx3bLhLIFHnji6NK30fm8v21plYdGMMRItqWr4MaJY5A2VZzbPOYMiPwPMJQMUDlWr9/5Ld+uf4NhZWFhIGCbR7p6+g9m3JnjlgrRAYFTJGWVE87V4yYaz52oa8GVYWFiUGCDRru"
+cHtml += "								6+DYlXBW45Avdcisz6bRkiryKrwOKSq4/wxVhYWAiYSrSvry8yqUromU84txSBmcTOCD0Lp63NLbxcjy/JwsLCXKIHsm6ibqGB0ic2kVfhzIDiC9ca8VVZWIY8jCSaVVZn6ZkLLi5FUQN"
+cHtml += "								h0C5dFFb0oLEdX5uFZWijX6K1j9oXhpWg/iGanAbIoF3qs78cX56FZWijR6J9P/0UFHdZ5FNCUdGAGrjTIveczLI6fBMsLEMYPRI9f63Rwj2T75pFUdFAG1SkKyJL2LlHLCy6JNrX95P7"
+cHtml += "								nnKRZ2G/5icYZy4ZIq/ClJJafCssLEMVXRKtuNk8yStrAEZBGZnIs0Aec46dbc8yxNEl0Y0p1WZuhZKN75LJd8koZaccsQxttEq0ua1LEl0C3iZFOeYzlwyhe174sav4hlhYhiRaJVp+o"
+cHtml += "								2mCt8FLWExrQo/8JeFFnV29+J5YWIYeWiV6NPe2yLuYohkzGzSDp/nmVNc+xvfEwjL00CrRkPgrUIlRNGNmE7hmWbhlprMDpCxDGM0S7e7pc9p+/ln15aoM3Gy4h72ZN/FtsbAMPTRLtL"
+cHtml += "								2zZ8mG4mcuUTAL37ORx6vwbbGwDD00S7TlSddk72zzzJvXbRa+5yISWYmy/By4U9d49vKN3LLqhOzzu04W7EktBDtRUF5Qfg1+PF9160FDC32TIK0SneKdM0gkuiHJBBLt7uk9VVQRcuC"
+cHtml += "								UPGy/TfBecfDeHwN2bYzP7Op+ZlMj2to7ww6mLQ3YBTezImiPw4ZDYYdOX6i6jQ8rgV+coo5AAAgGtjxwNwRrbtW1j0ztw6aAvakQUnnKHrfNCVdv3ceHDaG5rX39nhPLiKgg3Rw2HIw8"
+cHtml += "								ml5xnTrrq6+vL7P0il3EQdV9wnNFx6W3d3bjEEoKK645RR1WBTOtwZP67Uy+Xad5LB0S7VRJZfD+U/Lw/TZB1HOZGMR/KL3EoH2ha+ubDp4ugXPHSQM/nef13ver3p7iOFogGc61GT5uB"
+cHtml += "								dirlra/neoEP74/ffVfFnr/n03AlNWRXtsSTxZWtLSh9V5aJfqd789KoqdLKkcKpMN54uE8yXAe/CEdzpeN4ElSCoxZUgNpd/bKjfzyGrCSyzfqGlrwAUM4nH6WAzfDl+H7gb8Fsi8Xry"
+cHtml += "								XnAJAxXx48XGCrDEOYQH7gdDEOoQmv7UnDhfbkUzhC28XrduDDjOnp7V3qv5O4w6c3CVHN8txCKdpan3R8Mscdbkx1ReIsyZmzl3EIJf8Srx8uVH8ckxpHaOe86Si+GAnI8V8sXjtSIEP"
+cHtml += "								aUOUBQ00gf2uy47krjDpHSipv2EYcAvlxuJDrpBxIHCJNkMEvcBvoXzikyJPELUEARTCu+CWhfI7X1vbOrsHfFgVH1wSzFw6cLiFSWTx8HJReSuNLV0YfwSEYk1l61cJxAxR7r423BYM/"
+cHtml += "								vhUHbk/OxYeZAf6MJHgfB7SHilLl/QhkH1g595I02tDSCvGjO1eFQcHkoQfTcAhNwENxRA6kU1ZAxrV0CMeHGbP7ZMFIoXw4V0K+SY7I3j7iIKgXByKAMgvyrvp9ooseyzmPQyj5eLb7c"
+cHtml += "								L6cFMy0tgJuD9wHfDEl4EaiZITcj4RBOcUQ40pGCcTxWaU4Xi08am512RT/9hQnomwl1IhOR3UmU0PliBSS9FrtQ80S7erutdtSOhh6dIUe+bvO3MC31Q9SiyqUiUVKCL4U6igcghn3Hz"
+cHtml += "								V/Pt9zuAjqKEVZSBSBQrvXJ9rnldXgQAyAPD1OEkjkadL98KTf2vjjEATwsl8bb4cuQQ7Gl0UcPoNDaGJNTBwHalHSKVAWTFq5AR9mxs379X9Z4A2lBjkeuJPXJtjnXqzGgZTA4/zPdys"
+cHtml += "								p9wn1RlLuBRxCyWfzPFEtQQpmWoNyAbxKfDECaOPMdN8Ev1NCGmNc8RgLWWIO9aHIVN2pE9iGomKI8tYMNb704znu9+qbNUsUCI67IvTIo2jGzIY2B3TLOnnuHr6nflB9pw7ldVCUeip8"
+cHtml += "								aO3S0NKGAzEgJj4TzqJKHeoWgS20r3AgBty49+jNyaBz9fvhSaWh+3AIApDoGxOJ4oAczCwShUY7qnZIkaCqgC+zDT+AQ5AYzBItu3aXuDf10tA40ydRyGbfLPfH1TXl3KdG1OR0o9S0A"
+cHtml += "								jnUH+0dWhxdIC7vthBN0DX7MjSSQTUOTeKrd00wu6il7YnIHso29czBFb8+3jaj9AoOxICpqyORRMmRKEwgh3fDXO1pxZXKF6OKBPk2O1LycQiCZyXRU0WXXhGhFhE5Enjwz+Z53HvUjA"
+cHtml += "								ORYC7RP1q7IvcPPTvhg2g2bflb91lgNhwLxx/X78IXI0jOv8jRVijouQ2a8aQjeDbaHN229o4pq6PQ01Gugg01rHDtqnj1KlM8FxQicJ9gKICYY+EkC9sP0WqV6PnrTSL3nGc+R3dRWFF"
+cHtml += "								XjyE9aNpZFX2U6u2gBBJHHD6NQ+ijvrn1T7PcNEuUJ3l9gn1hxTUcVB9+O4+jt0IuOLk2o4Syi9VqPbrPRKKgt6+X+qHuDVIMcHsvCbV2UzGX6JTVkRwNbghT4+g+kWszZoJj0L5UfDGC"
+cHtml += "								hOzzHIEmLxcJRqonQorxpJABLtbcwVGrEx2XgQSmMUJ0LdkHVi6WDuHQkt9wJB0CRx1NV9jG+Ey/nSlQ+UPifLnED1LyJb7kj9Zu6edQ5aFVovXNnUvCi57tHECBSVe6xCbn0UtTEO2yA"
+cHtml += "								GrvgjaO5198WSSlCkZpIIPNidk4qD6sPTZRpc6TjF3k/UC9c/iZSNRvVwpKKEpWE8jn+WylD6IoYC7Rm/cf7Usr3HWyYHeqZttzqjDyaPr701fTnlo+w23TvrQiSniy7TiRB1d80qG2Wc"
+cHtml += "								exHJAorWbjSr5YshbkoTtCsu06mb/jRL62UvjWg4Y/zHAezqfnDdQ6+HSuZ+C+1Eu0wSo6j9s6Ci9dg6KwTFkQaJVoX19faMIVC5+zFNmYzVAF7pJpwi3qcy5W/Yae3QVyS4cwcFFwIJ2"
+cHtml += "								4b0lAzQzy6WTjyxauje3u0b8up7W9c+wiH1Tikk6HDD3fd1t3j9pghvkleqHqtoZU4kt/P8MZGlo4EA3mEmVCW0fX3xbS0kfoALkchzAEDRJFTUrb1OIKHMIUhB04RZS5lCoU6XOW55Zr"
+cHtml += "								tQ9xOMPRKlHgbHXDBM9nNscIKvBlkcWtHSabWlDX2PLFYl/KiwfX5Q8z1ly6ob946+jqhoaohvJYZTwJeEGNDJqj4M2+O43agQExr99zAodQYmaJQvny/ZpoahJBPuOJo49m4ECaMK1Eo"
+cHtml += "								bn7+XwvmkTtfXYcxyEMQYNEeRJI/ycdXThEv2nv6Pr7j360dENv6nvnjR2d/bqQLol2dfc6bTsvRHsXUfUz0MYn9i46nEOdatNPprtspFWDNiOF8pOF+icwVFy7S/W+wBUke4NcGw53Rc"
+cHtml += "								ll/UNEe04WjBJAe4zUGcMVjxRI4rOp/RBmlujmxKwRqKGo1ksESvtuTRTkQhxIE8+jRMGXwSH6TVrxpV9bqAaQlcaVvP/Dmuo7D3AgY9ElUaDg8iOBaybf1dydRlAuLAorqm8x8Q6AHtu"
+cHtml += "								OoWyk3sqC96d7JoCCuKxzHDTmrjyRJ/nrQm8kWlWGJhQbxiAql5h4ar8fT/qhlQu9MjenRKtuP/jzXNqICF/6m0mORZeu40BaeB4l+viJyT4Y7xObRNwtNV+5bY7HIfqBHol29/b57i8X"
+cHtml += "								eRVRJDSgxndFe5olFt3FN2E6kvMvviyk1hKQuPN8tutuQ0LL3C7iIDnTwAvwjk2a47VVLSfxZTPcYvA5Wujq7pnptomaaQTy/0gC27uoNZU5JbosYBf1rqDQ4Un9d6fgENoZyhKFFhDqp"
+cHtml += "								qZd4rffOZ27aoJ1lHokCly/32odWGjOrl2hZ5HLzgud3abfD6X2YeNvpzpRczzqSvVpadM1Mb21veMfS/2ensgVjxbJjuddDNqXin5UVcsCGeSthpZWfJombtc1oL4itYYo6lSgDLgrMJ"
+cHtml += "								tEIR/DE9EKL/m/bdY/YdCUGsoSrblT9+c57vSeBQuHMErnn3HolyiQeu6eEGo214H95pLChJ4FswMLbz80YMYPc3p6e/8jCaCkJuTLMRayG/d1fTfxyq37Y8g5mCf9YKbz3YdNqUWXOCg"
+cHtml += "								GpUR5kjcm2CmGs7RRVHn9dVAdWQyoEWuzNUnDgI15JNr4+MlXS9ZSJDGcJx4jkjOc1zGUJZpbVv0yyhtkLxfN1HfbnIBD9A9GEgU2JldB+3Cgt6WHunrK2vzigfzKqD34q1SJosQ9cLoE"
+cHtml += "								h9DE1sRslO4qXfFl39oEwO/36pvemeJI1hu0V8MO6GqO7jtVRM8xr1ralmsaNDOPRF02xXHQXFxSJoM04ctcGDelhrJE0YolSvxc8Ui+OCGbuoTAOJhKFNzOsIQriu/eU3RlIjsD+hS5Z"
+cHtml += "								ycNQBOUzJ7UAuqcAaLMWxl1CIfQxFxvcpsThZeEIL+0s7t7vEM4WfMcoe1szy1d2j0cp8gjlMwHsX0y111jB6MZJJpfXvPaeFv6Jf620Lu+ienUy6Es0dCDadQXyhVDmauae9BPmEoU6O"
+cHtml += "								7pCz9WJfQqGoivAIM+J/sWJBUOrD6Bc1duEQMeZLcE5cjJq7RWMpD/vlziSyyhUrwAONdmfxqeCue1PVFtIIcn+XiO+417mj9k3NHVbekQRq3GeVIoAshr0FQMtEQ7FfdDy2GjhdKUgjI"
+cHtml += "								ciAHPo0Tb1CchGUdfX5/9BrV+REX8732/CtIEB+ofBkgU6Oru3XyiRuhmyq9I8F0zRV5FswOLcsrNsdNfbX3T2MU+1IpUIP9isa+2YhXalm9MtHs66gWNNAt5zV08XyQp7yJamf1U8zYj"
+cHtml += "								+NJMLU24xpY2eHl0yWkb9TGhRKesjsSHlXT39K7ffYKIXL3AEsjtI3T5FHSeO4nCW+g0xYYbvb19S9btpGYnnvSfy9eZamqEYRJVkF3xcKp3hsgzv/9OL3jOAo+8VTsuVt01ZuMCI4A0X"
+cHtml += "								eQXS51XzZO8NdmBvgxSAeq2Jb9jnvQ/koA2pV965ea9P8xYo5Y7+bLgA6cURynklVWPQptiqHWccviytJJKHEIdU0kUYvh4tpvfzmTv7UlgPrFJntuOiexD0U4UNIfiH0vXQUGG42LGcy"
+cHtml += "								ZR5IjKXTfH++44rkgQvea+JSHkQNrdh9Rkae/sGq/JLRLahYLHhAP1D2Mk2tDU8tUS/8+W7eA5ZxKt02yei2Fr1vguGQL3HKFn4cLws4dybg3E+IoO1u85AblHLU25KFljEjJxCBJQ1cz"
+cHtml += "								32U5+x/C317ZEfPinn6CwRCvU1DU8zTlafVsCzMa4TFRlkVXBk/zR2rX6tuY5KCaTKDLUhFY32hAxTzJaJEvJN8DFVfCcSVRhakmh3+AGvLYn4UiVtLZ3/t+K9SiAWszS+T7bNLZcjMAY"
+cHtml += "								ia6MOvwrvuwjK+ek/JrAuKrx7pkCt1yRV6HAPU9nvZoBYha65wrdsi08cuYEFew8ff3uowEZXNHNsewL9AkMHKHdKk2bpNypa/h8nufTdwDq4kngrePDBC6b4ojmqFJ4PMnvpq/W2NciC"
+cHtml += "								dlHcYogH4MLqq1dZFKJgsEdko16FFx0xw0HcSyG8FxKlJoaegwtFg9RW3APgES/taFJlC+VahrlNg6DJVpYce2NSY5QaUQeQbkE/Maa2sfbTl2TxJyb6Z8P1amlb6mFTwk0L4Ue+cg8C0"
+cHtml += "								TexRY+Zy28S8Z7ZE/yyvireO+/ZDE3H5jJs6VTdefBh1YuqA4hJSvkpx/cNnbQFlvll9eg7aFU9R5P8ocZzpdvqm0EcTj97Giy5rniUQLxqeJL+LASKFZ5aK8wtQocXvzKKK37J5laojq"
+cHtml += "								NK35zkv3dh404FkN4PiVqmEEkctqOE9okKjZkCw7dGCbRzq6e8Y7hHJEDVxpIGSQArVbVPk4tvRd7+npI/BWPveWyTWdlm0odtp5fd6gyPLHqQNbN/MsNyYVXRgpsRvBWnL2sZ9rnwNHV"
+cHtml += "								3fNvSeDTHlqF8aSfzvW4SeuJDTlwCu1/pwwG2W6iUwS0QPBhghv36v/3hzWk6hFqWrF3LNUpgqLho1mu6rUoVFyS7ce1bk1mXonajBTKNiVk4VgMYYhIVLENAplBJ9GdKXmQlUfwJKe1d"
+cHtml += "								G+o6OrubW7ramrrau1Q2zShuxv18kPV4bbFBDOMjWZ54G6iFlXWjWBcKDgkUGfiEEomrYwg1bdoQF+jP4y20iRpD14nNFDxMSXH8y6gFeFkB5sneXuyg45J6iZuiyJ3QGnUo4TxpO9OW1"
+cHtml += "								165RaOiDFDQqIiB+aO7rORaG1908ez3DgWDuLgvf1pCQfvP8WxXPn1UpP1ShvBjpQ8tCMGrTNz76lCHIKgoaXt3WmrnkoUPFi+5NAZDfOQXDbHE+9JGSFf9gnUyeqTCiOPpKs1WcEE8r8"
+cHtml += "								u8GrVPoZuQomO4NlAC3y0UALFBPyLcq26BrDx0dIzQ1/NcyhR1LZkbPYckf0r4+03H6NO0hxcbdGVUYehIPn9jDXX+7GEHIBK4zeTHcdYyDNKqfsgm42K67WQTamVCU/qGKk2HniioFyt"
+cHtml += "								Y4kn/d301RqnJaQUlCPBqzRPjP4n51/EhwnsIg7C+8YBFMaX/eCqa2WMqSTK4cu+XrYurfhSalEFNJLh3x3JedOco9XuGRt46dKYeA2d2zp4ziTKFb8+wS46LmNbUg5TO55zqqiCXnJpl"
+cHtml += "								ihPOs9H81wUI2AqUfAARwtkUMRCVYB/Mpaenl6BPJhjucqTNHRhZpoeP4Fajp6yXGkQeRNnj63H4MenmZgv5cqC8DF1oMJ8Z6r6ZF2hXThp47Kmx21CuxC1bIfkIYa2Lg6hCZNJVGALdS"
+cHtml += "								M+rARq7/GO4RQlIONJoWmtYxsUOs+ZRFGX+yp8uH9ok6jANsSs46Idnd0TV0ZAFfpvcQDcE/61H6zbncIR2kJsTTq/TTJwdPf0oqWe6p26kNBvTXZQbfDV09uH1gGS6z2eRFux0t7RNXl"
+cHtml += "								VpHrHku0ivx2qZaiQ49+bpr4OjlB+1nldS0lMKFGNEwALKq69PtGOup0vmEA2x1vXTGMKz51ETTVHF+TwzQp/6gviSb9e5mfW2UWxyXmQXmMs7dJpn+gwjvJrd1GLSGRL754xG9Akpox/"
+cHtml += "								QJ02xkKmWn5Vc/fhJ3Pdn2YUotLL1K4o353JUO48jY0n+Wye533lrrN5ZdWEJkleJU/yzlSnWtqEFTIDLVFg7c5kauc2GLS6RbbQYseB9DFkJdrZ3QPuCbmnUBG/Wefo3q5r+GyBN8fCw"
+cHtml += "								SbQZJ1UXd09fPB1hXa+sU8rJVP57gyB1iN1Q1eueARPvFW50ebxvIuj1NaISqAdru2rWwBkhZfI8+kISRdX4t7amIQsotImS1Q6edUG3WWtGST6sOkxsYG6mh6Q8WWfL/C+9YDRDoxDVq"
+cHtml += "								KQZ5eu30WX6Gvj7QxqKehATaK9vX2QL723Jy5et3O+77bVG4/uOpG/InAPuLgfzHTWvejZULYey4I657PFa/dklfseyZfHpluFJi6ISlmzLyfwWNHxczV1zQM78ajiei11bi0YXyZR9sX"
+cHtml += "								57zlB9nI5AtlMtxgdc6+v3n6Atlp/+rbQPCSVlpau30nxqyEHu287pjiqDTNIFEgtKn9tAu0qYHz5skC1nd21MWQlCrhvS6TcKpTOo/gSkBIO0T+eSjSz9IqlQ/gYS1t4HhAP+leEXjMa"
+cHtml += "								nOCJo+J07dFoKE1tHeuP5r34nc8vpvu/OCNg2KwNw+ZEoX9nbxg2N3qYdfjIOWF/st22eOPJwqravoGpXdu7uiY6RUA2Iicu/He8QxgcBSn+4LKRnPQgV//d1E00yfT09qIWOzk38KSqr"
+cHtml += "								Yy+WbFOXaKQqrKDOteRA+aRKCAO3ks8LKmSByP6pU8w+L7jUJZobEoedbM4QjJe203TG4olujUx541JDqhNQskN4OYRtmbTUcqUGqM5Wnj1K+c9v7QOHTYjCNsPAWo2I3DYzOBh1mFgnF"
+cHtml += "								khP8akVtzu1zCPNmzDD1JfHl/214XeDS2t9U2P4S0+7Ufhil+xkJ/Qt4TSOSZOTYd89H0B8Orrm1qJNWikQzzJW5Mciiv17OhpNonW1jf90cqVUs8TJ8rHLvR+2KhnbfdQlujpkspRIvX"
+cHtml += "								hbjCBfJpzNA7RP5BEcy5Wv2qpZSBbYahUkIYfYvrtE21A5SnbnvaiFSE/0CFFmRoscNiM4GGzIt4Xb96bTZ3y2n+2JGYTExhI/ZlcyesT7IouXS+rvkOUTcp058vGLvJR9f1oIyH7/Gjy"
+cHtml += "								Brk8yZuT7Mtq7hRUXHvVUk6+EGTff0sCGh/r6dA2m0SBXScLRvBpY8WQ8wQyV307pAxliV66Xqvp8xZStIDJFM3RF550dvFkwZCaahegG0/6zlSn81cNnhqm4s6jlikB8cNmhaMakipFf"
+cHtml += "								WYd/ivrkKBjRTguEwFSfBN8B3Ligib5ksPpZ1EnNsqsWKKQPjPdN+HTtHP3YaNaTuXacHjiXSfz96YWUiYzQVNioV8sPk075pRob1+flQdt91AwLvqmaNZ5XR/XGcoShXKW+JI6TUECWb"
+cHtml += "								SBM0A08gIkPXJvSLlHqwnkvkalEdDQ2i70PYSamowqT01mFfJLq5CQJD2NN4OAjPUZbXNneJ3r955cvC6WlOFQTUv53pZGoNk83pG8wBd9Udt1S7zLpnjiFaoSGSKUBO3XH6E5JQpcvnm"
+cHtml += "								PqBCo7i60gMZJAlWr2OkMZYkCjpGH6EUbhy/7ZoU/kw+I6OYFNIGG0mWszXgSgW2IcS3SJRtTwF9FjitFeAaZVeh/zwpOKTXlUOr3LtHUHEksyEY7o5L81V9byJl8CQJAw62kCQyQz/i2"
+cHtml += "								If+yCVBLZJ5kjIU8jbZajY6ZJQpAzMStqhfZXJsRAnnAnpM4EI3nTqLvfb/KhFPEj2aco2+mobjQ2p3JOJCxvLAsYBc1B2gzVPas0r1ru0Z2Z1W8aBVijH9Lt1kRnznG1jbq2kvaIIL2n"
+cHtml += "								SQen5QjuTbvTHUk1n8qf+RJPp/vybBsAq8EbWWkipBr8/pE9Jl9NT+FJ/n9D2v0tmwB80sU6ha0uIfutvGk736/+kKV5q/sPHcSfWuyI5P0Z0hLW8fYRd6UG1Zc6NUJdrtPFuBwRvECMV"
+cHtml += "								6nngO0GU/8skAam5xTcb2WPJFVN/XNTz53jB1mDVUoTW/G2ewNnoe0LrA0lEzw86Hwo/j5lP/ypUsDGA0PArcePPpolpt6kkJs1Aih/Y9P0In5JQrkl9e8OcVRg7srkIPTobGoes4kOs7"
+cHtml += "								mJb50VfTRm/cfMc/JuglC3pMmb5QnBY/JZVPcnTqma+Xrm1sh3aAdlFuGNtN6wSnqiOaoNRqERB+rWPnVkrVW7jHQNE0tvgTPCQ63tkfdnHZxmHUoVWb9MauQd5ZG36o3zaYNcPP0vEU1"
+cHtml += "								vmxHMtOpcF09PbM8N0PupEZCNp4EVIRP0MkzkSjgtjUeubv0kosr3pGsoXx83iSKnoUzbsWfZrn9/Ue/b23WG2CS4IVrt9NHoe43NKPGEb0iBYM6gCeFo+KgPckF5VCI1zW2gGQaWlobm"
+cHtml += "								lvh71sPGvLKa/anFbltjp/gFPH5Au8xFjIoEN+Z6nT55r0XEnMuaI6XbsSk0y8W+74iknEsnDgWjujJoVklkn2xyHvh2tgNR9LhlZy7cqOJNJbwjeveYVZhVJn1x2YEQqPUVP1GrU86LB"
+cHtml += "								00rfZQGbFtcakh38/x352iIU88NTSCdSyHUd59VhJtaW3X8sFM6YdWrvQP2g5micZnl6qthVAZlDhQDMFVoDw1wGw5AlmyphHy2OO5Lwlo38XBRlyLJ+FwbUYLJB9ZQ9Gw9svFvl8t8f3"
+cHtml += "								QymW0QPqSYgQe/oX7AUOR2MC1oBZ8ofFx26fzPOhfmKcaVzxKKDtdUvmgoSWvrBrca7ctCdNdN6Ipb0S8kAocSyfICm9Osv/WJmCB7/a1O5OCDmf+t3UwGtukyKyfZh3G9aTuImM0K6OP"
+cHtml += "								qE1/VzcOXw5OKaQSDs2A5Pwy9JEP+vIRhYHmx9tCYwGH1smzkiiQnH/xFQu5hqcQyJeu30VxmgazRNPPXR5Nn1rQD+OI7A6cwRudk4EmgF048TkSzSoFIwbeUKWqvr0g/IKM1iDiikV2o"
+cHtml += "								WjqAvpgCZK4tnhReQPveHnAbspUPLgnaHNfrL4DinWOiYPoPp7tgcbo+XLOhNUckf1/jV9NVZdJzCr07aVRNfeN2QiLzs6UfEpuIBsUPba0TaV0U1vf9Ik2nweM2AcZtIdD6+QZShRYjj"
+cHtml += "								5nSPPYuWIo8o/nqVUjg1mit+43fDrHQ8crNtSgQD+UrtmJ6+zqkSimUlJemXHGtfnLAh8k0Y6ubrvwA8p4aYUNSFdga2EfWqdvFhjQ0NKWV1az/XiuU9ThH1yiX7Vea5qOXIrNDBk9Lyz"
+cHtml += "								tIqNREL0oOnggE1MfHIwnGSWUGpHPpCH7UXpS2nJgUNgJ7Tz0zZ5XUd/0GKpcukTDDuqa6bV641G6RCc4RuDDjLl1v/7j2W4aMjdf9i+bAHK/EUj0nSnUr0KCRBPVdzNlSG1986f08Wqh"
+cHtml += "								vXesMRIFPLceQ+9Xa+VmmMEbPKhpcxwFTzq6XDcnvGJpR2QAY6+oqGwFcqEtUYsCnd3d4PW+jVJZigpOiB18V/SHFJwEaGcauj050Nvba6GYrkARWP9tRtAvZwbtyNA/vZshWxNzwI1Hb"
+cHtml += "								5FoMBAmVTQ85npvNWL5/KXrtW9PdhwOTSBISRyhBP0tsv/zXI+rWja2ptPc2o72E1XEozKRg+59+pyijnAsV5FP4Vg4TXAyWKIA+EfozlHKPI0N7ocyaPH4SQeap6V+nxwLx2NGSRRiQ7"
+cHtml += "								WoyEEtNsuV9E0VGdLY0jbHaytqKCrzdj9MDoVFXFYpjloLKfllAtvQkcRGJegsvVrFDjCR61D4Fa+Nt/3OOfpC9W0sUQWXbtxbE3N0nCxk7GJfMGhSLvHfmVZcafRKzsnr4wZIolA5hx4"
+cHtml += "								/iy9jCnaeyB8nDf7Q2vXdaSvB3p+++hubQMfIQ3pnkGvjVHHl1DVRf1vkq4jwd9+v+nyBNyS63o/Sk+nr6wvYc+KrZf5fLPZV2NjFa7nSoEraJ/fJJOVe/Hq5P7xBfNaStV/96HfgtIbm"
+cHtml += "								ExMC9p74x/KAsYt9VPfw92X+25PzyM1RKI59Yo+PXeKnCgP3aWEfRtlwmDl+u1O+XEp66iV+fNsQhrNHNNLV3Qve6XTXjX9fuu6LJThaIwzuZJpz9PVazZ/VIgPVaUL2eSv3TX9b6POyE"
+cHtml += "								LRni/prUG+TusGPItSWeUUk+2Cmyz+X+8/z3habkld150EnUTeoSVQBCPJBQwu4tf3ffGWC39EBlGiyKSUKwINX3rhXXHm96NK10qs329pNMEHsQUOzIsJzV24yXB5Np6G5tb4JW11jSz"
+cHtml += "								uDaTFQEUFIxSlQyuj+cLhemlufkGMj99iTUYUBgwcH1wwfMApoh6tig5h17JNoEHDzD5seq2I21OC52mn7oevmXn0TtJUiDp9x3ZKwNGD38kA1c90cH7gvFWqI5Pyyimt36Y+pQaImZLL"
+cHtml += "								/wNSiM4N/ZR28N8f0a19YWAYbAytR6dbTw6xC+zs1l24zQ8YsCM+5bJpPrLKwDGYGVqKb0y78YmaghkXb/TTrsP8Vb2p+YoK9CFlYBjkDK9GaB01j5hu1QFS3WYVOXc9oAh0Ly/POwEq0"
+cHtml += "								t69vot8RtMcCRWP9MWIC4O4sk424sLAMZgZWosDhgqvDrEKMX8lNN+uwj2y33jPdejQWlsHMgEu0sbWD53WAWM9NE5sRNiPoxdkR0Sf1DByzsPxsGHCJAhmXbo1esIHo2qVJzlCbFWHhe"
+cHtml += "								7jlicnWy7OwDHLMIVHAL65g2Mx+b7xgHf4/y2NKrzOdPcfC8jPATBLt7um123GmXyq1Dv/1oqijBbo+UsTC8vPDTBIFOrt77HakI4kausJ7RhD4t++JtyQU69onkoXlZ4n5JAr09PZtTC"
+cHtml += "								19e2k0mhXIqDoNRAM2VqF8r4MFVxmtgWZh+ZlhVokqgMbkgsjk0fPCwXfVNRgDGrYO/ch2e3BicWs72z/EMkR5BhJVUHnnkdeRvA+kmzWodEbgizMCJ/of3Z9bWdtg5FowFpafB89Moiw"
+cHtml += "								sLExgJcrCMoj56af/B5eDjVaOXy33AAAAAElFTkSuQmCC' />"
+cHtml += "							</p>"
+cHtml += "						</a>"
+cHtml += "					</td>"
+cHtml += "				</tr>"
+cHtml += "			</table>"
+cHtml += "		</div>"
 cHtml += "	</body>"
 cHtml += "</html>"
 

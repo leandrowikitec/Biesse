@@ -1,0 +1,361 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "SPEDNFE.CH"
+#INCLUDE "FWPRINTSETUP.CH"
+#INCLUDE "RPTDEF.CH"
+
+#DEFINE X_NMAXMENL		070
+#DEFINE X_NFIMCOL		104
+#DEFINE X_MAXITEM		009					// Máximo de produtos para a primeira página
+#DEFINE X_MAXMSG		007					// Máximo de dados adicionais por página
+#DEFINE X_MAXITEMP2		016					// Máximo de produtos para a pagina 2 em diante
+#DEFINE X_MAXITEMP2F	022					// Máximo de produtos para a página 2 em diante quando a página não possui informações complementares
+
+#DEFINE CDIRDANFE		"\DANFE\"					// Máximo de produtos para a página 2 em diante quando a página não possui informações complementares
+
+/*/{Protheus.doc} RFATR02
+(Funcao para gerar impressao de DANFEII ou DANFEIII)
+@author Calabró
+@since 16/01/2022
+@version 1.0
+@param cNFiscal, character, (Numero do documento de saida)
+@param cSerie, character, (Numero da serie da nota fiscal a ser considerada)
+@param cLayDanfe, character, (Layout a ser considerado na impressao, sendo 1-retrato, 2-paisagem)
+@param cTpNota, character, (Tipo de nota a ser impressa, sendo 0-notas de entrada, 1-notas de saida)
+@return cFilePrint, character, (Caminho do arquivo PDF gerado, caso gere com sucesso)
+@example
+(examples)
+@see (links_or_references)
+/*/
+
+User Function RFATR02(	cNfiscal as character,;
+						cSerie as character,;
+						cLayDanfe as character,;
+						cTpNota as character,;
+						lJob as logical)
+
+Local cFilePrint	:= "" as character
+
+cNfiscal := If(Empty(cNfiscal), "#@", cNfiscal)
+cLayDanfe := If(Empty(cLayDanfe), "1", cLayDanfe)
+cTpNota := If(Empty(cTpNota), "1", cTpNota)
+
+DbSelectArea("SF2")		// Cabecalho das NF de Saída
+DbSetOrder(1)			// F2_FILIAL+F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA+F2_FORMUL+F2_TIPO
+
+//Posiciona nota e busca chave da nota
+If SF2->(DbSeek(xFilial("SF2")+cNfiscal+cSerie))
+
+	// Somente imprimo Danfe se campo de sinalizacao de nota transmitida estiver preenchido como S
+	If SF2->F2_FIMP == "S"
+		// Realiza a impressão
+		cFilePrint := ImpDanfe(cLayDanfe, cTpNota, lJob)
+	EndIf
+EndIf
+
+Return cFilePrint
+
+/*/{Protheus.doc} GetIdEnt
+(Funcao para buscar ID da entidade da filial)
+@author Calabró
+@since 04/04/2019
+@version 1.0
+@return cIdEnt, character, (ID da Entidade de transmissao de notas)
+@example
+(examples)
+@see (links_or_references)
+/*/
+
+Static Function GetIdEnt()
+
+Local aArea  := GetArea()
+Local cIdEnt := ""
+Local cURL   := PadR(GetNewPar("MV_SPEDURL","http://"),250)
+Local oWs
+
+//Obtem o codigo da entidade
+oWS := WsSPEDAdm():New()
+oWS:cUSERTOKEN := "TOTVS"
+
+oWS:oWSEMPRESA:cCNPJ		:= IIF(SM0->M0_TPINSC==2 .Or. Empty(SM0->M0_TPINSC),SM0->M0_CGC,"")
+oWS:oWSEMPRESA:cCPF			:= IIF(SM0->M0_TPINSC==3,SM0->M0_CGC,"")
+oWS:oWSEMPRESA:cIE			:= SM0->M0_INSC
+oWS:oWSEMPRESA:cIM			:= SM0->M0_INSCM
+oWS:oWSEMPRESA:cNOME		:= SM0->M0_NOMECOM
+oWS:oWSEMPRESA:cFANTASIA	:= SM0->M0_NOME
+oWS:oWSEMPRESA:cENDERECO	:= FisGetEnd(SM0->M0_ENDENT)[1]
+oWS:oWSEMPRESA:cNUM			:= FisGetEnd(SM0->M0_ENDENT)[3]
+oWS:oWSEMPRESA:cCOMPL		:= FisGetEnd(SM0->M0_ENDENT)[4]
+oWS:oWSEMPRESA:cUF			:= SM0->M0_ESTENT
+oWS:oWSEMPRESA:cCEP			:= SM0->M0_CEPENT
+oWS:oWSEMPRESA:cCOD_MUN		:= SM0->M0_CODMUN
+oWS:oWSEMPRESA:cCOD_PAIS	:= "1058"
+oWS:oWSEMPRESA:cBAIRRO		:= SM0->M0_BAIRENT
+oWS:oWSEMPRESA:cMUN			:= SM0->M0_CIDENT
+oWS:oWSEMPRESA:cCEP_CP		:= Nil
+oWS:oWSEMPRESA:cCP			:= Nil
+oWS:oWSEMPRESA:cDDD			:= Str(FisGetTel(SM0->M0_TEL)[2],3)
+oWS:oWSEMPRESA:cFONE		:= AllTrim(Str(FisGetTel(SM0->M0_TEL)[3],15))
+oWS:oWSEMPRESA:cFAX			:= AllTrim(Str(FisGetTel(SM0->M0_FAX)[3],15))
+oWS:oWSEMPRESA:cEMAIL		:= UsrRetMail(RetCodUsr())
+oWS:oWSEMPRESA:cNIRE		:= SM0->M0_NIRE
+oWS:oWSEMPRESA:dDTRE		:= SM0->M0_DTRE
+oWS:oWSEMPRESA:cNIT			:= IIF(SM0->M0_TPINSC==1,SM0->M0_CGC,"")
+oWS:oWSEMPRESA:cINDSITESP	:= ""
+oWS:oWSEMPRESA:cID_MATRIZ	:= ""
+oWS:oWSOUTRASINSCRICOES:oWSInscricao	:= SPEDADM_ARRAYOFSPED_GENERICSTRUCT():New()
+oWS:_URL					:= AllTrim(cURL)+"/SPEDADM.apw"
+If oWs:ADMEMPRESAS()
+	cIdEnt := oWs:cADMEMPRESASRESULT
+Else
+	Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),{STR0114},3)
+EndIf
+
+RestArea(aArea)
+
+Return cIdEnt
+
+/*/{Protheus.doc} IsReady
+(Funcao para verificar se o TSS esta disponivel)
+@author Calabró
+@since 04/04/2019
+@version 1.0
+@return cIdEnt, character, (ID da Entidade de transmissao de notas)
+@example
+(examples)
+@see (links_or_references)
+/*/
+
+Static Function IsReady(cURL as character, nTipo as integer, lHelp as logical)
+
+Local cHelp		:= ""
+
+Local nX		:= 0
+
+Local lRetorno	:= .F.
+
+Local oWS		:= Nil
+
+cURL := If(Empty(cURL), PadR(GetNewPar("MV_SPEDURL","http://"),250), cURL)
+
+nTipo := If(Empty(nTipo), 1, nTipo)
+
+If !Empty(cURL) .And. !PutMV("MV_SPEDURL",cURL)
+	RecLock("SX6",.T.)
+	SX6->X6_FIL		:= xFilial( "SX6" )
+	SX6->X6_VAR		:= "MV_SPEDURL"
+	SX6->X6_TIPO	:= "C"
+	SX6->X6_DESCRIC := "URL SPED NFe"
+	MsUnLock()
+	PutMV("MV_SPEDURL",cURL)
+EndIf
+
+SuperGetMv() //Limpa o cache de parametros - nao retirar
+
+//Verifica se o servidor da Totvs esta no ar
+oWs := WsSpedCfgNFe():New()
+oWs:cUserToken := "TOTVS"
+oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+If oWs:CFGCONNECT()
+	lRetorno := .T.
+Else
+	If lHelp
+		Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),{STR0114},3)
+	EndIf
+	lRetorno := .F.
+EndIf
+
+//Verifica se o certificado digital ja foi transferido
+If nTipo <> 1 .And. lRetorno
+	oWs:cUserToken := "TOTVS"
+	oWs:cID_ENT	:= GetIdEnt()
+	oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+	If oWs:CFGReady()
+		lRetorno := .T.
+	Else
+		If nTipo == 3
+			cHelp := IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3))
+			If lHelp .And. !"003" $ cHelp
+				Aviso("SPED",cHelp,{STR0114},3)
+				lRetorno := .F.
+			EndIf
+		Else
+			lRetorno := .F.
+		EndIf
+	EndIf
+EndIf
+
+//Verifica se o certificado digital ja foi transferido
+If nTipo == 2 .And. lRetorno
+	oWs:cUserToken := "TOTVS"
+	oWs:cID_ENT	:= GetIdEnt()
+	oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+	If oWs:CFGStatusCertificate()
+		If Len(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE) > 0
+			For nX := 1 To Len(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE)
+				If oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE[nX]:DVALIDTO-30 <= Date()
+
+					Aviso("SPED",STR0127+Dtoc(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE[nX]:DVALIDTO),{STR0114},3) //"O certificado digital irá vencer em: "
+				EndIf
+			Next nX
+		EndIf
+	EndIf
+EndIf
+
+Return lRetorno
+
+/*/{Protheus.doc} ImpDanfe
+(Funcao para transmitir documento de saida)
+@author Calabró
+@since 04/04/2019
+@version 1.0
+@param cLayDanfe, character, (Layout a ser considerado na impressao, sendo 1-retrato, 2-paisagem)
+@param cTpNota, character, (Tipo de nota: 0-Entrada, 1-Saida)
+@param lJob, logic, (Variavel que especifica se processo esta' em job ou em tela)
+@return cFilePrint, character, (Caminho do arquivo PDF gerado, caso gere com sucesso)
+@example
+(examples)
+@see (links_or_references)
+/*/
+
+Static Function ImpDanfe(cLayDanfe as character, cTpNota as character, lJob as logical)
+
+// Variaveis da Rotina
+Local cIdEnt		:= "" as character
+Local cFilePrint	:= "" as character
+
+Local aNotas		:= {} as array
+Local aAreas		:= {} as array
+
+Local oSetup		:= FWPrintSetup():New(PD_ISTOTVSPRINTER+PD_DISABLEDESTINATION+PD_DISABLEORIENTATION+PD_DISABLEPAPERSIZE+PD_DISABLEPREVIEW) as object
+
+Private cURL		:= PadR(GetNewPar("MV_SPEDURL","http://"),250) as character
+
+If cTpNota = "0" // Entrada
+	aAdd(aNotas,{})
+	aAdd(Atail(aNotas),.F.)
+	aAdd(Atail(aNotas),"E")
+	aAdd(Atail(aNotas),SF1->F1_EMISSAO)
+	aAdd(Atail(aNotas),SF1->F1_SERIE)
+	aAdd(Atail(aNotas),SF1->F1_DOC)
+	aAdd(Atail(aNotas),SF1->F1_FORNECE)
+	aAdd(Atail(aNotas),SF1->F1_LOJA)
+Else
+	aAdd(aNotas,{})
+	aAdd(Atail(aNotas),.F.)
+	aAdd(Atail(aNotas),"S")
+	aAdd(Atail(aNotas),SF2->F2_EMISSAO)
+	aAdd(Atail(aNotas),SF2->F2_SERIE)
+	aAdd(Atail(aNotas),SF2->F2_DOC)
+	aAdd(Atail(aNotas),SF2->F2_CLIENTE)
+	aAdd(Atail(aNotas),SF2->F2_LOJA)
+EndIf
+
+If IsReady()
+
+	cIdEnt := GetIdEnt()
+
+	If !Empty(cIdEnt)
+		oWs:= WsNFeSBra():New()
+		oWs:cUserToken := "TOTVS"
+		oWs:cID_ENT := cIdEnt
+		oWs:_URL := AllTrim(cURL)+"/NFeSBRA.apw"
+
+		cFilePrint := "danfe_"+RTRIM(SF2->F2_DOC)
+
+		lAdjustToLegacy := .F. // Inibe legado de resolução com a TMSPrinter
+		If lJob
+			cDirPDF  := "\spool\"
+			oDanfe := FWMSPrinter():New(cFilePrint, IMP_PDF, lAdjustToLegacy,cDirPDF /*cPathInServer*/,.T.,,,,.F.,,,.F.)
+			oDanfe:cPathPDF := cDirPDF
+			oDanfe:nDevice := IMP_PDF
+			oDanfe:lInJob := lJob
+		Else
+			oDanfe := FWMSPrinter():New(cFilePrint, IMP_PDF, lAdjustToLegacy, /*cPathInServer*/, .T.)
+		EndIf
+
+		//Apago arquivos da pasta raiz, caso existam
+		If File(FileNoExt(oDanfe:cFilePrint) + ".rel")
+			FErase(FileNoExt(oDanfe:cFilePrint) + ".rel")
+		EndIf
+		If File(FileNoExt(oDanfe:cFilePrint)+".pdf")
+			FErase(FileNoExt(oDanfe:cFilePrint)+".pdf")
+		EndIf
+
+		// Se layout a ser impresso for paisagem e existir rotina de chamada customizada (U_DnfPaisagem) executo rotina para impressao DANFEIII
+		// Senao, uso layout para impressao retrato DANFEII
+		If cLayDanfe == "2"
+
+			// Defino que a orientacao sera paisagem
+			oDanfe:SetLandscape()
+
+			// Executo rotina customizada que e' ponte para gerar o PDF paisagem
+			If FindFunction("U_DANFE_P1")
+				U_DANFE_P1(cIdEnt, Nil/* cVal1 */, Nil/* cVal2 */, oDanfe, oSetup, .T. /* lIsLoja */	)
+			EndIf
+		Else
+
+			If FindFunction("U_PrtNfeSef")
+				U_PrtNfeSef(cIdEnt,,,@oDanfe ,oSetup, cFilePrint, .T./*lIsLoja*/)
+			EndIf
+		EndIf
+	EndIf
+Else
+	If !lJob
+		Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),{STR0114},3)
+	EndIf
+EndIf
+
+If Type("oDanfe") == "O"
+	cFilePrint := FileNoExt(oDanfe:cFilePrint) + ".pdf"
+EndIf
+
+If !lJob
+	oDanfe := Nil
+EndIf
+
+aEval(aAreas, {|x| RestArea(x) })
+
+Return cFilePrint
+
+/*/{Protheus.doc} RFATR02XML
+	(Funcao para retornar conteudo XML da nota posicionada)
+	@type User Function
+	@author Calabro'
+	@since 17/01/2022
+	@version 1.0
+	@param cSerie, character, (Numero da serie da nota)
+	@param cNumDoc, character, (Numero da nota)
+	@param cPathXML, character, (Caminho que deve gerar o arquivo, se informado)
+	@return cRetXML, character, (Conteudo XML retornado da nota posicionada)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function RFATR02XML(cSerie as character, cNumDoc as character, cPathXML as character)
+
+Local cXmlRet	:= "" as character
+
+If !Empty(cSerie) .AND. !Empty(cNumDoc) .AND. cSerie + cNumDoc <> SF2->(F2_SERIE+F2_DOC)
+	DbSelectArea("SF2")		// Cabecalho das NF de Saída
+	DbSetOrder(1)			// F2_FILIAL+F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA+F2_FORMUL+F2_TIPO
+	SF2->(DbSeek(xFilial("SF2")+cNumDoc+cSerie))
+EndIf
+
+SPEDNFEXML(	GetIdEnt(),;				// cIdEnt
+			SF2->(F2_SERIE+F2_DOC),;	// cIdNFe
+			1,;							// nTipo
+			UsaColaboracao("1"),;		// lUsaColab
+			Nil,;						// cModelo
+			Nil,;						// lAutomato
+			IsBlind(),;					// lRetXml - informa que e' job e nao deve apresentar telas
+			@cXmlRet,;					// cXmlRet
+			Nil )						// lCancel
+
+// Se retornou conteudo XML e caminho no servidor foi preenchido,
+// crio arquivo com conteudo no caminho especificado
+If !Empty(cXmlRet) .AND. !Empty(cPathXML)
+	MemoWrite(cPathXML, cXmlRet)
+EndIf
+
+Return cXmlRet
