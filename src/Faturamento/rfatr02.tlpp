@@ -10,7 +10,7 @@
 #DEFINE X_MAXITEMP2		016					// Máximo de produtos para a pagina 2 em diante
 #DEFINE X_MAXITEMP2F	022					// Máximo de produtos para a página 2 em diante quando a página não possui informações complementares
 
-#DEFINE CDIRDANFE		"\DANFE\"					// Máximo de produtos para a página 2 em diante quando a página não possui informações complementares
+#DEFINE CDIRDANFE		"\DANFE\"			// Máximo de produtos para a página 2 em diante quando a página não possui informações complementares
 
 /*/{Protheus.doc} RFATR02
 (Funcao para gerar impressao de DANFEII ou DANFEIII)

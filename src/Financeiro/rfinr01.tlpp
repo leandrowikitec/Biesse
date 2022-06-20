@@ -537,7 +537,8 @@ If !lJob .AND. !Empty(MV_PAR26)
 	AEval(aTitulo,{|x| FErase(x[1]) })
 EndIf
 
-SE1->(DBCLEARFILTER()) //Limpa o Filtro da tabela SE1
+//Limpa o Filtro da tabela SE1
+SE1->(DBCLEARFILTER())
 
 FreeObj(oPrint)
 oPrint := Nil
