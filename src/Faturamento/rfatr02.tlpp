@@ -1,8 +1,6 @@
-#include "tlpp-object.th"
-// #INCLUDE "PROTHEUS.CH"
-// #INCLUDE "SPEDNFE.CH"
-// #INCLUDE "FWPRINTSETUP.CH"
-// #INCLUDE "RPTDEF.CH"
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "FWPRINTSETUP.CH"
+#INCLUDE "RPTDEF.CH"
 
 #DEFINE X_NMAXMENL		070
 #DEFINE X_NFIMCOL		104
@@ -12,6 +10,8 @@
 #DEFINE X_MAXITEMP2F	022					// Máximo de produtos para a página 2 em diante quando a página não possui informações complementares
 
 #DEFINE CDIRDANFE		"\DANFE\"			// Máximo de produtos para a página 2 em diante quando a página não possui informações complementares
+#DEFINE STR0114			"Ok"
+#DEFINE STR0127			"O certificado digital irá vencer em: "
 
 /*/{Protheus.doc} RFATR02
 (Funcao para gerar impressao de DANFEII ou DANFEIII)
