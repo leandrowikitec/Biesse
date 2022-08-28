@@ -5,6 +5,8 @@
 
 #DEFINE NFIMLIN		170
 
+Static cAliasCadGen	:= AllTrim(GetMv("ES_BOLALIA",, "PE0"))
+
 Static lBoletoPDF	:= .F. as logical	//Verifica se o tipo de mensagem selecionado [ Imprimir / Envio] caso seja envio gera um arquivo PDF
 // Static lEnvioBol	:= GetMv("ES_MAILBOL",, .F.) as logical	//Verifica se o tipo selecionado na mensagem e envio de [ Boleto ]
 // Static lEnvBolNF	:= lBoletoPDF .AND. lEnvioBol as logical	//Verifica se o tipo selecionado na mensagem e envio de [ Boleto + Nota Fiscal ]
@@ -3227,22 +3229,31 @@ Return cPathLogo
 
 Static Function ConvMacros(cHtml as character)
 
-cHtml := StrTran(cHtml, "%NOMEFANTASIA%", AllTrim(Posicione("SA1", 1, xFilial("SA1")+SF2->(F2_CLIENTE+F2_LOJA), "A1_NREDUZ")))
-cHtml := StrTran(cHtml, "%RAZAOSOCIAL%", AllTrim(SA1->A1_NOME))
-cHtml := StrTran(cHtml, "%ENDERECOCLIENTE%", AllTrim(SA1->A1_END))
-cHtml := StrTran(cHtml, "%DATAVENCIMENTO%", DToC(SE1->E1_VENCREA))
-cHtml := StrTran(cHtml, "%VALORTOTAL%", AllTrim(Transform(SE1->E1_VALOR, X3Picture("E1_VALOR"))))
-cHtml := StrTran(cHtml, "%NUMERONOTA%", AllTrim(SF2->F2_DOC))
-cHtml := StrTran(cHtml, "%SERIENOTA%", AllTrim(SF2->F2_SERIE))
-cHtml := StrTran(cHtml, "%CHAVENFE%", AllTrim(SF2->F2_CHVNFE))
-cHtml := StrTran(cHtml, "%MESANOFATURAMENTO%", Month2Str(SF2->F2_EMISSAO) + "/" + Year2Str(SF2->F2_EMISSAO))
+Local cCadastro		:= "" as character
 
-// WK_Generico():GetConteudo("WBC_PEDID_FINANCEIRO","TIPO","")
-// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%RAZAOSOCIAL%"		, 'AllTrim(Posicione("SA1", 1, xFilial("SA1")+SF2->(F2_CLIENTE+F2_LOJA), "A1_NOME"))'))
-// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%NUMERONOTA%"		, 'AllTrim(SF2->F2_DOC)'))
-// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%SERIENOTA%"			, 'AllTrim(SF2->F2_SERIE)'))
-// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%MESANOFATURAMENTO%"	, 'Month2Str(SF2->F2_EMISSAO) + "/" + Year2Str(SF2->F2_EMISSAO)'))
-// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%VALORTOTAL%"		, 'cValToChar(SF2->F2_VALBRUT)'))
-// cHtml := &(WK_Generico():GetConteudo("EMAIL_CUSTOMIZ_DANFE","%CHAVENFE%"			, 'AllTrim(SF2->F2_CHVNFE)'))
+If !AliasInDic(cAliasCadGen)
+	cHtml := StrTran(cHtml, "%NOMEFANTASIA%", AllTrim(Posicione("SA1", 1, xFilial("SA1")+SF2->(F2_CLIENTE+F2_LOJA), "A1_NREDUZ")))
+	cHtml := StrTran(cHtml, "%RAZAOSOCIAL%", AllTrim(SA1->A1_NOME))
+	cHtml := StrTran(cHtml, "%ENDERECOCLIENTE%", AllTrim(SA1->A1_END))
+	cHtml := StrTran(cHtml, "%DATAVENCIMENTO%", DToC(SE1->E1_VENCREA))
+	cHtml := StrTran(cHtml, "%VALORTOTAL%", AllTrim(Transform(SE1->E1_VALOR, X3Picture("E1_VALOR"))))
+	cHtml := StrTran(cHtml, "%NUMERONOTA%", AllTrim(SF2->F2_DOC))
+	cHtml := StrTran(cHtml, "%SERIENOTA%", AllTrim(SF2->F2_SERIE))
+	cHtml := StrTran(cHtml, "%CHAVENFE%", AllTrim(SF2->F2_CHVNFE))
+	cHtml := StrTran(cHtml, "%MESANOFATURAMENTO%", Month2Str(SF2->F2_EMISSAO) + "/" + Year2Str(SF2->F2_EMISSAO))
+Else
+
+	cCadastro		:= PadR("RFINR01_HTML_BOLETO",TamSX3(cAliasCadGen + "_CADAST")[1])
+
+	(cAliasCadGen)->(DbSetOrder(1))    // PE0_FILIAL+PE0_CADAST+PE0_CHAVE
+
+	If (cAliasCadGen)->(DbSeek(xFilial(cAliasCadGen)+cCadastro))
+		// Transforma conteudo De/Para do cadastro generico - PE0
+		While (cAliasCadGen)->(!EOF()) .AND. (cAliasCadGen)->&(cAliasCadGen + "_FILIAL" + cAliasCadGen + "_CADAST") == xFilial(cAliasCadGen) + cCadastro
+			cHtml := StrTran(cHtml, AllTrim((cAliasCadGen)->&(cAliasCadGen + "_CONTDE")),		&(WK_Generico():GetConteudo(cCadastro, (cAliasCadGen)->&(cAliasCadGen + "_CONTDE")		, AllTrim((cAliasCadGen)->&(cAliasCadGen + "_CONTPA")) )))
+			(cAliasCadGen)->(DbSkip())
+		EndDo
+	EndIf
+EndIf
 
 Return cHtml
