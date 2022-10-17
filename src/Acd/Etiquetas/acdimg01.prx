@@ -1,0 +1,1831 @@
+#Include "Protheus.ch"
+#Include "RwMake.ch"
+#Include "TopConn.ch"
+
+#Define X_PERGUNTE	"KESTR01"
+#Define X_PATH		"C:\Temp\EtiquetaProtheus\"
+#Define X_ENTER		Chr(13) + Chr(10)
+#Define X_ASPAS		Chr(34)
+
+
+/*
+Padrao Zebra
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³img01     ºAutor  ³Sandro Valex        º Data ³  19/06/01   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao do     º±±
+±±º          ³produto. Padrao Microsiga                                   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP5                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function Img01 //Identificacao de produto
+Local cCodigo,sConteudo,cTipoBar, nX, nY, cBar 
+Local cValidmmaa
+Local cCodSep 	:= If(len(paramixb) >= 2,paramixb[ 2],NIL)
+Local cCodID 	:= If(len(paramixb) >= 3,paramixb[ 3],NIL)
+Local nCopias	:= If(len(paramixb) >= 4,paramixb[ 4],0)
+Local cNFEnt  	:= If(len(paramixb) >= 5,paramixb[ 5],NIL)
+Local cSeriee  := If(len(paramixb) >= 6,paramixb[ 6],NIL)
+Local cFornec  := If(len(paramixb) >= 7,paramixb[ 7],NIL)
+Local cLojafo  := If(len(paramixb) >= 8,paramixb[ 8],NIL)
+Local cArmazem := If(len(paramixb) >= 9,paramixb[ 9],NIL)
+Local cOP      := If(len(paramixb) >=10,paramixb[10],NIL)
+Local cNumSeq  := If(len(paramixb) >=11,paramixb[11],NIL)
+Local cLote    := If(len(paramixb) >=12,paramixb[12],NIL)
+Local cSLote   := If(len(paramixb) >=13,paramixb[13],NIL)
+Local dValid   := If(len(paramixb) >=14,paramixb[14],NIL)
+Local cCC  		:= If(len(paramixb) >=15,paramixb[15],NIL)
+Local cLocOri  := If(len(paramixb) >=16,paramixb[16],NIL)
+Local cOPREQ   := If(len(paramixb) >=17,paramixb[17],NIL)
+Local cNumSerie:= If(len(paramixb) >=18,paramixb[18],NIL)
+Local cOrigem  := If(len(paramixb) >=19,paramixb[19],NIL)
+Local cEndereco:= If(len(paramixb) >=20,paramixb[20],NIL)
+Local cPedido  := If(len(paramixb) >=21,paramixb[21],NIL)
+Local nResto   := If(len(paramixb) >=22,paramixb[22],0)
+Local cItNFE   := If(len(paramixb) >=23,paramixb[23],NIL)
+
+Local cDescric	:= ""
+Local cAnvisa 	:= ""
+Local cEan		:= ""
+
+Local cRt       := ""
+Local cRazao 	:= ""
+Local cCro 	:= ""
+Local dFabric
+Local nCcopias	
+
+Local cPorta 	:= "LPT1" //"\\PRODUCAO-PC\ZT230"  ZEBRA INDUSTRIA
+Local cModelo 	:= "TLP 2844"//"ZEBRA"
+
+
+Local nqtdeImp 	:= 0
+Local lEnderec	:= .F. 
+LOCAL cEmpAtu 	:= RTRIM(FWCodEmp()) 
+Local _cMsg 	:= ""
+
+Private lETQ
+Private lOpc
+Private cCodigoCB0 
+Private nqtde 	:= If(len(paramixb) >= 1,paramixb[ 1],NIL)
+
+If SB1->B1_LOCALIZ == "S"
+	lEnderec := .T.
+EndIf
+
+dbSelectArea("SB8")
+dbSetOrder(3) //FILIAL, PRODUTO, LOCAL, LOTECTL
+If dbSeek(xFilial("SB8")+SB1->B1_COD+cArmazem+cLote)
+	If SB8->B8_LOTECTL = cLote
+		dFabric := SB8->B8_DFABRIC
+	EndIf 
+EndIf
+
+cLocOri := If(cLocOri==cArmazem,' ',cLocOri)
+nQtde   := If(nQtde==NIL,SB1->B1_QE,nQtde)
+cCodSep := If(cCodSep==NIL,'',cCodSep)
+
+If nResto > 0 .and. VALTYPE(nResto) <> "U"
+   nCopias++
+EndIf
+
+If AllTrim(MV_PAR01) == ""
+	lOpc := "REIM"
+ElseIf AllTrim(MV_PAR01) <> AllTrim(SB1->B1_COD) 	
+	lOpc := "NOTA"
+ElseIf AllTrim(MV_PAR01) == AllTrim(SB1->B1_COD)  
+	lOpc := "PROD"
+Else 
+	MsgAlert("Configurar Opção <> NOTA <> PROD ")
+	return 	
+EndIf
+
+
+//só pergunta EAN se for para NOTA	
+If lOpc == "NOTA"	
+	lETQ := MSGYESNO( "Imprime Etiquetas EAN?", "Etiquetas" )
+Else
+	lETQ := .F.
+EndIf
+
+cDescric	:= SB1->B1_DESC
+//***********************************************************
+//MV_PAR01 = "CODPRODUTO" 	//QDO CHAMADA VIA PRODUTO
+//MV_PAR01 = "NUMNF" 		//QDO CHAMADA VIA NF
+//AJUSTAR NCOPIAS 
+//DEVIDO A CHAMADA VIA OPCAO NF TRAZER QTDE TOTAL NO NCOPIAS
+//QDO CHAMADA NF, ncopias:=ncopias/nqtde PARA ITENS COM ENDEREÇO
+//PARA ITENS SEM ENDEREÇO USAR:
+//SD1->D1_QUANT
+
+//nCcopias := ncopias
+nCcopias := SD1->D1_QUANT
+If lOpc == "NOTA"
+	//para itens sem endereço, opcao NF traz ncopias sempre 1
+	//If !lEnderec 
+	//	ncopias := SD1->D1_QUANT
+	//	nCcopias := ncopias
+	//EndIf
+	//ncopias:=Int(ncopias/nqtde)
+	If mod(nCcopias,nqtde) <> 0
+		ncopias++
+		nResto := mod(nCcopias,nqtde)
+	EndIf 
+EndIf 
+
+////// ean 
+//c_Produto,c_LoteCtl,c_Armazem,n_Modelo,n_QtdCopias
+//(cXPar01,cXPar02,cXPar03,nXPar04,nXPar05)
+If lOpc == "NOTA" //chama EAN para impressao de nota/caixas
+	If lETQ
+		//ncopias tem que ser * nqtde devido ao padrao trazer qtde errada na opc nota
+		//uma ean a mais pra cada embalagem
+		//uma ean para o relatorio de impressao
+		//uma ean para a caixa pallet para item ainda nao ativo
+		If !lEnderec
+			u_WESTR01(SB1->B1_COD,cLote,cArmazem,4,nCopias*(nQtde+1)+2,"EAN")
+		Else
+			u_WESTR01(SB1->B1_COD,cLote,cArmazem,4,nCopias*(nQtde+1)+1,"EAN")
+		EndIf
+	EndIf
+ElseIf lOpc == "PROD" //sempre imprime uma ean para cada embalagem
+	u_WESTR01(SB1->B1_COD,cLote,cArmazem,4,nCopias,"EAN")
+EndIf
+
+
+cAnvisa 	:= SB1->B1__CODANV
+cEan		:= SB1->B1__CODEAN
+cValidmmaa	:= Substr(Dtos(dValid),5,2)+Substr(Dtos(dValid),3,2) //aaaammdd
+
+/*==============================
+01 imports 
+03 industria 
+04 equipamentos 
+05 knebel
+===============================*/
+If cEmpAtu == "01"
+	cRt       	:= SuperGetMV("KO_RT"	,.F.,"R.T.GLAUCIA K.K.TAMAKE")
+	cRazao 		:= SuperGetMV("KO_RAZAO",.F.,"KOTA IMPORTS LTDA-(11)46159200")
+	cCro 		:= SuperGetMV("KO_CRO"	,.F.,"CRO 17508 CNPJ 00.325.031/0001-12")
+ElseIf cEmpAtu == "03"
+	cRt       	:= SuperGetMV("KO_RT"	,.F.,"R.T.")
+	cRazao 		:= SuperGetMV("KO_RAZAO",.F.,"KOTA INDUSTRIA LTDA-(11)")
+	cCro 		:= SuperGetMV("KO_CRO"	,.F.,"CRO")
+ElseIf cEmpAtu == "04"
+	cRt       	:= SuperGetMV("KO_RT"	,.F.,"R.T.")
+	cRazao 		:= SuperGetMV("KO_RAZAO",.F.,"KOTA EQUIPAMENTOS LTDA-(11)")
+	cCro 		:= SuperGetMV("KO_CRO"	,.F.,"CRO")
+ElseIf cEmpAtu == "05"
+	cRt       	:= SuperGetMV("KO_RT"	,.F.,"R.T. ")
+	cRazao 		:= SuperGetMV("KO_RAZAO",.F.,"KOTA KNEBEL LTDA-(11)")
+	cCro 		:= SuperGetMV("KO_CRO"	,.F.,"CRO")
+EndIf
+
+
+If lOpc == "NOTA" 
+	_cMsg := "Impressão padrão novo" + CRLF
+	_cMsg += "Opção Nota ou Reimpr." + CRLF
+	_cMsg += "Somente Impressão Local da Zebra"
+ElseIf lOpc == "PROD" 
+	_cMsg := "Impressão padrão novo"
+ElseIf lOpc == "REIM" 
+	_cMsg := "Reimpressão"
+EndIf
+
+msginfo(_cMsg)
+For nX := 1 to nCopias
+	If cCodID#NIL
+		CBRetEti(cCodID)
+		nqtde 	:= CB0->CB0_QTDE
+		cCodSep  := CB0->CB0_USUARIO
+		cNFEnt   := CB0->CB0_NFENT
+		cSeriee  := CB0->CB0_SERIEE
+		cFornec  := CB0->CB0_FORNEC
+		cLojafo  := CB0->CB0_LOJAFO
+		cArmazem := CB0->CB0_LOCAL
+		cOP      := CB0->CB0_OP
+		cNumSeq  := CB0->CB0_NUMSEQ
+		cLote    := CB0->CB0_LOTE
+		cSLote   := CB0->CB0_SLOTE
+		cCC      := CB0->CB0_CC
+		cLocOri  := CB0->CB0_LOCORI
+		cOPReq	:= CB0->CB0_OPREQ
+		cNumserie:= CB0->CB0_NUMSER		
+		cOrigem  := CB0->CB0_ORIGEM
+		cEndereco:= CB0->CB0_LOCALI
+		cPedido  := CB0->CB0_PEDCOM
+		If CB0->(FieldPos("CB0_ITNFE"))>0
+			cItNFE 	 := CB0->CB0_ITNFE
+		EndIf
+	EndIf
+	nqtdeImp := nQtde
+	If nResto > 0 .and. nX==nCopias .and. VALTYPE(nResto) <> "U"
+		nQtde  := nResto
+	EndIf
+	If Usacb0("01")
+		If lEnderec //gera cb0 se controla endereço 
+			//cCodigo := If(cCodID ==NIL,CBGrvEti('01',{SB1->B1_COD,nqtdeImp,cCodSep,cNFEnt,cSeriee,cFornec,cLojafo,cPedido,cEndereco,cArmazem,cOp,cNumSeq,NIL,NIL,NIL,cLote,cSLote,dValid,cCC,cLocOri,NIL,cOPReq,cNumserie,cOrigem,cItNFE}),cCodID)
+			cCodigo := If(cCodID ==NIL,CBGrvEti('01',{SB1->B1_COD,nqtde,cCodSep,cNFEnt,cSeriee,cFornec,cLojafo,cPedido,cEndereco,cArmazem,cOp,cNumSeq,NIL,NIL,NIL,cLote,cSLote,dValid,cCC,cLocOri,NIL,cOPReq,cNumserie,cOrigem,cItNFE}),cCodID)
+		EndIf
+	Else
+		cCodigo := SB1->B1_CODBAR
+	EndIf
+	cCodigo := Alltrim(cCodigo)
+	cTipoBar := 'MB07' //128
+	If ! Usacb0("01")
+		If Len(cCodigo) == 8
+			cTipoBar := 'MB03'
+		ElseIf Len(cCodigo) == 13
+			cTipoBar := 'MB04'
+		EndIf
+	EndIf
+	
+	//**********************************************************************
+	//processo antigo Imports usar produto+lote+validade na barra
+	//processo antigo Imports desabilitar geracao de etiquetas ean na cb0
+	//processo novo Imports usar cCodigo na barra
+	//processo novo Imports HABILITAR geracao de etiquetas ean na cb0
+	
+	//cBar := cCodigo  //codigo unico //RG
+	
+	//barra para processo antigo com produto,lote e validade
+	//cBar := AllTrim(SB1->B1_COD)+AllTrim(cLote)+cValidmmaa
+	
+	
+	
+	//divide ou acrescenta ao Cbar devido a impressao necessitar sair com caracteres '>6'
+	//LOTE TAMANHO 6 NUMEROS
+	//LOTE TAMANHO 4 NUMEROS 
+	//1221925147701083>61
+	//LOTE PF01
+	//12219251>64PF>5010831>6
+	//122192514AA010831
+	//12219251>64AA>5010831>6
+	// 1a8 + >6 + 9a11 + >5 + 12a17 + >6
+	/*
+	If FwIsNumeric(AllTrim(cLote))
+		If Len(AllTrim(cLote)) == 6
+			cBar := Substr(cBar,1,18)+'>6'+SubStr(cBar,19,1)
+		Else
+			cBar := Substr(cBar,1,16)+'>6'+SubStr(cBar,17,1)
+		EndIf
+	Else
+		cBar := Substr(cBar,1,8)+'>6'+SubStr(cBar,9,3)+'>5'+SubStr(cBar,12,6)+'>6'
+	EndIf
+	*/
+
+	//***********************************************************************
+
+
+	//If lETQ //condicao temporaria para imprimir etq embalagem junto com ean antigas
+	/*	If lEnderec
+			cCodigoCB0 := cCodigo //cod cbo para ser usado na impressao antiga
+		Else
+			cCodigoCB0 := "N CONT END"
+		EndIf
+		//chama rotina para gerar etq de embalagem com barras CB0
+		u_WESTR01(SB1->B1_COD,cLote,cArmazem,4,1,"EMB")
+		*/
+	//Else
+		If cEmpAtu <> "01" .AND. !AllTrim(cFuncao) $ "MATA250"
+			//MAPEAR LPT1 QUALQUER COMPUTADOR NA KOTA INDUSTRIA
+			//DIRECIONANDO A ZEBRA COMPARTILHADA PARA LPT1
+			//NET USE LPT1 \\PRODUCAO-PC\ZT230
+			//USUARIO ADMIN COM SENHA EM BRANCO
+			//NET USE LPT1 \\NAIR\TLP2844 /PERSISTENT:YES
+			//user NAIR-PC com senha kotaimp01
+
+			//msginfo("redirecinando LPT1","PORTA")
+			//If AllTrim(cFuncao) $ "MATA250"
+			//		MSCBPRINTER(cModelo, cPorta,,10,.F.,,,,,,.F.,)
+			//		MSCBCHKSTATUS(.F.)
+			//EndIf
+
+			MSCBPrinter("TLP 2844","LPT1",,,.F.,,,,10)
+			/* MSCBCHKStatus(.f.) */
+
+			MSCBBegin(1,6,48) //etiqueta kota industria 50x100mm (AXL)
+			MSCBSay(10, 05, "Cliente:", "N", "3")
+			MSCBSay(10, 10, "Produto:", "N", "3")
+			MSCBSay(10, 15, "Lote: ","N", "4")
+			MSCBSAYBAR(10,20,"0000000100","N",cTipoBar,8.36,.F.,.T.,.F.,,2,1,.F.,.F.,"1",.T.)
+				
+			MSCBEND()
+
+
+		Else
+
+			If lEnderec
+				cCodigoCB0 := cCodigo //cod cbo para ser usado na impressao antiga
+			Else
+				cCodigoCB0 := "N CONT END"
+			EndIf
+			//chama rotina para gerar etq de embalagem com barras CB0
+			If lOpc == "NOTA"
+				u_WESTR01(SB1->B1_COD,cLote,cArmazem,4,1,"EMB")
+			
+			Else //If lOpc == "PROD"
+				//só imprime etq embalagem nova na opcao nota sem ean
+				MSCBBEGIN(1,6)
+				//Etiquetas Produto /Embalagem
+				//IMPAR //etiqueta embalagem
+
+				//com margem topo 0,14
+				//If mod(nx,2) <> 0
+				MSCBWrite('CT~~CD,~CC^~CT~')
+				MSCBWrite('^XA~TA000~JSN^LT0^MNW^MTD^PON^PMN^LH0,0^JMA^PR6,6~SD30^JUS^LRN^CI0^XZ')
+				MSCBWrite('^XA')
+				MSCBWrite('^MMT')
+				MSCBWrite('^PW831')
+				MSCBWrite('^LL0142')
+				MSCBWrite('^LS0')
+				MSCBWrite('^FT32,31^A0N,20,19^FH\^FD'+cDescric+'^FS')
+				MSCBWrite('^FT34,50^A0N,20,19^FH\^FDLOTE: '+cLote+'-'+cArmazem+'^FS')
+				MSCBWrite('^BY3,3,40^FT47,94^BCN,,Y,N')
+				MSCBWrite('^FD>;'+cCodigo+'^FS')
+				MSCBWrite('^FT340,67^A0N,20,19^FH\^FDQTDE:^FS')
+				MSCBWrite('^FT349,97^A0N,28,28^FH\^FD'+AllTrim(str(nqtde))+'^FS')
+				
+				//MSCBWrite('^FT432,31^A0N,20,19^FH\^FD'+cDescric+'^FS')
+				//MSCBWrite('^FT434,50^A0N,20,19^FH\^FDLOTE: '+cLote+'-'+cArmazem+'^FS')
+				//MSCBWrite('^FT434,50^A0N,20,19^FH\^FD L A C R E ^FS')
+				//MSCBWrite('^BY3,3,40^FT447,94^BCN,,Y,N')
+				//MSCBWrite('^FD>;'+cCodigo+'^FS')
+				//MSCBWrite('^FT740,67^A0N,20,19^FH\^FDQTDE:^FS')
+				//MSCBWrite('^FT749,97^A0N,28,28^FH\^FD'+AllTrim(str(nqtde))+'^FS')
+				MSCBWrite('^PQ1,0,1,Y^XZ')
+
+				/*
+					If lEnderec
+						MSCBWrite('^BY3,3,40^FT47,94^BCN,,Y,N')
+						MSCBWrite('^FD>;'+cCodigo+'^FS')
+					EndIf
+				*/
+				
+				/*com margem topo 0,2
+				MSCBWrite('CT~~CD,~CC^~CT~')
+				MSCBWrite('^XA~TA000~JSN^LT0^MNW^MTD^PON^PMN^LH0,0^JMA^PR6,6~SD30^JUS^LRN^CI0^XZ')
+				MSCBWrite('^XA')
+				MSCBWrite('^MMT')
+				MSCBWrite('^PW831')
+				MSCBWrite('^LL0152')
+				MSCBWrite('^LS0')
+				
+				MSCBWrite('^FT34,34^A0N,20,19^FH\^FD'+cDescric+'^FS')
+				MSCBWrite('^FT34,54^A0N,20,19^FH\^FDLOTE: '+cLote+'^FS')
+				If lEnderec
+					MSCBWrite('^BY3,3,40^FT47,97^BCN,,Y,N')
+					MSCBWrite('^FD>;'+cCodigo+'^FS')
+				EndIf
+				MSCBWrite('^FT340,72^A0N,20,19^FH\^FDQTDE:^FS')
+				//MSCBWrite('^FT349,102^A0N,28,28^FH\^FD'+AllTrim(str(nqtdeImp))+'^FS')
+				MSCBWrite('^FT349,102^A0N,28,28^FH\^FD'+AllTrim(str(nqtde))+'^FS')
+				*/
+
+
+				//par  //etiqueta para cliente na embalagem com EAN /////////////////
+				//par  //etiqueta para cliente na embalagem com EAN /////////////////
+				//par  //etiqueta para cliente na embalagem com EAN /////////////////
+				/*
+				MSCBWrite('^BY2,2,28^FT459,35^BEN,,Y,N')
+				MSCBWrite('^FD'+cEan+'^FS')
+				MSCBWrite('^FT655,51^A0N,12,16^FH\^FDR.Anvisa.'+cAnvisa+'^FS')
+				MSCBWrite('^FT442,73^A0N,20,19^FH\^FDE T I Q U E T A   T E S T E  ^FS')
+				MSCBWrite('^FT631,97^A0N,10,12^FH\^FD'+cRt+'^FS')
+				MSCBWrite('^FT631,110^A0N,11,12^FH\^FD'+cCro+'^FS')
+				MSCBWrite('^FT662,38^A0N,17,19^FH\^FDF: '+;
+				Substr(MesExtenso(dFabric),1,3)+'/'+substr(AllTrim(str(Year(dFabric))),3,2)+;
+				' V:'+Substr(MesExtenso(dValid),1,3)+'/'+substr(AllTrim(str(Year(dValid))),3,2)+;
+				'^FS')
+				MSCBWrite('^FT662,24^A0N,16,21^FH\^FDLOTE: '+cLote+'^FS')
+				MSCBWrite('^FT631,86^A0N,8,12^FH\^FD'+cRazao+'^FS')
+				MSCBWrite('^BY1,3,28^FT445,109^BCN,,Y,N')
+				MSCBWrite('^FD>;'+cBar+'^FS')
+				*/
+				//MSCBWrite('^PQ1,0,1,Y^XZ')
+				
+
+				//If lETQ
+					////// ean 
+
+					//c_Produto,c_LoteCtl,c_Armazem,n_Modelo,n_QtdCopias
+					//(cXPar01,cXPar02,cXPar03,nXPar04,nXPar05)
+					
+					//u_WESTR01(SB1->B1_COD,cLote,cArmazem,4,nQtde)
+
+
+					/*
+					For nY := 1 to nQtde //////////////
+						//Etiquetas EAN	
+
+						//**********************************************************************
+						//processo antigo Imports usar produto+lote na barra
+						//processo antigo Imports desabilitar geracao de etiquetas ean na cb0
+						//processo novo Imports usar cCodigo na barra
+						//processo novo Imports HABILITAR geracao de etiquetas ean na cb0
+						//HABILITAR LINHA COMENTADA QUE GRAVA CB0
+
+						//cCodigo := If(cCodID ==NIL,CBGrvEti('01',{SB1->B1_COD,1,cCodSep,"","","","","","","","",cNumSeq,NIL,NIL,NIL,cLote,cSLote,dValid,cCC,cLocOri,NIL,cOPReq,cNumserie,cOrigem,cItNFE}),cCodID)
+
+						If mod(nY,2) <> 0
+							//impar
+							MSCBWrite('CT~~CD,~CC^~CT~')
+							MSCBWrite('^XA~TA000~JSN^LT0^MNW^MTD^PON^PMN^LH0,0^JMA^PR4,4~SD15^JUS^LRN^CI0^XZ')
+							MSCBWrite('^XA')
+							MSCBWrite('^MMT')
+							MSCBWrite('^PW847')
+							MSCBWrite('^LL0136')
+							MSCBWrite('^LS0')
+							MSCBWrite('^BY2,2,28^FT43,35^BEN,,Y,N')
+							MSCBWrite('^FD'+cEan+'^FS')
+							MSCBWrite('^FT239,51^A0N,12,16^FH\^FDR.Anvisa.'+cAnvisa+'^FS')
+							MSCBWrite('^FT26,73^A0N,20,19^FH\^FDE T I Q U E T A   T E S T E  ^FS')
+							MSCBWrite('^FT215,97^A0N,10,12^FH\^FD'+cRt+'^FS')
+							MSCBWrite('^FT215,110^A0N,11,12^FH\^FD'+cCro+'^FS')
+							MSCBWrite('^FT246,38^A0N,17,19^FH\^FDF: '+;
+							Substr(MesExtenso(dFabric),1,3)+'/'+substr(AllTrim(str(Year(dFabric))),3,2)+;
+							' V:'+Substr(MesExtenso(dValid),1,3)+'/'+substr(AllTrim(str(Year(dValid))),3,2)+;
+							'^FS')
+							MSCBWrite('^FT246,24^A0N,16,21^FH\^FDLOTE: '+cLote+'^FS')
+							MSCBWrite('^FT215,86^A0N,8,12^FH\^FD'+cRazao+'^FS')
+							MSCBWrite('^BY1,3,28^FT29,109^BCN,,Y,N')
+							MSCBWrite('^FD>;'+cBar+'^FS')
+
+						Else
+							//par
+							MSCBWrite('^BY2,2,28^FT459,35^BEN,,Y,N')
+							MSCBWrite('^FD'+cEan+'^FS')
+							MSCBWrite('^FT655,51^A0N,12,16^FH\^FDR.Anvisa.'+cAnvisa+'^FS')
+							MSCBWrite('^FT442,73^A0N,20,19^FH\^FDE T I Q U E T A   T E S T E  ^FS')
+							MSCBWrite('^FT631,97^A0N,10,12^FH\^FD'+cRt+'^FS')
+							MSCBWrite('^FT631,110^A0N,11,12^FH\^FD'+cCro+'^FS')
+							MSCBWrite('^FT662,38^A0N,17,19^FH\^FDF: '+;
+							Substr(MesExtenso(dFabric),1,3)+'/'+substr(AllTrim(str(Year(dFabric))),3,2)+;
+							' V:'+Substr(MesExtenso(dValid),1,3)+'/'+substr(AllTrim(str(Year(dValid))),3,2)+;
+							'^FS')
+							MSCBWrite('^FT662,24^A0N,16,21^FH\^FDLOTE: '+cLote+'^FS')
+							MSCBWrite('^FT631,86^A0N,8,12^FH\^FD'+cRazao+'^FS')
+							MSCBWrite('^BY1,3,28^FT445,109^BCN,,Y,N')
+							MSCBWrite('^FD>;'+cBar+'^FS')
+							MSCBWrite('^PQ1,0,1,Y^XZ')
+
+						EndIf
+					Next nY
+
+					*/
+			EndIf
+		EndIf	
+	//EndIf //condicao temporaria para imprimir etq embalagem junto com ean antigas
+Next nX
+
+MSCBEND()
+MSCBCLOSEPRINTER()
+
+//MSCBInfoEti("Produto","30X100")
+//sConteudo:=MSCBEND()
+//If Type('cProgImp')=="C" .and. cProgImp=="ACDV120"
+//	GravaCBE(CB0->CB0_CODETI,SB1->B1_COD,nQtde,cLote,dValid)
+//EndIf	
+	
+Return sConteudo
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³img01cx   ºAutor  ³Sandro Valex        º Data ³  19/06/01   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao do     º±±
+±±º          ³produto para caixa a agranel                                º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP5                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function Img01CX //dispositivo de identificacao de produto
+Local cCodigo,sConteudo,cTipoBar, nX
+Local nqtde 	:= If(len(paramixb) >= 1,paramixb[ 1],NIL)
+Local cCodSep 	:= If(len(paramixb) >= 2,paramixb[ 2],NIL)
+Local cCodID 	:= If(len(paramixb) >= 3,paramixb[ 3],NIL)
+Local nCopias	:= If(len(paramixb) >= 4,paramixb[ 4],NIL)
+Local cArmazem := If(len(paramixb) >= 5,paramixb[ 5],NIL)
+Local cEndereco:= If(len(paramixb) >= 6,paramixb[ 6],NIL)
+
+nQtde   := If(nQtde==NIL,SB1->B1_QE,nQtde)
+cCodSep := If(cCodSep==NIL,'',cCodSep)
+
+For nX := 1 to nCopias
+	If Usacb0("01")
+		cCodigo := If(cCodID ==NIL,CBGrvEti('01',{SB1->B1_COD,nQtde,cCodSep,NIL,NIL,NIL,NIL,NIL,cEndereco,cArmazem,,,,,,,,}),cCodID)
+	Else
+		cCodigo := SB1->B1_CODBAR
+	EndIf
+	cCodigo := Alltrim(cCodigo)
+	cTipoBar := 'MB07' //128
+	If ! Usacb0("01")
+		If Len(cCodigo) == 8
+			cTipoBar := 'MB03'
+		ElseIf Len(cCodigo) == 13
+			cTipoBar := 'MB04'
+		EndIf
+	EndIf
+	MSCBLOADGRF("SIGA.GRF")
+	MSCBBEGIN(1,6)
+	MSCBBOX(30,05,76,05)
+	MSCBBOX(02,12.7,76,12.7)
+	MSCBBOX(02,21,76,21)
+	MSCBBOX(30,01,30,12.7,3)
+	MSCBGRAFIC(2,3,"SIGA")
+	MSCBSAY(33,02,'CAIXA',"N","0","025,035")
+	MSCBSAY(33,06,"CODIGO","N","A","012,008")
+	MSCBSAY(33,08, AllTrim(SB1->B1_COD), "N", "0", "032,035")
+	MSCBSAY(05,14,"DESCRICAO","N","A","012,008")
+	MSCBSAY(05,17,SB1->B1_DESC,"N", "0", "020,030")
+	MSCBSAYBAR(23,22,cCodigo,"N",cTipoBar,8.36,.F.,.T.,.F.,,2,1,.F.,.F.,"1",.T.)
+	MSCBInfoEti("Produto Granel","30X100")
+	sConteudo:=MSCBEND()
+Next
+Return sConteudo
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³img01De   ºAutor  ³Sandro Valex        º Data ³  19/06/01   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao da     º±±
+±±º          ³Unidade de despacho                                         º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP5                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function Img01DE //dispositivo de identificacao de unidade de despacho produto
+Local nCopias 	:= If(len(paramixb) >= 1,paramixb[ 1],NIL)
+Local cCodigo 	:= If(len(paramixb) >= 2,Alltrim(paramixb[ 2]),NIL)
+
+MSCBLOADGRF("SIGA.GRF")
+MSCBBEGIN(nCopias,6)
+	MSCBBOX(30,05,76,05)
+	MSCBBOX(02,12.7,76,12.7)
+	MSCBBOX(02,21,76,21)
+	MSCBBOX(30,01,30,12.7,3)
+	MSCBGRAFIC(2,3,"SIGA")
+	MSCBSAY(33,02,'UNID. DE DESPACHO',"N","0","025,035")
+	MSCBSAY(33,06,"CODIGO","N","A","012,008")
+	MSCBSAY(33,08, AllTrim(SB1->B1_COD), "N", "0", "032,035")
+	MSCBSAY(05,14,"DESCRICAO","N","A","012,008")
+	MSCBSAY(05,17,SB1->B1_DESC,"N", "0", "020,030")
+	MSCBSAYBAR(23,22,cCodigo,"N","MB01",8.36,.F.,.T.,.F.,,2,1,.F.,.F.,"1",.T.)  // codigo intercaldo 2 e 5 para EAN14
+	MSCBInfoEti("Unid.Despacho","30X100")
+sConteudo:=MSCBEND()
+Return sConteudo
+
+
+
+
+
+
+
+/*/{Protheus.doc} KESTR01
+	(Função para imprimir etiqueta.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+	/*/
+User Function WESTR01(cXPar01,cXPar02,cXPar03,nXPar04,nXPar05,cEmbEan)
+
+	// Executa o pergunte
+	//If Pergunte(X_PERGUNTE,.T.)
+		// Executa a impressão
+		//WK():Processa({|| U_WESTR01A(cXPar01,cXPar02,cXPar03,nXPar04,nXPar05) },"Buscando os dados informados...","Aguarde...")
+		U_WESTR01A(cXPar01,cXPar02,cXPar03,nXPar04,nXPar05,cEmbEan) 
+
+
+	//EndIf
+
+Return Nil
+
+/*/{Protheus.doc} KESTR01A
+	(Função para imprimir etiqueta conforme as informações.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Produto, character, contém o código do produto
+	@param c_LoteCtl, character, contém o lote
+	@param c_Armazem, character, contém o armazem
+	@param n_Modelo, numerico, contém o modelo
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+	/*/
+User Function WESTR01A(c_Produto,c_LoteCtl,c_Armazem,n_Modelo,n_QtdCopias,cEmbEan)
+
+	Local _cAlias := ""
+
+	Local _cModelo := ""
+	Local _cMensagem := ""
+
+	Default c_Produto := ""
+	Default c_LoteCtl := ""
+	Default c_Armazem := ""
+
+	Default n_QtdCopias := 0
+	Default n_Modelo := 0
+
+	// Cria o diretorio
+	MakeDir(X_PATH)
+
+	// Busca as informações
+	_cAlias := sf_MakeQuery(c_Produto,c_LoteCtl,c_Armazem)
+
+	// Se não retornou dados
+	If (_cAlias)->(Eof())
+		// Informa ao usuário
+		WK():ApMsgStop("Não foi localizado nenhum produto!" + CRLF + CRLF + "Verifique os dados informados.")
+	Else
+		// Se for o modelo 1
+		If n_Modelo == 1
+			_cModelo := "Modelo 1"
+		EndIf
+
+		// Se for o modelo 2
+		If n_Modelo == 2
+			_cModelo := "Modelo 2"
+		EndIf
+
+		// Se for o modelo 3
+		If n_Modelo == 3
+			_cModelo := "Modelo 3"
+		EndIf
+
+		// Se for o modelo 4
+		If n_Modelo == 4
+			_cModelo := "Especifico Betania"
+		EndIf
+
+		DbSelectArea("SB1")
+		DbSetOrder(1)
+		DbSeek(xFilial("SB1")+c_Produto)
+
+		_cMensagem := "Será impresso etiqueta para os dados abaixo: " + CRLF
+		_cMensagem += CRLF
+		_cMensagem += "Produto: " + c_Produto + CRLF
+		_cMensagem += "Descriçâo: " + Alltrim(SB1->B1_DESC) + CRLF
+		_cMensagem += "Lote: " + c_LoteCtl + CRLF
+		_cMensagem += "Armazem: " + c_Armazem + CRLF
+		_cMensagem += "Tipo da etiqueta: " + _cModelo + CRLF
+		_cMensagem += "Quantidade de cópias: " + AllTrim(Str(n_QtdCopias)) + CRLF
+		_cMensagem += CRLF
+		_cMensagem += "Deseja continuar?"
+
+		// Se o usuário confirmar
+		If cEmbEan == "EAN"
+			If WK():MsgSimNao(_cMensagem)
+				// Executa a impressão
+				sf_Executa(_cAlias,n_Modelo,n_QtdCopias,cEmbEan)
+			EndIf
+		Else
+			// Executa a impressão
+			sf_Executa(_cAlias,n_Modelo,n_QtdCopias,cEmbEan)
+		EndIf
+	EndIf
+
+	// Encerra o alias
+	(_cAlias)->(DbCloseArea())
+
+Return Nil
+
+/*/{Protheus.doc} sf_MakeQuery
+	(Função para buscar as informações.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Produto, character, contém o código do produto
+	@param c_LoteCtl, character, contém o lote
+	@param c_Armazem, character, contém o armazem
+
+	@return character, contém o alias da query
+	/*/
+Static Function sf_MakeQuery(c_Produto,c_LoteCtl,c_Armazem)
+
+	Local _cSelect := ""
+	Local _cAlias := GetNextAlias()
+
+	Default c_Produto := ""
+	Default c_LoteCtl := ""
+	Default c_Armazem := ""
+
+	// Se o campo B1__CODANV existir
+	If SB1->(FieldPos("B1__CODANV")) > 0
+		_cSelect += ",SB1.B1__CODANV"
+	Else
+		_cSelect += ",'' B1__CODANV"
+	EndIf
+
+	// Se o campo B1__CODEAN existir
+	If SB1->(FieldPos("B1__CODEAN")) > 0
+		_cSelect += ",SB1.B1__CODEAN"
+	Else
+		_cSelect += ",'' B1__CODEAN"
+	EndIf
+
+	_cSelect := "%" + _cSelect + "%"
+
+	// Monta a query
+	BeginSql Alias _cAlias
+		COLUMN B8_DFABRIC AS DATE
+		COLUMN B8_DTVALID AS DATE
+
+		SELECT TOP 1 //DISTINCT comentado para solução paliativa chamado 
+			 SB8.B8_LOTECTL
+			,SB8.B8_LOCAL
+			,SB1.B1_COD
+			,SB1.B1_DESC
+			,SB8.B8_DFABRIC
+			,SB8.B8_DTVALID
+			,SB8.B8_SALDO
+			,SA2.A2_NREDUZ
+			,SA2.A2_PAIS
+			,SB1.B1_VEREAN
+			,SYA.YA_DESCR 
+			%Exp:_cSelect%
+		FROM %Table:SB8% SB8
+
+		INNER JOIN %Table:SB1% SB1 ON
+			SB1.%NotDel%
+			AND SB1.B1_FILIAL = %xFilial:SB1%
+			AND SB1.B1_COD = SB8.B8_PRODUTO 
+
+		LEFT OUTER JOIN %Table:SA2% SA2 ON 
+			SA2.%NotDel%
+			AND SA2.A2_FILIAL = %xFilial:SA2%
+			AND SA2.A2_COD = SB8.B8_CLIFOR
+
+		LEFT OUTER JOIN %Table:SYA% SYA ON 
+			SYA.%NotDel%
+			AND SYA.YA_FILIAL = %xFilial:SYA%
+			AND SYA.YA_CODGI = SA2.A2_PAIS
+
+		WHERE 
+			SB8.%NotDel%
+			AND SB8.B8_FILIAL = %xFilial:SB8%
+			AND SB8.B8_PRODUTO = %Exp:c_Produto%
+			AND SB8.B8_LOTECTL = %Exp:c_LoteCtl%
+			AND SB8.B8_LOCAL = %Exp:c_Armazem% 
+
+		ORDER BY 
+			 SB8.B8_LOTECTL
+			,SB1.B1_COD
+			,SB8.B8_DTVALID
+	EndSql 
+
+Return _cAlias
+
+/*/{Protheus.doc} sf_Executa
+	(Função para executar a etiqueta.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param n_Modelo, numerico, contém o modelo
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+	/*/
+Static Function sf_Executa(c_Alias,n_Modelo,n_QtdCopias,cEmbEan)
+
+	Local _cNomeArq := ""
+	Local _cTexto := ""
+
+	Local _aEmpresa := {}
+
+	Default c_Alias := ""
+	
+	Default n_Modelo := 0
+	Default n_QtdCopias := 0
+
+	_aEmpresa := {"",""}
+
+	// Se for o modelo 1
+	If n_Modelo == 1 .Or. n_Modelo == 4
+		// Se for a empresa 01 ou 02
+		If cEmpAnt $ "01|02"
+			// Busca a informação da empresa
+			_aEmpresa[01] := MemoRead("\system\etiqueta\KotaImports_Modelo01.txt")
+
+			If cEmpAnt == "01"
+				If n_Modelo == 4
+					_cNomeArq := "KOTAIMPORTS_MODELO_ESP_BETANIA.etiqueta"
+				Else 
+					_cNomeArq := "KOTAIMPORTS_MODELO_01.etiqueta"
+				EndIf
+			ElseIf cEmpAnt == "02"
+				If n_Modelo == 4
+					_cNomeArq := "KOTADENTAL_MODELO_ESP_BETANIA.etiqueta"
+				Else
+					_cNomeArq := "KOTADENTAL_MODELO_01.etiqueta"
+				EndIf
+			EndIf
+		EndIf
+
+		// Se for a empresa 03
+		If cEmpAnt == "03"
+			// Busca a informação da empresa
+			_aEmpresa[01] := MemoRead("\system\etiqueta\KotaIndustria_Modelo01.txt")	// \system\etiq\etiq-pq-ind.txt
+			_aEmpresa[02] := MemoRead("\system\etiqueta\Visolux_Modelo01.txt")			// \system\etiq\etiq-pq-visolux.txt
+		EndIf
+	EndIf
+
+	// Se for o modelo 2
+	If n_Modelo == 2
+		// Se for a empresa 01 ou 02
+		If cEmpAnt $ "01|02"
+			// Busca a informação da empresa
+			_aEmpresa[01] := MemoRead("\system\etiqueta\KotaImports_Modelo02.txt")	// \system\etiq\etiq-gd-imp.txt
+
+			If cEmpAnt == "01"
+				_cNomeArq := "KOTAIMPORTS_MODELO_02.etiqueta"
+			ElseIf cEmpAnt == "02"
+				_cNomeArq := "KOTADENTAL_MODELO_02.etiqueta"
+			EndIf
+		EndIf
+
+		// Se for a empresa 03
+		If cEmpAnt == "03"
+			// Busca a informação da empresa
+			_aEmpresa[01] := MemoRead("\system\etiqueta\KotaIndustria_Modelo02.txt")	// \system\etiq\etiq-gd-ind.txt
+
+			_cNomeArq := "KOTAINDUSTRIA_MODELO_02.etiqueta"
+		EndIf
+
+		// Se for a empresa 04
+		If cEmpAnt == "04"
+			// Busca a informação da empresa
+			//_aEmpresa[01] := MemoRead("\system\etiqueta\KotaEquipamentos_Modelo02.txt")	// \system\etiq\etiq_kazume_mod2.txt
+
+			_cNomeArq := "KOTAEQUIPAMENTOS_MODELO_02.etiqueta"
+		EndIf
+
+		// Se for a empresa 05
+		If cEmpAnt == "05"
+			// Busca a informação da empresa
+			_aEmpresa[01] := MemoRead("\system\etiqueta\KotaKnebel_Modelo02.txt")	// \system\etiq\etiqknebel.prn
+
+			_cNomeArq := "KOTAKNEBEL_MODELO_02.etiqueta"
+		EndIf
+
+		// Se for a empresa 06
+		If cEmpAnt == "06"
+			// Busca a informação da empresa
+			_aEmpresa[01] := MemoRead("\system\etiqueta\KotaFashion_Modelo02.txt")	// \system\etiq\etiq-gd-fashion.txt
+
+			_cNomeArq := "KOTAFASHION_MODELO_02.etiqueta"
+		EndIf
+	EndIf
+
+	// Se for o modelo 3
+	If n_Modelo == 3
+		_cNomeArq := "KOTA_MODELO_03.etiqueta"
+	EndIf
+
+	// Enquanto não for final de arquivo
+	While (c_Alias)->(!Eof())
+		// Se for o modelo 1
+		If n_Modelo == 1
+			// Se for a empresa 03
+			If cEmpAnt == "03"
+				// Se for o produto 301110001
+				If (c_Alias)->B1_COD == "301110001"
+					// Monta a etiqueta do modelo 1B
+					_cTexto += sf_Mod01B(c_Alias,_aEmpresa[2],n_QtdCopias)
+				Else
+					// Monta a etiqueta do modelo 1A
+					_cTexto += sf_Mod01a(c_Alias,_aEmpresa[1],n_QtdCopias)
+				EndIf
+			Else
+				// Monta a etiqueta do modelo 1
+				_cTexto += sf_Modelo01(c_Alias,_aEmpresa[1],n_QtdCopias)
+			EndIf
+		EndIf
+
+		// Se for o modelo 2
+		If n_Modelo == 2
+			// Se for a empresa 06
+			If cEmpAnt == "06"
+				// Monta a etiqueta do modelo 2A
+				_cTexto += sf_Mod02A(c_Alias,_aEmpresa[1],n_QtdCopias)
+			Else
+				// Monta a etiqueta do modelo 2
+				_cTexto += sf_Mod02(c_Alias,_aEmpresa[1],n_QtdCopias)
+			EndIf
+		EndIf
+
+		// Se for o modelo 3
+		If n_Modelo == 3
+			// Se for a empresa 03
+			If cEmpAnt == "03"
+				// Monta a etiqueta do modelo 3A
+				_cTexto += sf_Mod03A(c_Alias,n_QtdCopias)
+			Else
+				// Monta a etiqueta do modelo 3
+				_cTexto += sf_Mod03(c_Alias,n_QtdCopias)
+			EndIf
+		EndIf
+
+		// Se for o modelo 4 - especifico betania
+		If n_Modelo == 4
+			// Monta a etiqueta do modelo 3
+			_cTexto += sf_ModeloEspBetania(c_Alias,_aEmpresa[1],n_QtdCopias,cEmbEan)
+		EndIf
+
+		// Vai para o proximo registro
+		(c_Alias)->(DbSkip())
+	EndDo
+
+	// Se tiver o texto
+	If !Empty(_cTexto)
+		// Grava o arquivo da etiqueta
+		MemoWrite(X_PATH + _cNomeArq,_cTexto)
+
+		// Manda imprimir a etiqueta
+		Winexec("cmd /c type " + X_PATH + _cNomeArq + " > LPT1")
+	EndIf
+
+Return Nil
+
+/*/{Protheus.doc} sf_Modelo01
+	(Função para montar o modelo 01.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param c_Empresa, character, contém os dados da empresa
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+	/*/
+Static Function sf_Modelo01(c_Alias,c_Empresa,n_QtdCopias)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cLinha05 := ""
+	Local _cLinha06 := ""
+	Local _cLinha07 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+
+	Default c_Alias := ""
+	Default c_Empresa := ""
+
+	Default n_QtdCopias := 0
+
+	// Monta as linhas da etiqueta
+	_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+	_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha03 := X_ASPAS + SubStr((c_Alias)->B1_DESC,1,38) + X_ASPAS + X_ENTER
+	_cLinha04 := X_ASPAS + IIf(Len((c_Alias)->B1_DESC) > 38 .And. !Empty(AllTrim(SubStr((c_Alias)->B1_DESC,39))),SubStr((c_Alias)->B1_DESC,39),"") + "R.Anvisa." + AllTrim((c_Alias)->B1__CODANV) + X_ASPAS + X_ENTER
+	_cLinha05 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+	_cLinha06 := X_ASPAS + "F:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + " V:" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha07 := X_ASPAS + AllTrim((c_Alias)->A2_NREDUZ) + "/" + AllTrim((c_Alias)->YA_DESCR) + X_ASPAS + X_ENTER
+
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		// Se for numero impar
+		If Mod(_nCount,2) <> 0
+			_cTexto += X_ENTER
+			_cTexto += X_ENTER
+			_cTexto += "Q128,019" + X_ENTER
+			_cTexto += "q831" + X_ENTER
+			_cTexto += "rN" + X_ENTER
+			_cTexto += "S1" + X_ENTER
+			_cTexto += "D7" + X_ENTER
+			_cTexto += "ZT" + X_ENTER
+			_cTexto += "JB" + X_ENTER
+			_cTexto += "OD" + X_ENTER
+			_cTexto += "R0,0" + X_ENTER
+			_cTexto += "N" + X_ENTER
+
+			_cTexto += "B9,0,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B15,71,0,1,1,30,30,N," + _cLinha02
+			_cTexto += "A8,40,0,1,1,1,N," + _cLinha03
+			_cTexto += "A8,52,0,1,1,1,N," + _cLinha04
+			_cTexto += "A217,00,0,1,1,1,N," + _cLinha05
+			_cTexto += "A217,12,0,1,1,1,N," + _cLinha06
+			_cTexto += "A217,24,0,1,1,1,N," + _cLinha07
+			_cTexto += "GW187,65,26,30," + c_Empresa
+		Else
+			_cTexto += "B433,0,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B440,71,0,1,1,30,30,N," + _cLinha02
+			_cTexto += "A432,40,0,1,1,1,N," + _cLinha03
+			_cTexto += "A432,52,0,1,1,1,N," + _cLinha04
+			_cTexto += "A641,00,0,1,1,1,N," + _cLinha05
+			_cTexto += "A641,12,0,1,1,1,N," + _cLinha06
+			_cTexto += "A641,24,0,1,1,1,N," + _cLinha07
+			_cTexto += "GW611,65,26,30," + c_Empresa
+		EndIf
+
+		// Se for a ultima copia ou for numero par
+		If _nCount == n_QtdCopias .Or. Mod(_nCount,2) == 0
+			_cTexto += "P1" + X_ENTER
+		EndIf
+	Next
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_Mod01a
+	(Função para montar o modelo 01A.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param c_Empresa, character, contém os dados da empresa
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+	/*/
+Static Function sf_Mod01a(c_Alias,c_Empresa,n_QtdCopias)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cLinha05 := ""
+	Local _cLinha06 := ""
+	Local _cLinha07 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+
+	Default c_Alias := ""
+	Default c_Empresa := ""
+
+	Default n_QtdCopias := 0
+
+	// Monta as linhas da etiqueta
+	_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+	_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha03 := X_ASPAS + SubStr((c_Alias)->B1_DESC,1,38) + X_ASPAS + X_ENTER
+	_cLinha04 := X_ASPAS + IIf(Len((c_Alias)->B1_DESC) > 38 .And. !Empty(AllTrim(SubStr((c_Alias)->B1_DESC,39))),SubStr((c_Alias)->B1_DESC,39),"") + "R.Anvisa." + AllTrim((c_Alias)->B1__CODANV) + X_ASPAS + X_ENTER
+	_cLinha05 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+	_cLinha06 := X_ASPAS + "F:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + " V:" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha07 := X_ASPAS + AllTrim((c_Alias)->A2_NREDUZ) + "/" + AllTrim((c_Alias)->YA_DESCR) + X_ASPAS + X_ENTER
+
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		// Se for numero impar
+		If Mod(_nCount,2) <> 0
+			_cTexto += X_ENTER
+			_cTexto += X_ENTER
+			_cTexto += "Q128,019" + X_ENTER
+			_cTexto += "q831" + X_ENTER
+			_cTexto += "rN" + X_ENTER
+			_cTexto += "S1" + X_ENTER
+			_cTexto += "D7" + X_ENTER
+			_cTexto += "ZT" + X_ENTER
+			_cTexto += "JB" + X_ENTER
+			_cTexto += "OD" + X_ENTER
+			_cTexto += "R0,0" + X_ENTER
+			_cTexto += "N" + X_ENTER
+
+			_cTexto += "B9,9,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B15,80,0,1,1,30,30,N," + _cLinha02
+			_cTexto += "A8,49,0,1,1,1,N," + _cLinha03
+			_cTexto += "A8,61,0,1,1,1,N," + _cLinha04
+			_cTexto += "A217,9,0,1,1,1,N," + _cLinha05
+			_cTexto += "A217,21,0,1,1,1,N," + _cLinha06
+			_cTexto += "A217,33,0,1,1,1,N," + _cLinha07
+			_cTexto += "GW189,84,28,42," + c_Empresa
+		Else
+			_cTexto += "B433,9,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B440,80,0,1,1,30,30,N," + _cLinha02
+			_cTexto += "A432,49,0,1,1,1,N," + _cLinha03
+			_cTexto += "A432,61,0,1,1,1,N," + _cLinha04
+			_cTexto += "A641,9,0,1,1,1,N," + _cLinha05
+			_cTexto += "A641,21,0,1,1,1,N," + _cLinha06
+			_cTexto += "A641,33,0,1,1,1,N," + _cLinha07
+			_cTexto += "GW613,84,28,42," + c_Empresa
+		EndIf
+
+		// Se for a ultima copia ou for numero par
+		If _nCount == n_QtdCopias .Or. Mod(_nCount,2) == 0
+			_cTexto += "P1" + X_ENTER
+		EndIf
+	Next
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_Mod01B
+	(Função para montar o modelo 01B.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param c_Empresa, character, contém os dados da empresa
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+	/*/
+Static Function sf_Mod01B(c_Alias,c_Empresa,n_QtdCopias)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cLinha05 := ""
+	Local _cLinha06 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+
+	Default c_Alias := ""
+	Default c_Empresa := ""
+
+	Default n_QtdCopias := 0
+
+	// Monta as linhas da etiqueta
+	_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+	_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha03 := X_ASPAS + "VISOLUX(20ML)" + X_ASPAS + X_ENTER
+	_cLinha04 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+	_cLinha05 := X_ASPAS + "F:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + " V:" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha06 := X_ASPAS + " " + X_ASPAS + X_ENTER
+
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		// Se for numero impar
+		If Mod(_nCount,2) <> 0
+			_cTexto += X_ENTER
+			_cTexto += X_ENTER
+			_cTexto += "Q128,019" + X_ENTER
+			_cTexto += "q831" + X_ENTER
+			_cTexto += "rN" + X_ENTER
+			_cTexto += "S1" + X_ENTER
+			_cTexto += "D7" + X_ENTER
+			_cTexto += "ZT" + X_ENTER
+			_cTexto += "JB" + X_ENTER
+			_cTexto += "OD" + X_ENTER
+			_cTexto += "R0,0" + X_ENTER
+			_cTexto += "N" + X_ENTER
+
+			_cTexto += "B9,9,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B14,87,0,1,1,3,23,N," + _cLinha02
+			_cTexto += "A8,49,0,1,1,1,N," + _cLinha03
+			_cTexto += "A8,61,0,1,1,1,N," + _cLinha04
+			_cTexto += "A8,73,0,1,1,1,N," + _cLinha05
+			_cTexto += "A220,14,0,1,1,1,N," + _cLinha06
+			_cTexto += "GW191,51,7,42," + c_Empresa
+		Else
+			_cTexto += "B433,9,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B438,87,0,1,1,3,23,N," + _cLinha02
+			_cTexto += "A432,49,0,1,1,1,N," + _cLinha03
+			_cTexto += "A432,61,0,1,1,1,N," + _cLinha04
+			_cTexto += "A432,73,0,1,1,1,N," + _cLinha05
+			_cTexto += "A644,14,0,1,1,1,N," + _cLinha06
+			_cTexto += "GW615,51,7,42," + c_Empresa
+		EndIf
+
+		// Se for a ultima copia ou for numero par
+		If _nCount == n_QtdCopias .Or. Mod(_nCount,2) == 0
+			_cTexto += "P1" + X_ENTER
+		EndIf
+	Next
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_Mod02
+	(Função para montar o modelo 02.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param c_Empresa, character, contém os dados da empresa
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+	/*/
+Static Function sf_Mod02(c_Alias,c_Empresa,n_QtdCopias)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cLinha05 := ""
+	Local _cLinha06 := ""
+	Local _cLinha07 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+
+	Default c_Alias := ""
+	Default c_Empresa := ""
+
+	Default n_QtdCopias := 0
+
+	// Monta as linhas da etiqueta
+	_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+	_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha03 := X_ASPAS + SubStr((c_Alias)->B1_DESC,1,45) + X_ASPAS + X_ENTER
+	_cLinha04 := X_ASPAS + IIf(Len((c_Alias)->B1_DESC) > 45 .and. !Empty(AllTrim(SubStr((c_Alias)->B1_DESC,46))),SubStr((c_Alias)->B1_DESC,46),"") + " R.Anvisa." + AllTrim((c_Alias)->B1__CODANV) + X_ASPAS + X_ENTER
+
+	// Se for empresa 03 ou 05
+	If cEmpAnt $ "03|05"
+		_cLinha05 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+		_cLinha06 := X_ASPAS + "F:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + "-" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	Else
+		_cLinha05 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+		_cLinha06 := X_ASPAS + "VAL:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + "-" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+		_cLinha07 := X_ASPAS + "FAB:" + AllTrim((c_Alias)->A2_NREDUZ) + X_ASPAS + X_ENTER
+		_cLinha08 := X_ASPAS + "ORIGEM:" + AllTrim((c_Alias)->YA_DESCR) + X_ASPAS + X_ENTER
+	EndIf
+
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		_cTexto += X_ENTER
+		_cTexto += X_ENTER
+		_cTexto += "Q216,019" + X_ENTER
+		_cTexto += "q831" + X_ENTER
+		_cTexto += "rN" + X_ENTER
+		_cTexto += "S1" + X_ENTER
+		_cTexto += "D7" + X_ENTER
+		_cTexto += "ZT" + X_ENTER
+		_cTexto += "JB" + X_ENTER
+		_cTexto += "OD" + X_ENTER
+		_cTexto += "R152,0" + X_ENTER
+		_cTexto += "N" + X_ENTER
+		_cTexto += "GW252,116,32,70," + c_Empresa
+		_cTexto += "B47,19,0,E30,2,4,40,B," + _cLinha01
+		_cTexto += "B56,137,0,1,1,3,31,N," + _cLinha02
+		_cTexto += "A50,83,0,1,1,1,N," + _cLinha03
+		_cTexto += "A50,95,0,1,1,1,N," + _cLinha04
+		_cTexto += "A262,20,0,1,1,1,N,"  + _cLinha05
+		_cTexto += "A262,32,0,1,1,1,N," + _cLinha06
+
+		// Se não for empresa 03 ou 05
+		If !(cEmpAnt $ "03|05")
+			_cTexto += "A262,44,0,1,1,1,N," + _cLinha07
+			_cTexto += "A262,56,0,1,1,1,N," + _cLinha08
+		EndIf
+
+		// Se for empresa 04
+		If cEmpAnt == "04"
+			_cTexto += "A220,120,0,1,1,1,N," + X_ASPAS + "MARA KAZUME T.EQUIPTOS-EPP" + X_ASPAS + X_ENTER
+			_cTexto += "A220,132,0,1,1,1,N," + X_ASPAS + "14.346.611/0001-09" + X_ASPAS + X_ENTER
+			_cTexto += "A220,144,0,1,1,1,N," + X_ASPAS + "(11)4617-4168" + X_ASPAS + X_ENTER
+			_cTexto += "A220,156,0,1,1,1,N," + X_ASPAS + "VER INSTRUÇÃO DE USO" + X_ASPAS + X_ENTER
+			_cTexto += "A220,168,0,1,1,1,N," + X_ASPAS + "R.T.: GLAUCIA K.K. TAMAKE" + X_ASPAS  + X_ENTER
+			_cTexto += "A220,180,0,1,1,1,N," + X_ASPAS + "CRO 17508" + X_ASPAS + X_ENTER
+		EndIf
+
+		_cTexto += "P1" + X_ENTER
+	Next
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_Mod02A
+	(Função para montar o modelo 02A.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param c_Empresa, character, contém os dados da empresa
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+	/*/
+Static Function sf_Mod02A(c_Alias,c_Empresa,n_QtdCopias)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+
+	Default c_Alias := ""
+	Default c_Empresa := ""
+
+	Default n_QtdCopias := 0
+
+	// Monta as linhas da etiqueta
+	_cLinha01 := "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL)
+	_cLinha02 := "CODIGO:" + SubStr((c_Alias)->B1_COD,1,9)
+	_cLinha03 := AllTrim((c_Alias)->B1_DESC)
+	_cLinha04 := SubStr((c_Alias)->B1_COD,1,9)
+
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		_cTexto += "^XA" + X_ENTER
+		_cTexto += X_ENTER
+		_cTexto += "^FX DADOS DO PRODUTO" + X_ENTER
+		_cTexto += "^CFA,15" + X_ENTER
+		_cTexto += "^MD30" + X_ENTER
+		_cTexto += "^FO200,15^FD" + _cLinha01 + "^FS" + X_ENTER
+		_cTexto += "^FO200,35^FD" + _cLinha02 + "^FS" + X_ENTER
+		_cTexto += "^FO200,55^FD" + _cLinha03 + "^FS" + X_ENTER
+		_cTexto += X_ENTER
+		_cTexto += "^FX DADOS DA EMPRESA" + X_ENTER
+		_cTexto += "^CF0,14" + X_ENTER
+		_cTexto += "^MD30" + X_ENTER
+		_cTexto += "^FO200,85^FDKOTA UNIFORMES FASHION 2 EIRELI^FS" + X_ENTER
+		_cTexto += "^FO200,103^FDCNPJ: 17.298.131/0001-08^FS" + X_ENTER
+		_cTexto += "^FO200,121^FDR. IRIS MEMBERG, 80 - COTIA/SP - CEP: 06705-150 - (11)4615-9206^FS" + X_ENTER
+		_cTexto += X_ENTER
+		_cTexto += "^FX CODIGO DE BARRA" + X_ENTER
+		_cTexto += "^FO270,150" + X_ENTER
+		_cTexto += "^BC,40,N" + X_ENTER
+		_cTexto += "^FD" + _cLinha04 + "^FS" + X_ENTER
+		_cTexto += X_ENTER
+		_cTexto += "^XZ" + X_ENTER
+	Next
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_Mod03
+	(Função para montar o modelo 03.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+	/*/
+Static Function sf_Mod03(c_Alias,n_QtdCopias)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cLinha05 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+	Local _nPosicao := 0
+
+	Default c_Alias := ""
+
+	Default n_QtdCopias := 0
+
+	// Monta as linhas da etiqueta
+	_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+	_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha03 := X_ASPAS + (c_Alias)->B1_DESC + X_ASPAS + X_ENTER
+	_cLinha04 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+	_cLinha05 := X_ASPAS + "VAL:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + "-" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		// Soma um
+		_nPosicao++
+
+		// Se for posição 1
+		If _nPosicao == 1
+			_cTexto += "Q184,019"
+			_cTexto += "q831"
+			_cTexto += "rN"
+			_cTexto += "S4"
+			_cTexto += "D7"
+			_cTexto += "ZT"
+			_cTexto += "JB"
+			_cTexto += "OD"
+			_cTexto += "R16,0"
+			_cTexto += "N"
+			_cTexto += "B56,31,0,E30,2,4,40,B," + _cLinha01
+			_cTexto += "B70,124,0,1,1,3,31,N," + _cLinha02
+			_cTexto += "A46,82,0,1,1,1,N," + _cLinha03
+			_cTexto += "A73,97,0,1,1,1,N," + _cLinha04
+			_cTexto += "A73,109,0,1,1,1,N," + _cLinha05
+		EndIf
+
+		// Se for posição 2
+		If _nPosicao == 2
+			_cTexto += "B296,31,0,E30,2,4,40,B," + _cLinha01
+			_cTexto += "B310,124,0,1,1,3,31,N," + _cLinha02
+			_cTexto += "A286,82,0,1,1,1,N," + _cLinha03
+			_cTexto += "A313,97,0,1,1,1,N," + _cLinha04
+			_cTexto += "A313,109,0,1,1,1,N," + _cLinha05
+		EndIf
+
+		// Se for posição 3
+		If _nPosicao == 3
+			_cTexto += "B535,31,0,E30,2,4,40,B," + _cLinha01
+			_cTexto += "B549,124,0,1,1,3,31,N," + _cLinha02
+			_cTexto += "A525,82,0,1,1,1,N," + _cLinha03
+			_cTexto += "A552,97,0,1,1,1,N," + _cLinha04
+			_cTexto += "A552,109,0,1,1,1,N," + _cLinha05
+			
+			// Zera a posição
+			_nPosicao := 0
+		EndIf
+
+		// Se for a ultima copia ou for numero 3
+		If _nCount == n_QtdCopias .Or. _nPosicao == 3
+			_cTexto += "P1" + X_ENTER
+		EndIf
+	Next
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_Mod03A
+	(Função para montar o modelo 03A.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+	/*/
+Static Function sf_Mod03A(c_Alias,n_QtdCopias)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cLinha05 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+	Local _nPosicao := 0
+
+	Default c_Alias := ""
+
+	Default n_QtdCopias := 0
+
+	// Monta as linhas da etiqueta
+	_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+	_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	_cLinha03 := X_ASPAS + (c_Alias)->B1_DESC + X_ASPAS + X_ENTER
+	_cLinha04 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+	_cLinha05 := X_ASPAS + "VAL:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + "-" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		// Soma um
+		_nPosicao++
+
+		// Se for posição 1
+		If _nPosicao == 1
+			_cTexto += "Q184,019"
+			_cTexto += "q831"
+			_cTexto += "rN"
+			_cTexto += "S4"
+			_cTexto += "D7"
+			_cTexto += "ZT"
+			_cTexto += "JB"
+			_cTexto += "OD"
+			_cTexto += "R16,0"
+			_cTexto += "N"
+			_cTexto += "B16,23,0,E30,2,4,40,B," + _cLinha01
+			_cTexto += "B30,116,0,1,1,3,31,N," + _cLinha02
+			_cTexto += "A4,74,0,1,1,1,N," + _cLinha03
+			_cTexto += "A4,89,0,1,1,1,N," + _cLinha04
+			_cTexto += "A4,101,0,1,1,1,N," + _cLinha05
+		EndIf
+
+		// Se for posição 2
+		If _nPosicao == 2
+			_cTexto += "B256,23,0,E30,2,4,40,B," + _cLinha01
+			_cTexto += "B270,116,0,1,1,3,31,N," + _cLinha02
+			_cTexto += "A244,74,0,1,1,1,N," + _cLinha03
+			_cTexto += "A244,89,0,1,1,1,N," + _cLinha04
+			_cTexto += "A244,101,0,1,1,1,N," + _cLinha05
+		EndIf
+
+		// Se for posição 3
+		If _nPosicao == 3
+			_cTexto += "B496,23,0,E30,2,4,40,B," + _cLinha01
+			_cTexto += "B510,116,0,1,1,3,31,N," + _cLinha02
+			_cTexto += "A484,74,0,1,1,1,N," + _cLinha03
+			_cTexto += "A484,89,0,1,1,1,N," + _cLinha04
+			_cTexto += "A484,101,0,1,1,1,N," + _cLinha05
+			
+			// Zera a posição
+			_nPosicao := 0
+		EndIf
+
+		// Se for a ultima copia ou for numero 3
+		If _nCount == n_QtdCopias .Or. _nPosicao == 3
+			_cTexto += "P1" + X_ENTER
+		EndIf
+	Next
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_ModeloEspBetania
+	(Função para montar o modelo especifico betania.)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param c_Alias, character, contém o alias da query
+	@param c_Empresa, character, contém os dados da empresa
+	@param n_QtdCopias, numerico, contém a quantidade de copias
+
+	@return character, contém a etiqueta montada
+
+	@obs Esse modelo foi desenvolvido devido a impressora da betania esta desconfigurada.
+	/*/
+Static Function sf_ModeloEspBetania(c_Alias,c_Empresa,n_QtdCopias,cEmbEan)
+
+	Local _cLinha01 := ""
+	Local _cLinha02 := ""
+	Local _cLinha03 := ""
+	Local _cLinha04 := ""
+	Local _cLinha05 := ""
+	Local _cLinha06 := ""
+	Local _cLinha07 := ""
+	Local _cTexto := ""
+
+	Local _nCount := 0
+
+	Default c_Alias := ""
+	Default c_Empresa := ""
+
+	Default n_QtdCopias := 0
+
+// Monta as linhas da etiqueta
+	If cEmbEan == "EAN"
+		_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+		_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+		_cLinha03 := X_ASPAS + SubStr((c_Alias)->B1_DESC,1,38) + X_ASPAS + X_ENTER
+		_cLinha04 := X_ASPAS + IIf(Len((c_Alias)->B1_DESC) > 38 .And. !Empty(AllTrim(SubStr((c_Alias)->B1_DESC,39))),SubStr((c_Alias)->B1_DESC,39),"") + "R.Anvisa." + AllTrim((c_Alias)->B1__CODANV) + X_ASPAS + X_ENTER
+		_cLinha05 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+		_cLinha06 := X_ASPAS + "F:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + " V:" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+		_cLinha07 := X_ASPAS + AllTrim((c_Alias)->A2_NREDUZ) + "/" + AllTrim((c_Alias)->YA_DESCR) + X_ASPAS + X_ENTER
+	else
+		_cLinha01 := X_ASPAS + "" + X_ASPAS + X_ENTER
+		If cCodigoCB0 <> "N CONT END"//IDENTIFICAR ITENS Q AINDA NAO ATIVARAM ENDEREÇO
+			_cLinha02 := X_ASPAS + cCodigoCB0 + X_ASPAS + X_ENTER
+		Else
+			_cLinha02 := X_ASPAS + "" + X_ASPAS + X_ENTER
+		EndIf
+		_cLinha03 := X_ASPAS + SubStr((c_Alias)->B1_DESC,1,38) + X_ASPAS + X_ENTER
+		If cCodigoCB0 <> "N CONT END"//IDENTIFICAR ITENS Q AINDA NAO ATIVARAM ENDEREÇO
+			_cLinha04 := X_ASPAS + "COD ETQ:" +  AllTrim(cCodigoCB0)   + X_ASPAS + X_ENTER
+		Else
+			_cLinha04 := X_ASPAS + "/// N CONT END \\\"   + X_ASPAS + X_ENTER
+		EndIf
+		_cLinha05 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+		_cLinha06 := X_ASPAS + "F:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + " V:" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	
+		_cLinha07 := X_ASPAS + "" + X_ASPAS + X_ENTER
+	
+	EndIf
+
+/*
+
+	// Monta as linhas da etiqueta
+		
+	If cEmbEan == "EAN"  //imprime EAN
+		_cLinha01 := X_ASPAS + AllTrim((c_Alias)->B1__CODEAN) + X_ASPAS + X_ENTER
+		_cLinha02 := X_ASPAS + SubStr((c_Alias)->B1_COD,1,9) + AllTrim((c_Alias)->B8_LOTECTL) + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),5,2) + SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+		
+	Else //imprime embalagem cb0
+		//_cLinha04 := X_ASPAS +"Orig.:"+AllTrim((c_Alias)->B8_LOCAL)+ X_ASPAS + X_ENTER
+		If cCodigoCB0 <> "N CONT END"//IDENTIFICAR ITENS Q AINDA NAO ATIVARAM ENDEREÇO
+			_cLinha02 := X_ASPAS + cCodigoCB0 + X_ASPAS + X_ENTER
+		Else
+			_cLinha02 := X_ASPAS + "" + X_ASPAS + X_ENTER
+		EndIf
+	EndIf	
+
+	_cLinha03 := X_ASPAS + SubStr((c_Alias)->B1_DESC,1,38) + X_ASPAS + X_ENTER
+	_cLinha04 := X_ASPAS + IIf(Len((c_Alias)->B1_DESC) > 38 .And. !Empty(AllTrim(SubStr((c_Alias)->B1_DESC,39))),SubStr((c_Alias)->B1_DESC,39),"") + "R.Anvisa." + AllTrim((c_Alias)->B1__CODANV) + X_ASPAS + X_ENTER
+	_cLinha05 := X_ASPAS + "LOTE:" + AllTrim((c_Alias)->B8_LOTECTL) + X_ASPAS + X_ENTER
+	_cLinha06 := X_ASPAS + "F:" + sf_TextoMes((c_Alias)->B8_DFABRIC) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DFABRIC),3,2)) + " V:" + sf_TextoMes((c_Alias)->B8_DTVALID) + "/" + AllTrim(SubStr(DToS((c_Alias)->B8_DTVALID),3,2)) + X_ASPAS + X_ENTER
+	
+	If cEmbEan == "EAN"  //linha para EAN
+		cLinha07 := X_ASPAS + AllTrim((c_Alias)->A2_NREDUZ) + "/" + AllTrim((c_Alias)->YA_DESCR) + X_ASPAS + X_ENTER
+	Else //linha para embalagem
+		If cCodigoCB0 <> "N CONT END"//IDENTIFICAR ITENS Q AINDA NAO ATIVARAM ENDEREÇO
+			_cLinha07 := X_ASPAS + "Qtde.Emb.: " +  AllTrim(str(nqtde))   + X_ASPAS + X_ENTER
+		Else
+			_cLinha07 := X_ASPAS + "*** N CONT END ***" + X_ASPAS + X_ENTER
+		EndIf
+	EndIf	
+	
+*/
+
+
+
+// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		// Se for numero impar
+		If Mod(_nCount,2) <> 0
+			_cTexto += X_ENTER
+			_cTexto += X_ENTER
+			_cTexto += "Q128,019" + X_ENTER
+			_cTexto += "q831" + X_ENTER
+			_cTexto += "rN" + X_ENTER
+			_cTexto += "S1" + X_ENTER
+			_cTexto += "D7" + X_ENTER
+			_cTexto += "ZT" + X_ENTER
+			_cTexto += "JB" + X_ENTER
+			_cTexto += "OD" + X_ENTER
+			_cTexto += "R0,0" + X_ENTER 	
+			_cTexto += "N" + X_ENTER
+
+			_cTexto += "B17,0,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B23,71,0,1,1,30,30,N," + _cLinha02
+			_cTexto += "A16,40,0,1,1,1,N," + _cLinha03
+			_cTexto += "A16,52,0,1,1,1,N," + _cLinha04
+			_cTexto += "A225,00,0,1,1,1,N," + _cLinha05
+			_cTexto += "A225,12,0,1,1,1,N," + _cLinha06
+			_cTexto += "A225,24,0,1,1,1,N," + _cLinha07
+			_cTexto += "GW195,65,26,30," + c_Empresa
+		Else
+			_cTexto += "B441,0,0,E30,2,4,28,B," + _cLinha01
+			_cTexto += "B448,71,0,1,1,30,30,N," + _cLinha02
+			_cTexto += "A440,40,0,1,1,1,N," + _cLinha03
+			_cTexto += "A440,52,0,1,1,1,N," + _cLinha04
+			_cTexto += "A649,00,0,1,1,1,N," + _cLinha05
+			_cTexto += "A649,12,0,1,1,1,N," + _cLinha06
+			_cTexto += "A649,24,0,1,1,1,N," + _cLinha07
+			_cTexto += "GW619,65,26,30," + c_Empresa
+		EndIf
+
+		// Se for a ultima copia ou for numero par
+		If _nCount == n_QtdCopias .Or. Mod(_nCount,2) == 0
+			_cTexto += "P1" + X_ENTER
+		EndIf
+	Next
+
+
+/*
+	// Executa todas as copias
+	For _nCount := 1 To n_QtdCopias
+		If n_QtdCopias > 1
+			// Se for numero impar
+			If Mod(_nCount,2) <> 0
+				_cTexto += X_ENTER
+				_cTexto += X_ENTER
+				_cTexto += "Q128,019" + X_ENTER
+				_cTexto += "q831" + X_ENTER
+				_cTexto += "rN" + X_ENTER
+				_cTexto += "S1" + X_ENTER
+				_cTexto += "D7" + X_ENTER
+				_cTexto += "ZT" + X_ENTER
+				_cTexto += "JB" + X_ENTER
+				_cTexto += "OD" + X_ENTER
+				_cTexto += "R0,0" + X_ENTER 	
+				_cTexto += "N" + X_ENTER
+
+				_cTexto += "B17,0,0,E30,2,4,28,B," + _cLinha01
+				_cTexto += "B23,71,0,1,1,30,30,N," + _cLinha02
+				_cTexto += "A16,40,0,1,1,1,N," + _cLinha03
+				_cTexto += "A16,52,0,1,1,1,N," + _cLinha04
+				_cTexto += "A225,00,0,1,1,1,N," + _cLinha05
+				_cTexto += "A225,12,0,1,1,1,N," + _cLinha06
+				_cTexto += "A225,24,0,1,1,1,N," + _cLinha07
+				_cTexto += "GW195,65,26,30," + c_Empresa
+			Else
+				_cTexto += "B441,0,0,E30,2,4,28,B," + _cLinha01
+				_cTexto += "B448,71,0,1,1,30,30,N," + _cLinha02
+				_cTexto += "A440,40,0,1,1,1,N," + _cLinha03
+				_cTexto += "A440,52,0,1,1,1,N," + _cLinha04
+				_cTexto += "A649,00,0,1,1,1,N," + _cLinha05
+				_cTexto += "A649,12,0,1,1,1,N," + _cLinha06
+				_cTexto += "A649,24,0,1,1,1,N," + _cLinha07
+				_cTexto += "GW619,65,26,30," + c_Empresa
+			EndIf
+
+			// Se for a ultima copia ou for numero par
+			If _nCount == n_QtdCopias .Or. Mod(_nCount,2) == 0
+				_cTexto += "P1" + X_ENTER
+			EndIf
+		Else //impressao EMB - chamando apenas quando for NOTA
+			//If Mod(Val(cCodigoCB0),2) <> 0
+				_cTexto += X_ENTER
+				_cTexto += X_ENTER
+				_cTexto += "Q128,019" + X_ENTER
+				_cTexto += "q831" + X_ENTER
+				_cTexto += "rN" + X_ENTER
+				_cTexto += "S1" + X_ENTER
+				_cTexto += "D7" + X_ENTER
+				_cTexto += "ZT" + X_ENTER
+				_cTexto += "JB" + X_ENTER
+				_cTexto += "OD" + X_ENTER
+				_cTexto += "R0,0" + X_ENTER 	
+				_cTexto += "N" + X_ENTER
+
+				_cTexto += "B17,0,0,E30,2,4,28,B," + _cLinha01
+				_cTexto += "B23,71,0,1,1,30,30,N," + _cLinha02
+				_cTexto += "A16,40,0,1,1,1,N," + _cLinha03
+				_cTexto += "A16,52,0,1,1,1,N," + _cLinha04
+				_cTexto += "A225,00,0,1,1,1,N," + _cLinha05
+				_cTexto += "A225,12,0,1,1,1,N," + _cLinha06
+				_cTexto += "A225,24,0,1,1,1,N," + _cLinha07
+				_cTexto += "GW195,65,26,30," + c_Empresa
+				//// 
+				_cTexto += "P1" + X_ENTER
+/*
+			Else
+
+				_cTexto += "B441,0,0,E30,2,4,28,B," + _cLinha01
+				_cTexto += "B448,71,0,1,1,30,30,N," + _cLinha02
+				_cTexto += "A440,40,0,1,1,1,N," + _cLinha03
+				_cTexto += "A440,52,0,1,1,1,N," + _cLinha04
+				_cTexto += "A649,00,0,1,1,1,N," + _cLinha05
+				_cTexto += "A649,12,0,1,1,1,N," + _cLinha06
+				_cTexto += "A649,24,0,1,1,1,N," + _cLinha07
+				_cTexto += "GW619,65,26,30," + c_Empresa
+				//// 
+				_cTexto += "P1" + X_ENTER
+			EndIf
+		
+
+		EndIf
+	Next */
+
+Return _cTexto
+
+/*/{Protheus.doc} sf_TextoMes
+	(Função para retornar o mes de uma data em forma de texto)
+
+	@type User Function
+	@author Vitor Ribeiro
+	@since 22/09/2021
+
+	@param d_Data, date, contém a data
+
+	@return character, contém o mês em forma de texto
+	/*/
+Static Function sf_TextoMes(d_Data)
+
+	Local _nMes := 0
+	
+	Local _cMes := ""
+
+	Default d_Data := SToD("")
+
+	// Guarda o mes
+	_nMes := Month(d_Data)
+
+	// Verifica o texto do mes
+	Do Case
+		Case _nMes == 01
+			_cMes := "JAN"
+		Case _nMes == 02
+			_cMes := "FEV"
+		Case _nMes == 03
+			_cMes := "MAR"
+		Case _nMes == 04
+			_cMes := "ABR"
+		Case _nMes == 05
+			_cMes := "MAI"
+		Case _nMes == 06
+			_cMes := "JUN"
+		Case _nMes == 07
+			_cMes := "JUL"
+		Case _nMes == 08
+			_cMes := "AGO"
+		Case _nMes == 09
+			_cMes := "SET"
+		Case _nMes == 10
+			_cMes := "OUT"
+		Case _nMes == 11
+			_cMes := "NOV"
+		Case _nMes == 12
+			_cMes := "DEZ"
+	EndCase
+
+Return _cMes
+
+
+/*
+User function ACDI11VL()
+
+MsgAlert("ACDI11VL")
+
+Return
+*/

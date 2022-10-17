@@ -1,0 +1,92 @@
+/*
+Padrao Zebra
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³IMG02     ºAutor  ³Sandro Valex        º Data ³  19/06/01   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao da     º±±
+±±º          ³endereco                                                    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP5                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function Img02 // imagem de etiqueta de ENDERECO
+Local cCodigo
+Local cCodID := paramixb[1]
+If cCodID # NIL
+	cCodigo := cCodID
+ElseIf Empty(SBE->BE_IDETIQ)
+	If Usacb0('02')
+		cCodigo := CBGrvEti('02',{SBE->BE_LOCALIZ,SBE->BE_LOCAL})
+		RecLock("SBE",.F.)
+		SBE->BE_IDETIQ := cCodigo
+		MsUnlock()
+	Else
+		cCodigo :=SBE->(BE_LOCAL+BE_LOCALIZ)
+	EndIf
+Else
+	If Usacb0('02')
+		cCodigo := SBE->BE_IDETIQ
+	Else
+		cCodigo :=SBE->(BE_LOCAL+BE_LOCALIZ)
+	EndIf
+Endif
+//02A030102
+//LLRPPNNAA
+//Substr(cCodigo,6,2)
+cCodigo := Alltrim(cCodigo)
+//MSCBBEGIN(1,6)
+
+/* ETIQUETAS ARMAZEM 02
+MSCBWrite('CT~~CD,~CC^~CT~')
+MSCBWrite('^XA~TA000~JSN^LT0^MNW^MTD^PON^PMN^LH0,0^JMA^PR4,4~SD15^JUS^LRN^CI0^XZ')
+MSCBWrite('^XA')
+MSCBWrite('^MMT')
+MSCBWrite('^PW496')
+MSCBWrite('^LL0248')
+MSCBWrite('^LS0')
+MSCBWrite('^FT23,89^A0N,69,127^FH\^FDNivel '+Substr(cCodigo,6,2)+'^FS')
+MSCBWrite('^BY3,3,58^FT70,203^BCN,,N,N')
+MSCBWrite('^FD'+cCodigo+'^FS')
+MSCBWrite('^FT105,137^A0N,49,57^FH\^FD'+cCodigo+'^FS')
+MSCBWrite('^PQ1,0,1,Y^XZ')
+*/
+
+//ETIQUETAS ARM 08
+//duas colunas 
+
+//LLRPPNNAA
+//Substr(cCodigo,6,2)
+//MSCBBEGIN(1,6)
+//substr no 6 qdo mudar por nivel
+//If mod(Val(Substr(cCodigo,6,2)),2) <> 0
+//substr no 8 qdo mudar por apto 
+//If mod(Val(Substr(cCodigo,6,2)),2) <> 0
+	//impar
+	MSCBWrite('CT~~CD,~CC^~CT~')
+	MSCBWrite('^XA~TA000~JSN^LT0^MNW^MTD^PON^PMN^LH0,0^JMA^PR4,4~SD15^JUS^LRN^CI0^XZ')
+	MSCBWrite('^XA')
+	MSCBWrite('^MMT')
+	MSCBWrite('^PW847')
+	MSCBWrite('^LL0136')
+	MSCBWrite('^LS0')
+	MSCBWrite('^BY2,3,48^FT95,115^BCN,,N,N')
+	MSCBWrite('^FD'+cCodigo+'^FS')
+	MSCBWrite('^FT18,63^A0N,56,86^FH\^FD'+cCodigo+'^FS')
+	MSCBWrite('^BY2,3,48^FT511,115^BCN,,N,N')
+	//força impressao final qdo a ultima etiqueta é impar
+	If Substr(cCodigo,8,2) == "07"
+		MSCBWrite('^PQ1,0,1,Y^XZ')
+	EndIf
+//Else
+	//par
+//	MSCBWrite('^FD'+cCodigo+'^FS')
+//	MSCBWrite('^FT434,63^A0N,56,86^FH\^FD'+cCodigo+'^FS')
+	MSCBWrite('^PQ1,0,1,Y^XZ')
+//EndIf
+
+//MSCBEND()
+Return .F.
