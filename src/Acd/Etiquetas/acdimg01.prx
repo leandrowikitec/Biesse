@@ -38,6 +38,8 @@ Local cEndereco:= If(len(paramixb) >=20,paramixb[20],NIL)
 Local cPedido  := If(len(paramixb) >=21,paramixb[21],NIL)
 Local nResto   := If(len(paramixb) >=22,paramixb[22],0)
 Local cItNFE   := If(len(paramixb) >=23,paramixb[23],NIL)
+Local cDescric	:= SB1->B1_DESC
+Local cProduto	:= SB1->B1_COD
 
 cLocOri := If(cLocOri==cArmazem,' ',cLocOri)
 nQtde   := If(nQtde==NIL,SB1->B1_QE,nQtde)
@@ -90,11 +92,45 @@ For nX := 1 to nCopias
 	EndIf
 
 	//NET USE LPT1 \\IM-023\ZEBRA /PERSISTENT:YES
-	If MSGYESNO( "Redireciona LPT1?", "Etiquetas" )
+	//If MSGYESNO( "Redireciona LPT1?", "Etiquetas" )
 		MSCBPRINTER("ZEBRA", "LPT1",,10,.F.,,,,,,.F.,)
 		MSCBCHKSTATUS(.F.)
-	EndIf
+	//EndIf
+	MSCBBEGIN(1,6)
 	
+	MSCBWrite('CT~~CD,~CC^~CT~')
+	MSCBWrite('^XA')
+	MSCBWrite('~TA000')
+	MSCBWrite('~JSN')
+	MSCBWrite('^LT0')
+	MSCBWrite('^MNW')
+	MSCBWrite('^MTT')
+	MSCBWrite('^PON')
+	MSCBWrite('^PMN')
+	MSCBWrite('^LH0,0')
+	MSCBWrite('^JMA')
+	MSCBWrite('^PR4,4')
+	MSCBWrite('~SD15')
+	MSCBWrite('^JUS')
+	MSCBWrite('^LRN')
+	MSCBWrite('^CI27')
+	MSCBWrite('^PA0,1,1,0')
+	MSCBWrite('^XZ')
+	MSCBWrite('^XA')
+	MSCBWrite('^MMT')
+	MSCBWrite('^PW472')
+	MSCBWrite('^LL847')
+	MSCBWrite('^LS0')
+	MSCBWrite('^BY3,3,70^FT330,766^BCB,,Y,N')
+	MSCBWrite('^FH\^FD>;'+cCodigo+'^FS')
+	MSCBWrite('^FPH,3^FT110,776^A0B,39,46^FH\^CI28^FD'+cProduto+'^FS^CI27')
+	MSCBWrite('^FPH,3^FT159,776^A0B,39,46^FH\^CI28^FD'+cDescric+'^FS^CI27')
+	MSCBWrite('^FPH,3^FT291,409^A0B,31,43^FB409,1,8,C^FH\^CI28^FDQTDE^FS^CI27')
+	MSCBWrite('^FPH,3^FT330,409^A0B,31,43^FB409,1,8,C^FH\^CI28^FD'+AllTrim(str(nqtde))+'^FS^CI27')
+	MSCBWrite('^PQ1,0,1,Y')
+	MSCBWrite('^XZ')
+
+	/*
 	MSCBLOADGRF("SIGA.GRF")
 	MSCBBEGIN(1,6)
 	MSCBBOX(30,05,76,05)
@@ -111,6 +147,9 @@ For nX := 1 to nCopias
 		MSCBSAY(05,18,"Lote "+cLote+'-'+cSLote, "N", "0", "020,030")
 	EndIf
 	MSCBSAYBAR(23,22,cCodigo,"N",cTipoBar,8.36,.F.,.T.,.F.,,2,1,.F.,.F.,"1",.T.)
+	*/
+
+
 	MSCBInfoEti("Produto","30X100")
 	sConteudo:=MSCBEND()
 	If Type('cProgImp')=="C" .and. cProgImp=="ACDV120"
