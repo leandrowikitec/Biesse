@@ -1,0 +1,113 @@
+/*
+Padrao Zebra
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³IMG02     ºAutor  ³Sandro Valex        º Data ³  19/06/01   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada referente a imagem de identificacao da     º±±
+±±º          ³endereco                                                    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP5                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function Img02 // imagem de etiqueta de ENDERECO
+Local cCodigo
+Local cCodID := paramixb[1]
+If cCodID # NIL
+	cCodigo := cCodID
+ElseIf Empty(SBE->BE_IDETIQ)
+	If Usacb0('02')
+		cCodigo := CBGrvEti('02',{SBE->BE_LOCALIZ,SBE->BE_LOCAL})
+		RecLock("SBE",.F.)
+		SBE->BE_IDETIQ := cCodigo
+		MsUnlock()
+	Else
+		cCodigo :=SBE->(BE_LOCAL+BE_LOCALIZ)
+	EndIf
+Else
+	If Usacb0('02')
+		cCodigo := SBE->BE_IDETIQ
+	Else
+		cCodigo :=SBE->(BE_LOCAL+BE_LOCALIZ)
+	EndIf
+Endif
+cCodigo := Alltrim(cCodigo)
+//NET USE LPT1 \\IM-023\ZEBRA /PERSISTENT:YES
+	//If MSGYESNO( "Redireciona LPT1?", "Etiquetas" )
+		MSCBPRINTER("ZEBRA", "LPT1",,10,.F.,,,,,,.F.,)
+		MSCBCHKSTATUS(.F.)
+	//EndIf
+
+MSCBBEGIN(1,6)
+
+If Substr(cCodigo,3,1) == 'P' .OR. ;
+	(Substr(cCodigo,3,1) $ 'AB' .AND. Substr(cCodigo,6,2) $ '01-02' )
+	//Etiqueta pequena !AllTrim(cFuncao) $ "MATA250"
+	MSCBWrite('CT~~CD,~CC^~CT~')
+	MSCBWrite('^XA')
+	MSCBWrite('~TA000')
+	MSCBWrite('~JSN')
+	MSCBWrite('^LT0')
+	MSCBWrite('^MNW')
+	MSCBWrite('^MTT')
+	MSCBWrite('^PON')
+	MSCBWrite('^PMN')
+	MSCBWrite('^LH0,0')
+	MSCBWrite('^JMA')
+	MSCBWrite('^PR4,4')
+	MSCBWrite('~SD15')
+	MSCBWrite('^JUS')
+	MSCBWrite('^LRN')
+	MSCBWrite('^CI27')
+	MSCBWrite('^PA0,1,1,0')
+	MSCBWrite('^XZ')
+	MSCBWrite('^XA')
+	MSCBWrite('^MMT')
+	MSCBWrite('^PW224')
+	MSCBWrite('^LL727')
+	MSCBWrite('^LS0')
+	MSCBWrite('^FT58,357^A0B,32,46^FH\^CI28^FDNivel '+Substr(cCodigo,6,2)+'^FS^CI27')
+	MSCBWrite('^FT58,658^A0B,32,53^FH\^CI28^FD'+cCodigo+'^FS^CI27')
+	MSCBWrite('^BY4,3,117^FT186,651^BCB,,N,N')
+	MSCBWrite('^FH\^FD>:'+cCodigo+'^FS')
+	MSCBWrite('^PQ1,0,1,Y')
+	MSCBWrite('^XZ')
+
+Else //Etiqueta grande 
+
+	MSCBWrite('CT~~CD,~CC^~CT~')
+	MSCBWrite('^XA')
+	MSCBWrite('~TA000')
+	MSCBWrite('~JSN')
+	MSCBWrite('^LT0')
+	MSCBWrite('^MNW')
+	MSCBWrite('^MTT')
+	MSCBWrite('^PON')
+	MSCBWrite('^PMN')
+	MSCBWrite('^LH0,0')
+	MSCBWrite('^JMA')
+	MSCBWrite('^PR4,4')
+	MSCBWrite('~SD15')
+	MSCBWrite('^JUS')
+	MSCBWrite('^LRN')
+	MSCBWrite('^CI27')
+	MSCBWrite('^PA0,1,1,0')
+	MSCBWrite('^XZ')
+	MSCBWrite('^XA')
+	MSCBWrite('^MMT')
+	MSCBWrite('^PW472')
+	MSCBWrite('^LL815')
+	MSCBWrite('^LS0')
+	MSCBWrite('^FT178,644^A0B,67,124^FH\^CI28^FDNivel '+Substr(cCodigo,6,2)+'^FS^CI27')
+	MSCBWrite('^FT85,644^A0B,59,101^FH\^CI28^FD'+cCodigo+'^FS^CI27')
+	MSCBWrite('^BY5,3,195^FT421,736^BCB,,N,N')
+	MSCBWrite('^FH\^FD>:'+cCodigo+'^FS')
+	MSCBWrite('^PQ1,0,1,Y')
+	MSCBWrite('^XZ')
+EndIf
+MSCBInfoEti("Endereco","30X100")
+MSCBEND()
+Return .F.
