@@ -71,7 +71,7 @@ If Substr(cCodigo,3,1) == 'P' .OR. ;
 	MSCBWrite('^LS0')
 	MSCBWrite('^FT58,357^A0B,32,46^FH\^CI28^FDNivel '+Substr(cCodigo,6,2)+'^FS^CI27')
 	MSCBWrite('^FT58,658^A0B,32,53^FH\^CI28^FD'+cCodigo+'^FS^CI27')
-	MSCBWrite('^BY4,3,117^FT186,651^BCB,,N,N')
+	MSCBWrite('^BY3,3,109^FT178,654^BCB,,N,N')
 	MSCBWrite('^FH\^FD>:'+cCodigo+'^FS')
 	MSCBWrite('^PQ1,0,1,Y')
 	MSCBWrite('^XZ')
