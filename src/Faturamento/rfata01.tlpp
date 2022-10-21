@@ -1,0 +1,254 @@
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "PROTHEUS.CH"
+
+/*/{Protheus.doc} RFATA01
+	(Abre tela para alterar algumas informacoes do pedido de venda remover liberacao)
+	@type  Static Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@param param, param_type, param_descr
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function RFATA01()
+
+	Local _cPedNum		:= SC5->C5_NUM as character
+	Local _cEspec		:= SC5->C5_ESPECI1 as character
+	Local _cTransp		:= SC5->C5_TRANSP as character
+	Local _cNmTransp	:= Posicione("SA4",1,xFilial("SA4") + _cTransp,"A4_NOME") as character
+	Local _cMenPad		:= SC5->C5_MENPAD as character
+	Local _cMenNF 		:= SC5->C5_MENNOTA as character
+
+	Local _nPesoB		:= SC5->C5_PBRUTO as numeric
+	Local _nPesoL		:= SC5->C5_PESOL as numeric
+	Local _nVol			:= SC5->C5_VOLUME1 as numeric
+	Local _nFrete		:= SC5->C5_FRETE  as numeric
+
+	Local _dEntreg		:= SToD("") as date
+
+	Local _aAreas		:= {SC6->(GetArea()), GetArea()} as array
+
+	Local oButton1		:= Nil as object
+	Local oButton2		:= Nil as object
+	Local oNmTransp		:= Nil as object
+	Local oPedNum		:= Nil as object
+	Local oPesoB		:= Nil as object
+	Local oPesoL		:= Nil as object
+	Local oEntreg		:= Nil as object
+	Local oSay1			:= Nil as object
+	Local oSay2			:= Nil as object
+	Local oSay3			:= Nil as object
+	Local oSay4			:= Nil as object
+	Local oSay5			:= Nil as object
+	Local oSay6			:= Nil as object
+	Local oSay7			:= Nil as object
+	Local oSay8			:= Nil as object
+	Local oSay9			:= Nil as object
+	Local oSay10		:= Nil as object
+	Local oTransp		:= Nil as object
+	Local oDlg1			:= Nil as object
+	Local oEspec		:= Nil as object
+	Local oVol			:= Nil as object
+
+	// Ordena os itens
+	SC6->(DbSetOrder(1))
+	
+	// Posiciona no primeiro registro
+	SC6->(DbGoTop())
+	
+	// Pesquisa o primeiro item
+	SC6->(DbSeek(FWxFilial("SC6")+SC5->C5_NUM))
+	
+	_dEntreg := SC6->C6_ENTREG
+	
+    DEFINE MSDIALOG oDlg1 TITLE "Alteracao - Pedido De Venda" FROM 000, 000  TO 430, 500 COLORS 0, 16777215 PIXEL
+
+		@ 012, 005 SAY oSay1 PROMPT "Num. Pedido" SIZE 033, 007 OF oDlg1 PIXEL
+		@ 011, 045 MSGET oPedNum VAR _cPedNum SIZE 035, 010 OF oDlg1 PICTURE "@!" READONLY PIXEL
+		@ 012, 132 SAY oSay1 PROMPT "Mens. Padrao" SIZE 033, 007 OF oDlg1 PIXEL
+		@ 011, 168 MSGET oPedNum VAR _cMenPad SIZE 035, 010 OF oDlg1 PICTURE "@!" VALID Vazio() .Or. ExistCpo("SM4",_cMenPad) F3 "SM4" PIXEL
+		@ 033, 005 SAY oSay2 PROMPT "Mens.p/ Nota" SIZE 040, 007 OF oDlg1 PIXEL
+		@ 031, 045 MSGET oTransp VAR _cMenNF SIZE 188, 010 OF oDlg1 PICTURE "@!" VALID Vazio() .Or. Texto() PIXEL    
+		@ 052, 005 SAY oSay2 PROMPT "Transportadora" SIZE 040, 007 OF oDlg1 PIXEL
+		@ 051, 045 MSGET oTransp VAR _cTransp SIZE 043, 010 OF oDlg1 PICTURE "@!" VALID ExistCpo("SA4",_cTransp) .And. GetNmTransp(_cTransp, @_cNmTransp) F3 "SA4" PIXEL   
+		@ 052, 132 SAY oSay9 PROMPT "Valor Frete" SIZE 032, 007 OF oDlg1 PIXEL
+		@ 051, 162 MSGET oFrete VAR _nFrete SIZE 060, 010 OF oDlg1 PICTURE "@E 9,999,999,999.99" VALID Positivo()  PIXEL  
+		@ 072, 005 SAY oSay3 PROMPT "Nome Transp" SIZE 035, 007 OF oDlg1 PIXEL
+		@ 071, 045 MSGET oNmTransp VAR _cNmTransp SIZE 188, 010 OF oDlg1  READONLY PIXEL
+
+		@ 092, 005 SAY oSay4 PROMPT "Peso  Liquido" SIZE 036, 007 OF oDlg1  PIXEL
+		@ 091, 045 MSGET oPesoL VAR _nPesoL SIZE 060, 010 OF oDlg1 PICTURE "@E 999,999.9999" VALID Positivo()  PIXEL
+		@ 092, 132 SAY oSay5 PROMPT "Peso Bruto" SIZE 032, 007 OF oDlg1  PIXEL
+		@ 091, 162 MSGET oPesoB VAR _nPesoB SIZE 060, 010 OF oDlg1 PICTURE "@E 999,999.9999" VALID Positivo()  PIXEL
+		@ 112, 005 SAY oSay6 PROMPT "Qtd. Volumes" SIZE 035, 008 OF oDlg1  PIXEL
+		@ 111, 045 MSGET oVol VAR _nVol SIZE 060, 010 OF oDlg1 PICTURE "99999" VALID Positivo()  PIXEL
+		@ 112, 132 SAY oSay7 PROMPT "Especie" SIZE 025, 007 OF oDlg1  PIXEL
+		@ 111, 162 MSGET oEspec VAR _cEspec SIZE 060, 010 OF oDlg1 PICTURE "@!" PIXEL
+
+		@ 132, 005 SAY oSay10 PROMPT "Entrega" SIZE 036, 007 OF oDlg1  PIXEL
+		@ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" VALID A410MultT()  PIXEL    
+
+		@ 170, 050 BUTTON oButton1 PROMPT "Confirmar" SIZE 037, 012 OF oDlg1 ACTION (AtuCposPV(	_cTransp	, _nFrete	, _nPesoL	, _nPesoB,;
+																								_nVol		, _cEspec	, _cMenPad	, _cMenNF,;
+																								_dEntre), Close(oDlg1)) PIXEL
+		@ 170, 144 BUTTON oButton2 PROMPT "Sair" SIZE 037, 012 OF oDlg1 ACTION Close(oDlg1) PIXEL
+
+		@ 190, 003 SAY oSay8 PROMPT "OBS: CAMPOS EM BRANCO OU ZERADOS NAO SERAO ALTERADOS" SIZE 170, 007 OF oDlg1 COLORS 255, 16777215 PIXEL
+
+	ACTIVATE MSDIALOG oDlg1 CENTERED
+
+	AEval(_aAreas, {|x| RestArea(x) })
+
+Return Nil
+
+/*/{Protheus.doc} AtuCposPV
+	(Funcao para gravar as informacoes preenchidas na Dialog)
+	@type  Static Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@param param, param_type, param_descr
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AtuCposPV(	_cTransp as character,;
+							_nFrete as numeric,;
+							_nPesoL as numeric,;
+							_nPesoB as numeric,;
+							_nVol as numeric,;
+							_cEspec as character,;
+							_cMenPad as character,;
+							_cMenNF as character,;
+							_dEntreg )
+
+	Local _nC6Entreg	:= 0 as numeric
+	Local _nCount		:= 0 as numeric
+	
+	Reclock("SC5", .F.)
+
+		If !Empty(_cTransp)
+			SC5->C5_TRANSP := _cTransp
+		EndIf
+
+		If _nFrete >= 0
+			SC5->C5_FRETE := _nFrete
+		EndIf
+
+		If _nPesoL > 0
+			SC5->C5_PESOL := _nPesoL
+		EndIf
+
+		If _nPesoB > 0
+			SC5->C5_PBRUTO := _nPesoB
+		EndIf
+
+		If _nVol > 0
+			SC5->C5_VOLUME1 := _nVol
+		EndIf
+
+		If !Empty(_cEspec)
+			SC5->C5_ESPECI1 := _cEspec
+		EndIf
+
+		If !Empty(_cMenPad)
+			SC5->C5_MENPAD := _cMenPad
+		EndIf
+
+		If !Empty(_cMenNF)
+			SC5->C5_MENNOTA := _cMenNF
+		EndIf
+
+	SC5->(MsUnlock())
+	
+	// Se tiver a data de entrega
+	If !Empty(_dEntreg)
+		// Ordena os itens
+		SC6->(DbSetOrder(1))
+
+		// Posiciona no primeiro registro
+		SC6->(DbGoTop())
+
+		// Pesquisa o primeiro item
+		If SC6->(DbSeek(FWxFilial("SC6")+SC5->C5_NUM))
+			// Enquanto não for final de arquivo e ainda for o mesmo pedido de venda
+			While SC6->(!Eof()) .And. SC6->C6_FILIAL+SC6->C6_NUM == xFilial("SC6")+SC5->C5_NUM
+				// Adiciona a data de entrega
+				RecLock("SC6",.F.)
+					SC6->C6_ENTREG := _dEntreg
+				SC6->(MsUnLock())
+					// Vai para o proximo registro
+				SC6->(DbSkip())
+			EndDo
+		EndIf
+	EndIf
+	
+	// Altera as variáveis de memória
+	If AtIsRotina("A410VISUAL")
+		_nC6Entreg := Ascan(aHeader,{|x| AllTrim(x[2]) == "C6_ENTREG"})
+
+		If !Empty(_cTransp)
+			M->C5_TRANSP := _cTransp
+		EndIf
+
+		If _nFrete >= 0
+			M->C5_FRETE := _nFrete
+		EndIf
+	
+		If _nPesoL > 0
+			M->C5_PESOL := _nPesoL
+		EndIf
+
+		If _nPesoB > 0
+			M->C5_PBRUTO := _nPesoB
+		EndIf
+
+		If _nVol > 0
+			M->C5_VOLUME1 := _nVol
+		EndIf
+
+		If !Empty(_cEspec)
+			M->C5_ESPECI1 := _cEspec
+		EndIf
+
+		If !Empty(_cMenPad)
+			M->C5_MENPAD := _cMenPad
+		EndIf
+
+		If !Empty(_cMenNF)
+			M->C5_MENNOTA := _cMenNF
+		EndIf
+
+		If !Empty(_dEntreg)
+			M->C6_ENTREG := _dEntreg
+				For _nCount := 1 To Len(aCols)
+				aCols[_nCount][_nC6Entreg] := _dEntreg
+			Next
+		EndIf
+	EndIf
+	
+Return Nil
+
+/*/{Protheus.doc} GetNmTransp
+	(long_description)
+	@type  Static Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@param _cTransp, character, (Codigo da transportadora)
+	@param _cNmTransp, character, (Nome da transportadora - ponteiro)
+	@return lRet, logical, (Retorno de funcao de validacao - sempre .T. para esse caso)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function GetNmTransp(_cTransp as character, _cNmTransp as character)
+_cNmTransp := Posicione("SA4", 1, xFilial("SA4") + _cTransp, "A4_NOME") 
+Return .T.

@@ -1,0 +1,35 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "TOPCONN.CH"
+
+/*/{Protheus.doc} MA410MNU()
+	(PE executado antes da abertura do Browse, caso Browse inicial da rotina esteja habilitada, 
+		ou antes da apresentacao do Menu de opcoes, caso Browse inicial esteja desabilitado. 
+		Para habilitar ou desabilitar o Browse, entre na rotina, clique em Configuraes/Browse
+		Inicial e selecione a opo desejada:
+		Sim - Habilitar Browse Inicial
+		No - Desabilitar Browse Inicial 
+		Este ponto de entrada pode ser utilizado para inserir novas opes no array aRotina)
+	@type  Static Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@param param, param_type, param_descr
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function MA410MNU()
+
+	Local aArea     := {GetArea()} as array
+
+	// Somente adiciona botao se funcao estiver compilada
+	If FindFunction("U_RFATA01")
+		AAdd(aRotina,{"Alt. Dados"   , "U_KORCPED(SC5->C5_NUM)",0,2,0,NIL})
+	EndIf
+
+	AEval(aArea, {|x| RestArea(x) })
+
+Return Nil
