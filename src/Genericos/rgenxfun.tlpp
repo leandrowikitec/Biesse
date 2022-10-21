@@ -1,0 +1,134 @@
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "PROTHEUS.CH"
+
+/*/{Protheus.doc} MyCriaHeader
+	(Funcao para criar um array tipo aHeader da tabela informada utilizando o SX3 como referencia)
+	@type User Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@param cAlias, character, (Alias da tabela para considerar no aHeader)
+	@param aHeader, array, (aHeader a ser considerado)
+	@param aHeader, numeric, (Variavel de controle de numero de campos da tabela)
+	@param cDesconsidera, character, (Campos a serem desconsiderados na busca dos campos)
+	@return aHeader, array, Array aHeader gerado a partir do dicionario SX3
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function MyCriaAHeader(cAlias as character, aHeader as array, nUsado as numeric, cDesconsidera as character)
+
+	Local aAreas	:= GetArea() as array
+	Local aCampos	:= {} as array
+
+	Default cAlias := ""
+	Default cDesconsidera := ""
+
+	Default nUsado := 0
+
+	Default aHeader := {}
+
+	If !Empty(cAlias) .AND. AliasInDic(cAlias)
+
+		aCampos := U_MyFWSX3Util(cAlias)
+
+		AEval(aCampos, {|x| If(	!Empty(GetSX3Cache(x, "X3_USADO")) .AND. cNivel >= GetSX3Cache(x, "X3_NIVEL") .AND. !Alltrim(x) $ cDesconsidera,;
+								AAdd(aHeader,{	GetSX3Cache(x, "X3_TITULO"),;
+												GetSX3Cache(x, "X3_CAMPO"),;
+												GetSX3Cache(x, "X3_PICTURE"),;
+												GetSX3Cache(x, "X3_TAMANHO"),;
+												GetSX3Cache(x, "X3_DECIMAL"),;
+												GetSX3Cache(x, "X3_VALID"),;
+												GetSX3Cache(x, "X3_USADO"),;
+												GetSX3Cache(x, "X3_TIPO"),;
+												GetSX3Cache(x, "X3_ARQUIVO"),;
+												GetSX3Cache(x, "X3_CONTEXT") }),;
+								Nil ), nUsado := nUsado + 1 })
+	EndIf
+
+	AEval(aAreas, {|x| RestArea(x) })
+
+Return aHeader
+
+/*/{Protheus.doc} MyCriaACols()
+	(long_description)
+	@type User Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@param param, param_type, param_descr
+	@return return, return_type, return_description
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function MyCriaACols(aHeader as array, nUsado as numeric, cAlias as character)
+
+	Local nCols		:= 0 as numeric
+	Local nX		:= 0 as numeric
+
+	If Select(cAlias) > 0
+
+		// Monta o aCols
+		dbSelectArea(cAlias)
+		
+		While (cAlias)->(!EOF())
+
+			aAdd(aCols, Array(nUsado+1))
+			nCols ++
+		
+			For nX := 1 To nUsado
+				If ( aHeader[nX][10] != "V")
+					aCols[nCols][nX] := FieldGet(FieldPos(aHeader[nX][2]))
+				Else
+					aCols[nCols][nX] := CriaVar(aHeader[nX][2],.T.)
+				EndIf
+			Next nX
+		
+			aCols[nCols][nUsado+1] := .F.
+			(cAlias)->( DbSkip() )
+		EndDo
+	EndIf
+
+Return aCols
+
+/*/{Protheus.doc} MyFwSX3Util
+	(Busca campos do dicionario SX3 de acordo com o Alias enviado por parametro)
+	@type User Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@param cAlias, character, (Alias da tabela para considerar na busca)
+	@return return, return_type, return_description
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function MyFwSX3Util(cAlias as character)
+
+	Local cQuery	:= "" as character
+	Local cAliasQry	:= GetNextAlias() as character
+
+	Local aArrSX3	:= {} as array
+
+	cQuery := " SELECT X3_CAMPO CAMPO FROM SX3" + cEmpAnt + "0" + CRLF
+	cQuery += "  WHERE X3_ARQUIVO = '" + cAlias + "' " + CRLF
+	cQuery += "  ORDER BY X3_ARQUIVO, X3_ORDEM " + CRLF
+
+	cQuery := ChangeQuery(cQuery)
+
+	MPSysOpenQuery(cQuery, cAliasQry)
+
+	While (cAliasQry)->(!EOF())
+		aAdd(aArrSX3, (cAliasQry)->CAMPO)
+		(cAliasQry)->(DbSkip())
+	EndDo
+
+	If Select(cAliasQry)
+		(cAliasQry)->(DbCloseArea())
+	EndIf
+
+Return aArrSX3

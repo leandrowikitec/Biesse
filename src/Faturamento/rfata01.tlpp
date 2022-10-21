@@ -76,8 +76,12 @@ Static Function ExibeTela()
 	Private _nPesoL		:= SC5->C5_PESOL as numeric
 	Private _nVol		:= SC5->C5_VOLUME1 as numeric
 	Private _nFrete		:= SC5->C5_FRETE  as numeric
+	Private nUsado		:= 0 as numeric
 
 	Private _dEntreg	:= SToD("") as date
+
+	Private aHeader		:= U_MyCriaAHeader("SC5", @aHeader, @nUsado) as array
+	Private aCols		:= {} as array
 
 	// Ordena os itens
 	SC6->(DbSetOrder(1))
@@ -87,7 +91,9 @@ Static Function ExibeTela()
 	
 	// Pesquisa o primeiro item
 	SC6->(DbSeek(FWxFilial("SC6")+SC5->C5_NUM))
-	
+
+	aCols := U_MyCriaACols(aHeader, nUsado, "SC6")
+
 	_dEntreg := SC6->C6_ENTREG
 	
     DEFINE MSDIALOG oDlg1 TITLE "Alteracao - Pedido De Venda" FROM 000, 000  TO 430, 500 COLORS 0, 16777215 PIXEL
