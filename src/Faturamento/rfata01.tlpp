@@ -77,6 +77,7 @@ Static Function ExibeTela()
 	Private _nVol		:= SC5->C5_VOLUME1 as numeric
 	Private _nFrete		:= SC5->C5_FRETE  as numeric
 	Private nUsado		:= 0 as numeric
+	Private N			:= 0 as numeric
 
 	Private _dEntreg	:= SToD("") as date
 
