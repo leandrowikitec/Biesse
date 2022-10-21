@@ -19,7 +19,7 @@
 
 User Function MyCriaAHeader(cAlias as character, aHeader as array, nUsado as numeric, cDesconsidera as character)
 
-	Local aAreas	:= GetArea() as array
+	Local aAreas	:= {GetArea()} as array
 	Local aCampos	:= {} as array
 
 	Default cAlias := ""
