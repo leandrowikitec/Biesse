@@ -130,6 +130,8 @@ Static Function ExibeTela()
 
 		@ 190, 003 SAY oSay8 PROMPT "OBS: CAMPOS EM BRANCO OU ZERADOS NAO SERAO ALTERADOS" SIZE 170, 007 OF oDlg1 COLORS 255, 16777215 PIXEL
 
+		QOut("Processo finalizado")
+
 	ACTIVATE MSDIALOG oDlg1 CENTERED
 
 	AEval(_aAreas, {|x| RestArea(x) })
@@ -149,19 +151,14 @@ Return Nil
 	@see (links_or_references)
 	/*/
 
-Static Function AtuCposPV(	_cTransp as character,;
-							_nFrete as numeric,;
-							_nPesoL as numeric,;
-							_nPesoB as numeric,;
-							_nVol as numeric,;
-							_cEspec as character,;
-							_cMenPad as character,;
-							_cMenNF as character,;
-							_dEntreg )
+Static Function AtuCposPV()
 
 	Local _nC6Entreg	:= 0 as numeric
 	Local _nCount		:= 0 as numeric
 	
+	QOut("Vai fazer o ReckLock")
+	QOut("Numero do pedido: " + SC5->C5_NUM)
+
 	Reclock("SC5", .F.)
 
 		If !Empty(_cTransp)
@@ -195,6 +192,15 @@ Static Function AtuCposPV(	_cTransp as character,;
 		If !Empty(_cMenNF)
 			SC5->C5_MENNOTA := _cMenNF
 		EndIf
+
+		QOut("Dados: " + SC5->(C5_TRANSP + "-" +;
+				C5_FRETE + "-" +;
+				C5_PESOL + "-" +;
+				C5_PBRUTO + "-" +;
+				C5_VOLUME1 + "-" +;
+				C5_ESPECI1 + "-" +;
+				C5_MENPAD + "-" +;
+				C5_MENNOTA))
 
 	SC5->(MsUnlock())
 	
