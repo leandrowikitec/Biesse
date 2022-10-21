@@ -16,19 +16,31 @@
 
 User Function RFATA01()
 
+// Se nao for pedido encerrado, exibe tela
+// Senao, exibo tela informando que nao permite alteracao
+If !SC5->(!Empty(C5_NOTA).Or.C5_LIBEROK=='E' .And. Empty(C5_BLQ))
+	ExibeTela()
+Else
+	FwAlertError("Não é possível alterar dados de um pedindo já encerrado", "Operação inválida")
+EndIf
+
+Return Nil
+
+/*/{Protheus.doc} ExibeTela()
+	(Funcao para exibir tela de alteracao de dados)
+	@type  Static Function
+	@author Calabro'
+	@since 21/10/2022
+	@version version
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function ExibeTela()
+
 	Local _cPedNum		:= SC5->C5_NUM as character
-	Local _cEspec		:= SC5->C5_ESPECI1 as character
-	Local _cTransp		:= SC5->C5_TRANSP as character
-	Local _cNmTransp	:= Posicione("SA4",1,xFilial("SA4") + _cTransp,"A4_NOME") as character
-	Local _cMenPad		:= SC5->C5_MENPAD as character
-	Local _cMenNF 		:= SC5->C5_MENNOTA as character
-
-	Local _nPesoB		:= SC5->C5_PBRUTO as numeric
-	Local _nPesoL		:= SC5->C5_PESOL as numeric
-	Local _nVol			:= SC5->C5_VOLUME1 as numeric
-	Local _nFrete		:= SC5->C5_FRETE  as numeric
-
-	Local _dEntreg		:= SToD("") as date
 
 	Local _aAreas		:= {SC6->(GetArea()), GetArea()} as array
 
@@ -53,6 +65,19 @@ User Function RFATA01()
 	Local oDlg1			:= Nil as object
 	Local oEspec		:= Nil as object
 	Local oVol			:= Nil as object
+
+	Private _cEspec		:= SC5->C5_ESPECI1 as character
+	Private _cTransp	:= SC5->C5_TRANSP as character
+	Private _cNmTransp	:= Posicione("SA4",1,xFilial("SA4") + _cTransp,"A4_NOME") as character
+	Private _cMenPad	:= SC5->C5_MENPAD as character
+	Private _cMenNF 	:= SC5->C5_MENNOTA as character
+
+	Private _nPesoB		:= SC5->C5_PBRUTO as numeric
+	Private _nPesoL		:= SC5->C5_PESOL as numeric
+	Private _nVol		:= SC5->C5_VOLUME1 as numeric
+	Private _nFrete		:= SC5->C5_FRETE  as numeric
+
+	Private _dEntreg	:= SToD("") as date
 
 	// Ordena os itens
 	SC6->(DbSetOrder(1))
@@ -92,9 +117,7 @@ User Function RFATA01()
 		@ 132, 005 SAY oSay10 PROMPT "Entrega" SIZE 036, 007 OF oDlg1  PIXEL
 		@ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" VALID A410MultT()  PIXEL    
 
-		@ 170, 050 BUTTON oButton1 PROMPT "Confirmar" SIZE 037, 012 OF oDlg1 ACTION (AtuCposPV(	_cTransp	, _nFrete	, _nPesoL	, _nPesoB,;
-																								_nVol		, _cEspec	, _cMenPad	, _cMenNF,;
-																								_dEntre), Close(oDlg1)) PIXEL
+		@ 170, 050 BUTTON oButton1 PROMPT "Confirmar" SIZE 037, 012 OF oDlg1 ACTION (AtuCposPV(), Close(oDlg1)) PIXEL
 		@ 170, 144 BUTTON oButton2 PROMPT "Sair" SIZE 037, 012 OF oDlg1 ACTION Close(oDlg1) PIXEL
 
 		@ 190, 003 SAY oSay8 PROMPT "OBS: CAMPOS EM BRANCO OU ZERADOS NAO SERAO ALTERADOS" SIZE 170, 007 OF oDlg1 COLORS 255, 16777215 PIXEL

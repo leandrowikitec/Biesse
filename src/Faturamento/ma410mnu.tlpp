@@ -27,7 +27,7 @@ User Function MA410MNU()
 
 	// Somente adiciona botao se funcao estiver compilada
 	If FindFunction("U_RFATA01")
-		AAdd(aRotina,{"Alt. Dados"   , "U_KORCPED(SC5->C5_NUM)",0,2,0,NIL})
+		AAdd(aRotina,{"Alt. Dados Transporte"   , "U_RFATA01()", 0, 15, 0, NIL})
 	EndIf
 
 	AEval(aArea, {|x| RestArea(x) })
