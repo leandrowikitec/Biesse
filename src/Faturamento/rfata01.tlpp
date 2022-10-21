@@ -77,12 +77,12 @@ Static Function ExibeTela()
 	Private _nVol		:= SC5->C5_VOLUME1 as numeric
 	Private _nFrete		:= SC5->C5_FRETE  as numeric
 	Private nUsado		:= 0 as numeric
-	Private N			:= 0 as numeric
+	// Private N			:= 0 as numeric
 
 	Private _dEntreg	:= SToD("") as date
 
-	Private aHeader		:= U_MyCriaAHeader("SC5", @aHeader, @nUsado) as array
-	Private aCols		:= {} as array
+	// Private aHeader		:= U_MyCriaAHeader("SC5", @aHeader, @nUsado) as array
+	// Private aCols		:= {} as array
 
 	// Ordena os itens
 	SC6->(DbSetOrder(1))
@@ -93,7 +93,7 @@ Static Function ExibeTela()
 	// Pesquisa o primeiro item
 	SC6->(DbSeek(FWxFilial("SC6")+SC5->C5_NUM))
 
-	aCols := U_MyCriaACols(aHeader, nUsado, "SC6")
+	// aCols := U_MyCriaACols(aHeader, nUsado, "SC6")
 
 	_dEntreg := SC6->C6_ENTREG
 	
@@ -104,7 +104,7 @@ Static Function ExibeTela()
 		@ 012, 132 SAY oSay1 PROMPT "Mens. Padrao" SIZE 033, 007 OF oDlg1 PIXEL
 		@ 011, 168 MSGET oPedNum VAR _cMenPad SIZE 035, 010 OF oDlg1 PICTURE "@!" VALID Vazio() .Or. ExistCpo("SM4",_cMenPad) F3 "SM4" PIXEL
 		@ 033, 005 SAY oSay2 PROMPT "Mens.p/ Nota" SIZE 040, 007 OF oDlg1 PIXEL
-		@ 031, 045 MSGET oTransp VAR _cMenNF SIZE 188, 010 OF oDlg1 PICTURE "@!" VALID Vazio() .Or. Texto() PIXEL    
+		@ 031, 045 MSGET oTransp VAR _cMenNF SIZE 188, 010 OF oDlg1 PICTURE "@!" VALID Vazio() .Or. Texto() PIXEL
 		@ 052, 005 SAY oSay2 PROMPT "Transportadora" SIZE 040, 007 OF oDlg1 PIXEL
 		@ 051, 045 MSGET oTransp VAR _cTransp SIZE 043, 010 OF oDlg1 PICTURE "@!" VALID ExistCpo("SA4",_cTransp) .And. GetNmTransp(_cTransp, @_cNmTransp) F3 "SA4" PIXEL   
 		@ 052, 132 SAY oSay9 PROMPT "Valor Frete" SIZE 032, 007 OF oDlg1 PIXEL
@@ -122,7 +122,7 @@ Static Function ExibeTela()
 		@ 111, 162 MSGET oEspec VAR _cEspec SIZE 060, 010 OF oDlg1 PICTURE "@!" PIXEL
 
 		@ 132, 005 SAY oSay10 PROMPT "Entrega" SIZE 036, 007 OF oDlg1  PIXEL
-		@ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" VALID A410MultT()  PIXEL    
+		@ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" VALID /* A410MultT() */  PIXEL
 
 		@ 170, 050 BUTTON oButton1 PROMPT "Confirmar" SIZE 037, 012 OF oDlg1 ACTION (AtuCposPV(), Close(oDlg1)) PIXEL
 		@ 170, 144 BUTTON oButton2 PROMPT "Sair" SIZE 037, 012 OF oDlg1 ACTION Close(oDlg1) PIXEL
