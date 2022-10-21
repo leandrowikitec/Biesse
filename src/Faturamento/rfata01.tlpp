@@ -122,7 +122,8 @@ Static Function ExibeTela()
 		@ 111, 162 MSGET oEspec VAR _cEspec SIZE 060, 010 OF oDlg1 PICTURE "@!" PIXEL
 
 		@ 132, 005 SAY oSay10 PROMPT "Entrega" SIZE 036, 007 OF oDlg1  PIXEL
-		@ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" VALID /* A410MultT() */  PIXEL
+		// @ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" VALID /* A410MultT() */  PIXEL
+		@ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" PIXEL
 
 		@ 170, 050 BUTTON oButton1 PROMPT "Confirmar" SIZE 037, 012 OF oDlg1 ACTION (AtuCposPV(), Close(oDlg1)) PIXEL
 		@ 170, 144 BUTTON oButton2 PROMPT "Sair" SIZE 037, 012 OF oDlg1 ACTION Close(oDlg1) PIXEL
