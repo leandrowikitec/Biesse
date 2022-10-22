@@ -163,41 +163,57 @@ Static Function AtuCposPV()
 
 		If !Empty(_cTransp)
 			SC5->C5_TRANSP := _cTransp
+			QOut("Valor de SC5->C5_TRANSP: " + SC5->C5_TRANSP)
+			QOut("Valor de _cTransp: " + _cTransp)
 		EndIf
 
 		If _nFrete >= 0
 			SC5->C5_FRETE := _nFrete
+			QOut("Valor de SC5->C5_FRETE: " + cValToChar(SC5->C5_FRETE))
+			QOut("Valor de _nFrete: " + cValToChar(_nFrete))
 		EndIf
 
 		If _nPesoL > 0
 			SC5->C5_PESOL := _nPesoL
+			QOut("Valor de SC5->C5_PESOL: " + cValToChar(SC5->C5_PESOL))
+			QOut("Valor de _nPesoL: " + cValToChar(_nPesoL))
 		EndIf
 
 		If _nPesoB > 0
 			SC5->C5_PBRUTO := _nPesoB
+			QOut("Valor de SC5->C5_PBRUTO: " + cValToChar(SC5->C5_PBRUTO))
+			QOut("Valor de _nPesoB: " + cValToChar(_nPesoB))
 		EndIf
 
 		If _nVol > 0
 			SC5->C5_VOLUME1 := _nVol
+			QOut("Valor de SC5->C5_VOLUME1: " + cValToChar(SC5->C5_VOLUME1))
+			QOut("Valor de _nVol: " + cValToChar(_nVol))
 		EndIf
 
 		If !Empty(_cEspec)
 			SC5->C5_ESPECI1 := _cEspec
+			QOut("Valor de SC5->C5_ESPECI1: " + SC5->C5_ESPECI1)
+			QOut("Valor de _cEspec: " + _cEspec)
 		EndIf
 
 		If !Empty(_cMenPad)
 			SC5->C5_MENPAD := _cMenPad
+			QOut("Valor de SC5->C5_MENPAD: " + SC5->C5_MENPAD)
+			QOut("Valor de _cMenPad: " + _cMenPad)
 		EndIf
 
 		If !Empty(_cMenNF)
 			SC5->C5_MENNOTA := _cMenNF
+			QOut("Valor de SC5->C5_MENNOTA: " + SC5->C5_MENNOTA)
+			QOut("Valor de _cMenNF: " + _cMenNF)
 		EndIf
 
 		QOut("Dados: " + SC5->(C5_TRANSP + "-" +;
-				C5_FRETE + "-" +;
-				C5_PESOL + "-" +;
-				C5_PBRUTO + "-" +;
-				C5_VOLUME1 + "-" +;
+				cValToChar(C5_FRETE) + "-" +;
+				cValToChar(C5_PESOL) + "-" +;
+				cValToChar(C5_PBRUTO) + "-" +;
+				cValToChar(C5_VOLUME1) + "-" +;
 				C5_ESPECI1 + "-" +;
 				C5_MENPAD + "-" +;
 				C5_MENNOTA))
