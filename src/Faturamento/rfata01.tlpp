@@ -77,12 +77,8 @@ Static Function ExibeTela()
 	Private _nVol		:= SC5->C5_VOLUME1 as numeric
 	Private _nFrete		:= SC5->C5_FRETE  as numeric
 	Private nUsado		:= 0 as numeric
-	// Private N			:= 0 as numeric
 
 	Private _dEntreg	:= SToD("") as date
-
-	// Private aHeader		:= U_MyCriaAHeader("SC5", @aHeader, @nUsado) as array
-	// Private aCols		:= {} as array
 
 	// Ordena os itens
 	SC6->(DbSetOrder(1))
@@ -92,8 +88,6 @@ Static Function ExibeTela()
 	
 	// Pesquisa o primeiro item
 	SC6->(DbSeek(FWxFilial("SC6")+SC5->C5_NUM))
-
-	// aCols := U_MyCriaACols(aHeader, nUsado, "SC6")
 
 	_dEntreg := SC6->C6_ENTREG
 	
@@ -211,51 +205,7 @@ Static Function MyAtuCposPV()
 			EndDo
 		EndIf
 	EndIf
-	
-	// Altera as variáveis de memória
-	If AtIsRotina("A410VISUAL")
-		_nC6Entreg := Ascan(aHeader,{|x| AllTrim(x[2]) == "C6_ENTREG"})
 
-		If !Empty(_cTransp)
-			M->C5_TRANSP := _cTransp
-		EndIf
-
-		If _nFrete >= 0
-			M->C5_FRETE := _nFrete
-		EndIf
-	
-		If _nPesoL > 0
-			M->C5_PESOL := _nPesoL
-		EndIf
-
-		If _nPesoB > 0
-			M->C5_PBRUTO := _nPesoB
-		EndIf
-
-		If _nVol > 0
-			M->C5_VOLUME1 := _nVol
-		EndIf
-
-		If !Empty(_cEspec)
-			M->C5_ESPECI1 := _cEspec
-		EndIf
-
-		If !Empty(_cMenPad)
-			M->C5_MENPAD := _cMenPad
-		EndIf
-
-		If !Empty(_cMenNF)
-			M->C5_MENNOTA := _cMenNF
-		EndIf
-
-		If !Empty(_dEntreg)
-			M->C6_ENTREG := _dEntreg
-				For _nCount := 1 To Len(aCols)
-				aCols[_nCount][_nC6Entreg] := _dEntreg
-			Next
-		EndIf
-	EndIf
-	
 Return Nil
 
 /*/{Protheus.doc} GetNmTransp
