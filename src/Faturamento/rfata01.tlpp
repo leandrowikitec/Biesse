@@ -125,12 +125,10 @@ Static Function ExibeTela()
 		// @ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" VALID /* A410MultT() */  PIXEL
 		@ 131, 045 MSGET oEntreg VAR _dEntreg SIZE 060, 010 OF oDlg1 PICTURE "@D" PIXEL
 
-		@ 170, 050 BUTTON oButton1 PROMPT "Confirmar" SIZE 037, 012 OF oDlg1 ACTION (QOut(cValToChar(ThreadID()) + "Confirmou"), MyAtuCposPV(), Close(oDlg1)) PIXEL
+		@ 170, 050 BUTTON oButton1 PROMPT "Confirmar" SIZE 037, 012 OF oDlg1 ACTION (MyAtuCposPV(), Close(oDlg1)) PIXEL
 		@ 170, 144 BUTTON oButton2 PROMPT "Sair" SIZE 037, 012 OF oDlg1 ACTION Close(oDlg1) PIXEL
 
 		@ 190, 003 SAY oSay8 PROMPT "OBS: CAMPOS EM BRANCO OU ZERADOS NAO SERAO ALTERADOS" SIZE 170, 007 OF oDlg1 COLORS 255, 16777215 PIXEL
-
-		QOut(cValToChar(ThreadID()) + "Processo finalizado")
 
 	ACTIVATE MSDIALOG oDlg1 CENTERED
 
@@ -156,67 +154,39 @@ Static Function MyAtuCposPV()
 	Local _nC6Entreg	:= 0 as numeric
 	Local _nCount		:= 0 as numeric
 	
-	QOut(cValToChar(ThreadID()) + "Vai fazer o ReckLock")
-	QOut(cValToChar(ThreadID()) + "Numero do pedido: " + SC5->C5_NUM)
-
 	Reclock("SC5", .F.)
 
 		If !Empty(_cTransp)
 			SC5->C5_TRANSP := _cTransp
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_TRANSP: " + SC5->C5_TRANSP)
-			QOut(cValToChar(ThreadID()) + "Valor de _cTransp: " + _cTransp)
 		EndIf
 
 		If _nFrete >= 0
 			SC5->C5_FRETE := _nFrete
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_FRETE: " + cValToChar(SC5->C5_FRETE))
-			QOut(cValToChar(ThreadID()) + "Valor de _nFrete: " + cValToChar(_nFrete))
 		EndIf
 
 		If _nPesoL > 0
 			SC5->C5_PESOL := _nPesoL
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_PESOL: " + cValToChar(SC5->C5_PESOL))
-			QOut(cValToChar(ThreadID()) + "Valor de _nPesoL: " + cValToChar(_nPesoL))
 		EndIf
 
 		If _nPesoB > 0
 			SC5->C5_PBRUTO := _nPesoB
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_PBRUTO: " + cValToChar(SC5->C5_PBRUTO))
-			QOut(cValToChar(ThreadID()) + "Valor de _nPesoB: " + cValToChar(_nPesoB))
 		EndIf
 
 		If _nVol > 0
 			SC5->C5_VOLUME1 := _nVol
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_VOLUME1: " + cValToChar(SC5->C5_VOLUME1))
-			QOut(cValToChar(ThreadID()) + "Valor de _nVol: " + cValToChar(_nVol))
 		EndIf
 
 		If !Empty(_cEspec)
 			SC5->C5_ESPECI1 := _cEspec
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_ESPECI1: " + SC5->C5_ESPECI1)
-			QOut(cValToChar(ThreadID()) + "Valor de _cEspec: " + _cEspec)
 		EndIf
 
 		If !Empty(_cMenPad)
 			SC5->C5_MENPAD := _cMenPad
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_MENPAD: " + SC5->C5_MENPAD)
-			QOut(cValToChar(ThreadID()) + "Valor de _cMenPad: " + _cMenPad)
 		EndIf
 
 		If !Empty(_cMenNF)
 			SC5->C5_MENNOTA := _cMenNF
-			QOut(cValToChar(ThreadID()) + "Valor de SC5->C5_MENNOTA: " + SC5->C5_MENNOTA)
-			QOut(cValToChar(ThreadID()) + "Valor de _cMenNF: " + _cMenNF)
 		EndIf
-
-		QOut(cValToChar(ThreadID()) + "Dados: " + SC5->(C5_TRANSP + "-" +;
-				cValToChar(C5_FRETE) + "-" +;
-				cValToChar(C5_PESOL) + "-" +;
-				cValToChar(C5_PBRUTO) + "-" +;
-				cValToChar(C5_VOLUME1) + "-" +;
-				C5_ESPECI1 + "-" +;
-				C5_MENPAD + "-" +;
-				C5_MENNOTA))
 
 	SC5->(MsUnlock())
 	
