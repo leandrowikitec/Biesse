@@ -1,0 +1,58 @@
+/*
+Padrao Zebra
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³IMG10     ºAutor  ³Anderson Rodrigues  º Data ³  25/02/03   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³Ponto de entrada referente a imagem de identificacao do     º±±
+±±º          ³Pallet                                                      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³AP6                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function IMG10  // imagem do Pallet
+cCodigo:= Paramixb[1] // Codigo da etiqueta do Pallet
+
+//NET USE LPT1 \\IM-023\ZEBRA /PERSISTENT:YES
+	//If MSGYESNO( "Redireciona LPT1?", "Etiquetas" )
+		//MSCBPRINTER("ZEBRA", "LPT1",,10,.F.,,,,,,.F.,)
+		//MSCBCHKSTATUS(.F.)
+	//EndIf
+
+MSCBBEGIN(1,6)
+MSCBWrite('CT~~CD,~CC^~CT~')
+	MSCBWrite('^XA')
+	MSCBWrite('~TA000')
+	MSCBWrite('~JSN')
+	MSCBWrite('^LT0')
+	MSCBWrite('^MNW')
+	MSCBWrite('^MTT')
+	MSCBWrite('^PON')
+	MSCBWrite('^PMN')
+	MSCBWrite('^LH0,0')
+	MSCBWrite('^JMA')
+	MSCBWrite('^PR4,4')
+	MSCBWrite('~SD15')
+	MSCBWrite('^JUS')
+	MSCBWrite('^LRN')
+	MSCBWrite('^CI27')
+	MSCBWrite('^PA0,1,1,0')
+	MSCBWrite('^XZ')
+	MSCBWrite('^XA')
+	MSCBWrite('^MMT')
+	MSCBWrite('^PW472')
+	MSCBWrite('^LL815')
+	MSCBWrite('^LS0')
+	MSCBWrite('^FT183,762^A0B,67,124^FH\^CI28^FD'+cCodigo+'^FS^CI27')
+	MSCBWrite('^FT101,758^A0B,59,101^FH\^CI28^FDPALLET^FS^CI27')
+	MSCBWrite('^BY4,3,179^FT403,747^BCB,,N,N')
+	MSCBWrite('^FH\^FD>:'+cCodigo+'^FS')
+	MSCBWrite('^PQ1,0,1,Y')
+	MSCBWrite('^XZ')
+MSCBInfoEti("Pallet","30X80")
+MSCBEND()
+Return .F.
