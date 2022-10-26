@@ -68,7 +68,7 @@ If Len(aParams) > 0
 
 	oMessage:cDate := cValToChar( Date() )
 	// oMessage:cFrom := "naoresponda@spotrh.com.br"
-	oMessage:cTo := aParams[5]
+	oMessage:cTo := AllTrim(aParams[5])
 	//oMessage:cCC := cCC					
 	//oMessage:cBCC := cCCo				
 	oMessage:cSubject := "Questionário Informações Pessoais"
