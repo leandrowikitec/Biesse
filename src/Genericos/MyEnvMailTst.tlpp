@@ -1,0 +1,258 @@
+#Include "Protheus.Ch"
+
+User Function MyEnvMailTst()
+
+// Local cServer  := GetMV("MV_RELSERV") // smtp.ig.com.br ou 200.181.100.51
+// Local cEmail   := GetMV("MV_RELACNT") // fulano@ig.com.br
+// Local cPass    := GetMV("MV_RELPSW")  // 123abc
+// Local lAuth    := GetMV("MV_RELAUTH",, .F.) // .T. ou .F.
+Local cMsg		:= "" as character
+Local cHtml		:= "" as character
+
+// Local nSendPort	:= 0
+
+Local oServer		:= Nil as object
+Local oMessage	 	:= Nil as object
+
+Local xRet			:= Nil as variable
+
+aParams := MyPerg()
+
+If Len(aParams) > 0
+
+	cHtml +=    '<p>Segue question&aacute;rio respondido:</p>'
+	cHtml +=    '<table border="1" cellpadding="1" cellspacing="1">'
+	cHtml +=    '<tbody>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Endereço do servidor</strong></td>'
+	cHtml +=	'	<td>' + MV_PAR01 + "</td>"
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Conta de e-mail</strong></td>'
+	cHtml +=	'	<td>' + MV_PAR02 + '</td>'
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Senha</strong></td>'
+	cHtml +=	'<td>' + MV_PAR03 + '</td>'
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Porta</strong></td>'
+	cHtml +=	'	<td>' + cValToChar(MV_PAR04) + '</td>'
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Emails enviados</strong></td>'
+	cHtml +=	'	<td>' + MV_PAR05 + '</td>'
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Possui autentica&ccedil;&atilde;o</strong>:</td>'
+	cHtml +=	'	<td>' + MV_PAR06 +' </td>'
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Confirma leitura de e-mail</strong></td>'
+	cHtml +=	'	<td>' + MV_PAR07 + '</td>'
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Possui seguran&ccedil;a SSL</strong></td>'
+	cHtml +=	'	<td>.' + If(MV_PAR08, "T", "F") + '.</td>'
+	cHtml +=	'</tr>'
+	cHtml +=	'<tr>'
+	cHtml +=	'	<td><strong>Possui seguran&ccedil;a TLS</strong></td>'
+	cHtml +=	'	<td>.' + If(MV_PAR09, "T", "F") + '.</td>'
+	cHtml +=	'</tr>'
+	cHtml +=    '</tbody>'
+	cHtml +=    '</table>'
+	cHtml +=    '<p>&nbsp;</p>'
+
+	oMessage := TMailMessage():New()
+	oMessage:Clear()
+
+	oMessage:cDate := cValToChar( Date() )
+	// oMessage:cFrom := "naoresponda@spotrh.com.br"
+	oMessage:cTo := aParams[5]
+	//oMessage:cCC := cCC					
+	//oMessage:cBCC := cCCo				
+	oMessage:cSubject := "Questionário Informações Pessoais"
+	oMessage:cBody := cHtml
+	// oMessage:cBody := "teste de e-mail"
+	oMessage:MsgBodyType( "text/html" )
+
+	//Mensagem com anexos (devem estar dentro da Protheus Data)
+	/* 
+	xRet := oMessage:AttachFile( cAnexo )
+		if	xRet < 0
+			cMsg := "Não foi possível anexar o arquivo " + cAnexo
+			conout( cMsg )
+			return
+		endif
+	*/
+
+	oMessage:SetConfirmRead(aParams[7] == "1") 
+
+	oServer := TMailManager():New()
+
+	// SSL?
+	If aParams[8]
+		oServer:SetUseSSL( .T. )
+	EndIf
+
+	// TLS?
+	If aParams[9]
+		oServer:SetUseTLS( .T. )
+	EndIf
+
+	xRet := oServer:Init( "", AllTrim(aParams[1]), AllTrim(aParams[2]), AllTrim(aParams[3]), , aParams[4] )
+	If xRet != 0
+		cMsg := "Nao foi possivel inicializar o servidor SMTP: " + oServer:GetErrorString( xRet )
+		Conout( cMsg )
+		Return
+	EndIf
+
+	// Ajusta o timeout para servidor SMTP
+	xRet := oServer:SetSMTPTimeout( 60 /* nTimeout */ )
+	If xRet != 0
+		cMsg := "Nao foi possivel parametrizar o timetout no servidor " + cServer + " com valor " + cValToChar( nTimeout )
+		Conout( cMsg )
+	EndIf
+
+	// Estabelece conexao com o servidor SMTP
+	xRet := oServer:SMTPConnect()
+	If xRet <> 0
+		cMsg := "Nao foi possivel conectar no servidor SMTP: " + oServer:GetErrorString( xRet )
+		Conout( cMsg )
+		Return
+	EndIf
+	
+	//Autenticacao no servidor SMTP (se necessario)
+	If aParams[6] == "1"
+		xRet := oServer:SmtpAuth( AllTrim(aParams[2]), AllTrim(aParams[3]) )
+		If xRet <> 0
+			cMsg := "Nao foi possivel autenticar no servidor SMTP: " + oServer:GetErrorString( xRet )
+			Conout( cMsg )
+			oServer:SMTPDisconnect()
+			Return
+		EndIf
+	EndIf
+
+	xRet := oMessage:Send( oServer )
+	If xRet <> 0
+		cMsg := "Nao foi possivel enviar a mensagem: " + oServer:GetErrorString( xRet )
+		Conout( cMsg )
+	Else
+		lRet := .T.
+		MsgInfo("Mensagem enviada com sucesso!","Concluído") 
+
+	EndIf
+	
+	xRet := oServer:SMTPDisconnect()
+	If xRet <> 0
+		cMsg := "Nao foi possivel desconectar do servidor SMTP: " + oServer:GetErrorString( xRet )
+		Conout( cMsg )
+	EndIf
+EndIf
+
+Return Nil
+
+/*/{Protheus.doc} MyPerg()
+	(Abre tela de parametros para o usuario preencher)
+	@type  Function
+	@author Calabro'
+	@since 26/10/2022
+	@version version
+	@param param, param_type, param_descr
+	@return aRet, array, (array com dados das respostas do usuarios)
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function MyPerg()
+
+Local aParambox		:= {} as array
+Local aRet			:= {} as array
+
+// 1
+aAdd(aParamBox,{1,;
+				"Servidor email",;
+				Space(80),;
+				"",;
+				"",;
+				"",;
+				"",;
+				80,;
+				.T. } )
+// 2
+aAdd(aParamBox,{1,;
+				"Conta email",;
+				Space(80),;
+				"",;
+				"",;
+				"",;
+				"",;
+				80,;
+				.T. } )
+// 3
+aAdd(aParamBox,{1,;
+				"Senha",;
+				Space(50),;
+				"",;
+				"",;
+				"",;
+				"",;
+				50,;
+				.T. } )
+// 4
+aAdd(aParamBox,{1,;
+				"Porta servidor email",;
+				587,;
+				"",;
+				"",;
+				"",;
+				"",;
+				30,;
+				.T. } )
+// 5
+aAdd(aParamBox,{1,;
+				"Emails para enviar",;
+				Space(100),;
+				"",;
+				"",;
+				"",;
+				"",;
+				80,;
+				.T. } )
+// 6
+aAdd(aParamBox,{2,;
+				"Autenticação",;
+				"2",;
+				{"1=Sim", "2=Não"},;
+				30,;
+				".T.",;
+				.F. } )
+// 7
+aAdd(aParamBox,{2,;
+				"Confirma Leitura de email",;
+				"2",;
+				{"1=Sim", "2=Não"},;
+				30,;
+				".T.",;
+				.F. } )
+// 8
+AAdd(aParamBox,{4,;
+				"SSL?",;
+				.F.,;
+				"Se sim, marque esta opção",;
+				90,;
+				'',;
+				.F. })
+// 9
+AAdd(aParamBox,{4,;
+				"TLS?",;
+				.F.,;
+				"Se sim, marque esta opção",;
+				90,;
+				'',;
+				.F. })
+
+ParamBox(aParamBox, "Parâmetros de envio de e-mail", @aRet,,,,,,,, .F., .T.)
+
+Return aRet
