@@ -14,7 +14,7 @@ Local cHtml		:= "" as character
 Local oServer		:= Nil as object
 Local oMessage	 	:= Nil as object
 
-Local xRet			:= Nil as variable
+Local xRet			:= Nil as variant
 
 aParams := MyPerg()
 
