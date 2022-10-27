@@ -1796,6 +1796,7 @@ If WF7->( DbSeek(xFilial("WF7")+cCadWF))
 	cUsrAuth := AllTrim(WF7->WF7_AUTUSU)
 	cPswAuth := AllTrim(WF7->WF7_AUTSEN)
 	cProtocSec := AllTrim(WF7->WF7_SMTPSE)
+	lSSL := WF7->WF7_SSL
 Else
 	cPopAdd := ""
 	cSmtpAdd := "wikitec.smtp.com.br"
@@ -1874,11 +1875,15 @@ If nCont > 0
 		EndIf
  
 		// Pega as configurações informadas do servidor
-		oMailServer:Init( cPopAdd, cSmtpAdd, cUser, cPass, nPopPort, nSmtpPort )
-		
+		nErro := oMailServer:Init( "", cSmtpAdd, cUser, cPass, , nSmtpPort )
+		If nErro <> 0
+			GeraMsgErro("Nao foi possivel inicializar o servidor SMTP: "  + oMailServer:getErrorString(nErro), lJob)
+		EndIf
+
 		// Valida as configurações do servidor para envio de e-mail
-		If( (nErro := oMailServer:SmtpConnect()) != 0 )
-			conout( "Não conectou.", oMailServer:GetErrorString( nErro ) )
+		nErro := oMailServer:SmtpConnect()
+		If nErro <> 0
+			GeraMsgErro("Não conectou: "  + oMailServer:getErrorString(nErro), lJob)
 			Return
 		EndIf
 		
