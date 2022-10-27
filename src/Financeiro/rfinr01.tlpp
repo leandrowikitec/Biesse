@@ -513,7 +513,7 @@ If !Empty(cFilePrint)
 Endif
 
 // Verifica se deve gerar rotina de impressao de Danfe caso esteja compilada no repositorio
-If MV_PAR23 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", ""))
+/*If MV_PAR23 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", ""))
 
 	For nX := 1 to Len(aTitulo)
 
@@ -525,7 +525,7 @@ If MV_PAR23 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR
 		EndIf
 	Next nX
 EndIf
-
+*/
 // Chama rotina de envio de e-mail - RFA01EnvBol se for definido para enviar por e-mail
 If MV_PAR25
 	RFA01EnvBol(aTitulo, aDanfes, aXML, lJob)
@@ -533,12 +533,12 @@ EndIf
 
 // Se nao for job e parametro de para gravar arquivo na máquina local estiver preenchido,
 // executo para cada documento gerado
-If !lJob .AND. !Empty(MV_PAR26)
+/*If !lJob .AND. !Empty(MV_PAR26)
 	AEval(aTitulo,{|x| CpyS2T(CDIRPDF + x[1], Alltrim(MV_PAR26)) })
 	// Excluo documentos apos gravacao em local escolhido por usuario
 	AEval(aTitulo,{|x| FErase(x[1]) })
 EndIf
-
+*/
 //Limpa o Filtro da tabela SE1
 SE1->(DBCLEARFILTER())
 
