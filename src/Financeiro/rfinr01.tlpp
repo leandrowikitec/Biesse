@@ -338,7 +338,7 @@ oPrint:SetResolution(78)
 nResult := 0
 If !lIsDir(CDIRPDF)
 	nResult := MakeDir(CDIRPDF)
-Endif
+EndIf
 
 If Empty(nResult)
 
@@ -413,7 +413,7 @@ If Empty(nResult)
 										SA1->A1_CEPC										,;		// [6]CEP
 										SA1->A1_CGC											,;		// [7]CGC
 										SA1->A1_PESSOA										}		// [8]PESSOA
-					Endif
+					EndIf
 					
 					// Soma abatimentos do título
 					nVlrAbat:=  0
@@ -510,7 +510,7 @@ If !Empty(cFilePrint)
 	oPrint:Preview()
 	//Armazeno caminho que encontra-se o boleto
 	cFilePrint := FileNoExt(oPrint:cFilePrint) + ".PDF"
-Endif
+EndIf
 
 // Verifica se deve gerar rotina de impressao de Danfe caso esteja compilada no repositorio
 /*If MV_PAR23 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", ""))
@@ -1023,10 +1023,10 @@ If nResto >= 1
 		cDigVerif := "P"
 	Else
 		cDigVerif := Alltrim(Str( 11 - nResto))
-	Endif
+	EndIf
 Else
 	cDigVerif := "0"
-Endif
+EndIf
 
 cNroDoc  := Substr(cNroDoc,3,11) + cDigVerif
 
@@ -1444,7 +1444,7 @@ If nVarAux == 0
 	_cDac := "0"
 Else
 	_cDac := alltrim(str(10 - nVarAux))
-Endif
+EndIf
 
 Return(_cDac)
 
@@ -1660,13 +1660,13 @@ For nX := Len(cBloco) to 1 Step -1
 		nCont += Val(SubStr(Str(nVal, 2), 1, 1)) + Val(SubStr(Str(nVal, 2), 2, 1))
 	Else
 		nCont += Val(SubStr(cBloco, nX, 1)) * nPeso
-	Endif
+	EndIf
 	
 	If nPeso == 1
 		nPeso := 2
 	Else
 		nPeso := 1
-	Endif
+	EndIf
 Next nX
 
 nDezena  := Substr(Str(nCont, 2) ,1 , 1)
@@ -1676,7 +1676,7 @@ If nResto == 10
 	cDigito := "0"
 Else
 	cDigito := Str(nResto,1)
-Endif
+EndIf
 
 Return cDigito
 
@@ -1760,6 +1760,7 @@ Local _cLoja		:= "" as character
 Local cLayHTML		:= AllTrim(GetMV("ES_RF01HTM",, "")) as character
 Local cUsrAuth		:= "" as character
 Local cPswAuth		:= "" as character
+Local cProtocSec	:= "" as character
 
 Local nCont			:= 0 as numeric												// Contador
 Local nX			:= 0 as numeric												// Contador
@@ -1771,6 +1772,7 @@ Local nConfirmou	:= 0 as numeric												// Retorno -> Verifica se o usuario 
 Local nOpc			:= 0 as numeric	 
 
 Local lPermite		:= .F. as logical											// Parâmetro que permite ou não envio de link de RPS com o campo Chave de Acesso em branco
+Local lSSL			:= .F. as logical											// Informa se caixa possui protocolo SSL ativo
 
 Local aFiles		:= {} as array												// Localiza todos os registros contigos na na pasta informada
 Local aTotArq		:= {} as array												// Verifica a quantidade de registro na pasta
@@ -1793,6 +1795,7 @@ If WF7->( DbSeek(xFilial("WF7")+cCadWF))
 	cPass := AllTrim(WF7->WF7_SENHA)
 	cUsrAuth := AllTrim(WF7->WF7_AUTUSU)
 	cPswAuth := AllTrim(WF7->WF7_AUTSEN)
+	cProtocSec := AllTrim(WF7->WF7_SMTPSE)
 Else
 	cPopAdd := ""
 	cSmtpAdd := "wikitec.smtp.com.br"
@@ -1859,7 +1862,17 @@ If nCont > 0
 	DbSelectArea("SA1")
 	DbSetOrder(1)
 	If DbSeek(xfilial("SA1")+aTitulo[1][5]+aTitulo[1][6])
-		
+
+		// Verifica se precisa utilizar protocolo de seguranca SSL para envio de e-mails
+		If "SSL" $ cProtocSec .OR. lSSL
+			oMailServer:SetUseSSL(.T.)
+		EndIf
+
+		// Verifica se precisa utilizar protocolo de seguranca TSL para envio de e-mails
+		If "TLS" $ cProtocSec
+			oMailServer:SetUseTLS(.T.)
+		EndIf
+ 
 		// Pega as configurações informadas do servidor
 		oMailServer:Init( cPopAdd, cSmtpAdd, cUser, cPass, nPopPort, nSmtpPort )
 		
@@ -1876,7 +1889,7 @@ If nCont > 0
 				GeraMsgErro("[ERROR]Falha ao autenticar: " + oMailServer:getErrorString(nErro), lJob)
 				oMailServer:smtpDisconnect()
 				Return
-			Endif
+			EndIf
 		EndIf
 		
 		// Limpa o objeto caso existe alguma informação
