@@ -1732,6 +1732,8 @@ Return Str(nRest,1)
 	@since 12/07/2015
 	@version version
 	@param aTitulo, array, (Array com as informacoes dos titulos a serem enviados por e-mail)
+	@param aDanfes, array, (Array com o caminho das DANFES em PDF geradas)
+	@param aDanfes, array, (Array com o caminho dos XMLs gerados)
 	@param lJob, logical, (Verifica se processo esta' em modo job ou via tela)
 	@return Nil, Nulo
 	@example
