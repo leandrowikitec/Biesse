@@ -133,7 +133,7 @@ Aadd(aPergs,{"Linha Obs 1"		,"","","mv_chj","C",60						,0,0,"G","","MV_PAR19","
 Aadd(aPergs,{"Linha Obs 2"		,"","","mv_chj","C",60						,0,0,"G","","MV_PAR20","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""})
 Aadd(aPergs,{"Linha Obs 3"		,"","","mv_chj","C",60						,0,0,"G","","MV_PAR21","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""})
 
-AjustaSx1(cPerg,aPergs)
+// AjustaSx1(cPerg,aPergs)
 
 //Preenche parametros para rotina utilizar envio de boleto automatico
 If lJob
@@ -1679,7 +1679,7 @@ If __cBanco == "001"
 			DbSeek(cFilAnt+"ES_SQNUMBB")
 		EndIf
 		Reclock("SX6",.F.)
-		SX6->X6_CONTEUD := cNosso
+		PutMV("ES_SQNUMBB", cNosso)
 		MsUnlock()
 	EndIf
 	
@@ -2098,7 +2098,7 @@ Return str(auxi,1,0)
 ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
 /*/
-Static Function AjustaSX1(cPerg, aPergs)
+/*Static Function AjustaSX1(cPerg, aPergs)
 
 Local _sAlias	:= Alias()
 Local aCposSX1	:= {}
@@ -2129,7 +2129,7 @@ For nX:=1 to Len(aPergs)
 		Endif
 	Endif
 	
-	If ! lAltera .And. Found() .And. X1_TIPO <> aPergs[nX][5]
+	If ! lAltera .And. Found() .And. &("X1_TIPO") <> aPergs[nX][5]
 		lAltera := .T.		// Garanto que o tipo da pergunta esteja correto
 	Endif
 	
@@ -2144,7 +2144,7 @@ For nX:=1 to Len(aPergs)
 			Endif
 		Next nj
 		MsUnlock()
-		cKey := "P."+AllTrim(X1_GRUPO)+AllTrim(X1_ORDEM)+"."
+		cKey := "P."+&("AllTrim(X1_GRUPO)+AllTrim(X1_ORDEM)")+"."
 		
 		If ValType(aPergs[nx][Len(aPergs[nx])]) = "A"
 			aHelpSpa := aPergs[nx][Len(aPergs[nx])]
@@ -2169,7 +2169,7 @@ For nX:=1 to Len(aPergs)
 Next
 
 Return
-
+*/
 /*************************************************************
 * Monta linha digitavel para impressao de boletos do bco     *
 * bradesco.                                                  *
