@@ -534,12 +534,12 @@ EndIf
 
 // Se nao for job e parametro de para gravar arquivo na máquina local estiver preenchido,
 // executo para cada documento gerado
-/*If !lJob .AND. !Empty(MV_PAR26)
+If !lJob .AND. !Empty(MV_PAR26)
 	AEval(aTitulo,{|x| CpyS2T(CDIRPDF + x[1], Alltrim(MV_PAR26)) })
 	// Excluo documentos apos gravacao em local escolhido por usuario
 	AEval(aTitulo,{|x| FErase(x[1]) })
 EndIf
-*/
+
 //Limpa o Filtro da tabela SE1
 SE1->(DBCLEARFILTER())
 
