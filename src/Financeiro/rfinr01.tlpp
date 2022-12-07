@@ -59,12 +59,11 @@ EndIf
 // Continua se existir ambiente ativo
 If !Empty(FunName()) .AND. !Empty(cEmpAnt)
 
-	cAliasCadGen := AllTrim(GetMv("ES_BOLALIA",, "PE0"))
-
 	aAreas 	:= {SE1->(GetArea()), GetArea()}
 
-	// Defino variavel static de acordo com parametro
+	// Defino variaveis static de acordo com parametros
 	lBoletoPDF := GetMv("ES_BOLPDF",, .F.)
+	cAliasCadGen := AllTrim(GetMv("ES_BOLALIA",, "PE0"))
 
 	DbSelectArea("SE1")
 	DbSetOrder(1)
@@ -1765,6 +1764,7 @@ Local cLayHTML		:= AllTrim(GetMV("ES_RF01HTM",, "")) as character
 Local cUsrAuth		:= "" as character
 Local cPswAuth		:= "" as character
 Local cProtocSec	:= "" as character
+Local cFrom			:= "" as character
 
 Local nCont			:= 0 as numeric												// Contador
 Local nX			:= 0 as numeric												// Contador
@@ -1801,6 +1801,7 @@ If WF7->( DbSeek(xFilial("WF7")+cCadWF))
 	cPswAuth := AllTrim(WF7->WF7_AUTSEN)
 	cProtocSec := AllTrim(WF7->WF7_SMTPSE)
 	lSSL := WF7->WF7_SSL
+	cFrom := AllTrim(WF7->WF7_REMETE)
 Else
 	cPopAdd := ""
 	cSmtpAdd := "wikitec.smtp.com.br"
@@ -1810,6 +1811,7 @@ Else
 	cPass := "wikitec123"
 	cUsrAuth := "teste@wikitec.com.br"
 	cPswAuth := "wikitec123"
+	cFrom := AllTrim(GetMv("ES_BOLFROM",,"noreply@nomedaempresa.com.br"))
 EndIf
 
 // Busca todos os arquivos do local em pdf e guarda no vetor
@@ -1963,7 +1965,7 @@ If nCont > 0
 		_cCliente := Alltrim(SA1->A1_COD)
 		_cLoja    :=Alltrim(SA1->A1_LOJA)
 
-		oMessage:cFrom := AllTrim(GetMv("ES_BOLFROM",,"noreply@nomedaempresa.com.br"))
+		oMessage:cFrom := cFrom
 
 		// Rotina de Envio Automatico de Boleto
 		
