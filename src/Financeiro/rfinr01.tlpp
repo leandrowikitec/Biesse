@@ -158,11 +158,12 @@ Else
 	MV_PAR19 := ""
 	MV_PAR20 := ""
 	MV_PAR21 := ""
-	MV_PAR22 := GetMv("ES_BOLPDF",, .F.)	// Gera Boleto
-	MV_PAR23 := GetMv("ES_DNFPDF",, .F.)	// Gera Danfe
-	MV_PAR24 := GetMv("ES_GERXML",, .F.)	// Gera XML
-	MV_PAR25 := .T.							// Envia docs. por e-mail
-	MV_PAR26 := ""							// Caminho de destino para salvar documentos
+	MV_PAR22 := .T.							// Traz registors marcados
+	MV_PAR23 := GetMv("ES_BOLPDF",, .F.)	// Gera Boleto
+	MV_PAR24 := GetMv("ES_DNFPDF",, .F.)	// Gera Danfe
+	MV_PAR25 := GetMv("ES_GERXML",, .F.)	// Gera XML
+	MV_PAR26 := .T.							// Envia docs. por e-mail
+	MV_PAR27 := ""							// Caminho de destino para salvar documentos
 EndIf
 
 If Len(aPergs) > 0 .OR. lJob
@@ -190,7 +191,7 @@ If Len(aPergs) > 0 .OR. lJob
 
 	nVlrSel := 0
 	nQtdSel := 0
-	lPrim 	:= .T.
+	// lPrim 	:= .T.
 
 	//Envio de boleto em tela
 	//Senao sera envio de boleto em job
@@ -198,21 +199,27 @@ If Len(aPergs) > 0 .OR. lJob
 
 		// Se rotina estiver processando em tela, defino variaveis de geracao de boleto, Danfe e XML
 		// de acordo com respostas do usuario
-		lBoletoPDF := MV_PAR22
+		lBoletoPDF := MV_PAR23
 
 		@ 001,001 TO 400,700 DIALOG oDlg TITLE "Seleção de Titulos"
 		oDlg:lMaximized := .T.
 
-		//Informacoes do Browse
+		// Informacoes do Browse
 		@ 001,001 TO 170,350 BROWSE "SE1" MARK "E1_OK" OBJECT oBrw
 
-		//Configuro lista com exibicao total da tela
+		// Configuro lista com exibicao total da tela
 		oBrw:oBrowse:Align := CONTROL_ALIGN_ALLCLIENT
 
-		//Informacoes do rodape da tela
+		// Defino funcao ao clicar no cabecalho
+		oBrw:oBrowse:bHeaderClick := {|| InvAllMarcas(@oBrw), AtuTotalizad(oSay1, oSay2) }
+
+		// Defino funcao ao efetuar duplo clique na linha
+		oBrw:OBROWSE:BLDBLCLICK := {|| InverteMarca(@oBrw), AtuTotalizad(oSay1, oSay2) }
+
+		// Informacoes do rodape da tela
 		oTPnlRodap := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aDimTela[6] * 0.065,.T.,.F.)
 
-		//Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
+		// Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
 		oTPnlRodap:Align := CONTROL_ALIGN_BOTTOM
 
 		oSay1 := TSay():New( 010, 010,{|| "Qtd Selec.: " + AllTrim(Transform(nQtdSel,"@R 999999999"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
@@ -220,7 +227,7 @@ If Len(aPergs) > 0 .OR. lJob
 		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 100 TYPE 01 ENABLE OF oTPnlRodap ACTION (lExec := .T.,Close(oDlg))
 		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 130 TYPE 02 ENABLE OF oTPnlRodap ACTION (lExec := .F.,Close(oDlg))
 
-		If lPrim
+		If MV_PAR22
 			SE1->(dbGoTop())
 			While SE1->(!Eof())
 				If Marked("E1_OK")
@@ -230,14 +237,8 @@ If Len(aPergs) > 0 .OR. lJob
 				SE1->(dbSkip())
 			Enddo
 			SE1->(dbGoTop())
-			oBrw:OBROWSE:BLDBLCLICK := {|| IIF( !Marked("E1_OK"),;
-											Eval({|| nQtdSel++, nVlrSel+=SE1->E1_VLCRUZ}),;
-											Eval({|| nQtdSel--, nVlrSel-=SE1->E1_VLCRUZ}) ),;
-			oSay1:SetText("Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999"))),;
-			oSay2:SetText("Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))),;
-			RecLock("SE1",.F.),SE1->E1_OK:=IIF(Marked("E1_OK"),oBrw:CCODMARCA,""),MsUnLock(),oBrw:REFRESHLINE() }
 
-			lPrim := .F.
+			// lPrim := .F.
 		EndIf
 
 		ACTIVATE DIALOG oDlg CENTERED
@@ -355,142 +356,144 @@ If Empty(nResult)
 			IncProc()
 		EndIf
 
-		// Posiciona o SEA (Titulos enviados ao banco)
-		DbSelectArea("SEA")
-		SEA->(DbSetOrder(1))	// EA_FILIAL+EA_NUMBOR+EA_PREFIXO+EA_NUM+EA_PARCELA+EA_TIPO+EA_FORNECE+EA_LOJA
-		If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO) ))
+		If Marked("E1_OK")
+			// Posiciona o SEA (Titulos enviados ao banco)
+			DbSelectArea("SEA")
+			SEA->(DbSetOrder(1))	// EA_FILIAL+EA_NUMBOR+EA_PREFIXO+EA_NUM+EA_PARCELA+EA_TIPO+EA_FORNECE+EA_LOJA
+			If SEA->( DbSeek(xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO) ))
 
-			// Posiciona o SA6 (Bancos)
-			DbSelectArea("SA6")
-			SA6->(DbSetOrder(1))
-			If SA6->( DbSeek(xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON) ))
+				// Posiciona o SA6 (Bancos)
+				DbSelectArea("SA6")
+				SA6->(DbSetOrder(1))
+				If SA6->( DbSeek(xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON) ))
 
-				cSubConta := SA6->(GetSubConta(A6_COD, A6_AGENCIA, A6_NUMCON))
+					cSubConta := SA6->(GetSubConta(A6_COD, A6_AGENCIA, A6_NUMCON))
 
-				// Posiciona o SEE (Parametros de bancos)
-				DbSelectArea("SEE")
-				SEE->(DbSetOrder(1))	// EE_FILIAL+EE_CODIGO+EE_AGENCIA+EE_CONTA+EE_SUBCTA
-				If SEE->(DbSeek(xFilial("SEE")+SA6->(A6_COD+A6_AGENCIA+A6_NUMCON)+cSubConta))
+					// Posiciona o SEE (Parametros de bancos)
+					DbSelectArea("SEE")
+					SEE->(DbSetOrder(1))	// EE_FILIAL+EE_CODIGO+EE_AGENCIA+EE_CONTA+EE_SUBCTA
+					If SEE->(DbSeek(xFilial("SEE")+SA6->(A6_COD+A6_AGENCIA+A6_NUMCON)+cSubConta))
 
-					IF !Vazio(SE1->E1_PORTADO)
-						If ALLTRIM(SE1->E1_PORTADO) # SA6->A6_COD
-							SE1->(DbSkip())
-							Loop
+						IF !Vazio(SE1->E1_PORTADO)
+							If ALLTRIM(SE1->E1_PORTADO) # SA6->A6_COD
+								SE1->(DbSkip())
+								Loop
+							EndIf
 						EndIf
-					EndIf
 
-					//Posiciona o SA1 (Cliente)
-					DbSelectArea("SA1")
-					DbSetOrder(1)
-					DbSeek(xFilial("SA1")+SE1->E1_CLIENTE+SE1->E1_LOJA,.T.)
-					
-					DbSelectArea("SE1")
+						//Posiciona o SA1 (Cliente)
+						DbSelectArea("SA1")
+						DbSetOrder(1)
+						DbSeek(xFilial("SA1")+SE1->E1_CLIENTE+SE1->E1_LOJA,.T.)
+						
+						DbSelectArea("SE1")
 
-					// Informacoes dos bancos
-					aDadosBanco  := {	AllTrim(SA6->A6_COD),;		// [1]Numero do Banco
-										AllTrim(SA6->A6_NOME),;		// [2]Nome do Banco
-										AllTrim(SA6->A6_AGENCIA),;	// [3]Agência
-										AllTrim(SA6->A6_NUMCON),;	// [4]Conta Corrente
-										AllTrim(SA6->A6_DVCTA),;	// [5]Dígito da conta corrente
-										Alltrim(SEE->EE_CODCART) }	// [6]Codigo da Carteira
+						// Informacoes dos bancos
+						aDadosBanco  := {	AllTrim(SA6->A6_COD),;		// [1]Numero do Banco
+											AllTrim(SA6->A6_NOME),;		// [2]Nome do Banco
+											AllTrim(SA6->A6_AGENCIA),;	// [3]Agência
+											AllTrim(SA6->A6_NUMCON),;	// [4]Conta Corrente
+											AllTrim(SA6->A6_DVCTA),;	// [5]Dígito da conta corrente
+											Alltrim(SEE->EE_CODCART) }	// [6]Codigo da Carteira
 
 
-					// Informacoes do sacador
-					If Empty(SA1->A1_ENDCOB)
-						aDatSacado := {	AllTrim(SA1->A1_NOME)								,;		// [1]Razão Social
-										AllTrim(SA1->A1_COD )+"-"+SA1->A1_LOJA				,;		// [2]Código
-										AllTrim(SA1->A1_END )+"-"+AllTrim(SA1->A1_BAIRRO)	,;		// [3]Endereço
-										AllTrim(SA1->A1_MUN )								,;		// [4]Cidade
-										SA1->A1_EST											,;     	// [5]Estado
-										SA1->A1_CEP											,;		// [6]CEP
-										SA1->A1_CGC											,;		// [7]CGC
-										SA1->A1_PESSOA										}		// [8]PESSOA
-					Else
-						aDatSacado := {	AllTrim(SA1->A1_NOME)								,;		// [1]Razão Social
-										AllTrim(SA1->A1_COD )+"-"+SA1->A1_LOJA				,;		// [2]Código
-										AllTrim(SA1->A1_ENDCOB)+"-"+AllTrim(SA1->A1_BAIRROC),;		// [3]Endereço
-										AllTrim(SA1->A1_MUNC)								,;		// [4]Cidade
-										SA1->A1_ESTC										,;		// [5]Estado
-										SA1->A1_CEPC										,;		// [6]CEP
-										SA1->A1_CGC											,;		// [7]CGC
-										SA1->A1_PESSOA										}		// [8]PESSOA
-					EndIf
-					
-					// Soma abatimentos do título
-					nVlrAbat:=  0
-					SumAbatRec(SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,SE1->E1_MOEDA,"V",,@nVlrAbat)
-					nVlrAbat   +=  SE1->E1_DECRESC
-					
-					IF SEE->EE_CODIGO == "237"
-						// Nosso Numero + Digito Verificador
-						If FindFunction("U_MyCalcNoNu")
-							cNroDoc := U_MyCalcNoNu(SEE->EE_CODCART)
+						// Informacoes do sacador
+						If Empty(SA1->A1_ENDCOB)
+							aDatSacado := {	AllTrim(SA1->A1_NOME)								,;		// [1]Razão Social
+											AllTrim(SA1->A1_COD )+"-"+SA1->A1_LOJA				,;		// [2]Código
+											AllTrim(SA1->A1_END )+"-"+AllTrim(SA1->A1_BAIRRO)	,;		// [3]Endereço
+											AllTrim(SA1->A1_MUN )								,;		// [4]Cidade
+											SA1->A1_EST											,;     	// [5]Estado
+											SA1->A1_CEP											,;		// [6]CEP
+											SA1->A1_CGC											,;		// [7]CGC
+											SA1->A1_PESSOA										}		// [8]PESSOA
 						Else
-							cNroDoc := CalcNoNu(SEE->EE_CODCART)
+							aDatSacado := {	AllTrim(SA1->A1_NOME)								,;		// [1]Razão Social
+											AllTrim(SA1->A1_COD )+"-"+SA1->A1_LOJA				,;		// [2]Código
+											AllTrim(SA1->A1_ENDCOB)+"-"+AllTrim(SA1->A1_BAIRROC),;		// [3]Endereço
+											AllTrim(SA1->A1_MUNC)								,;		// [4]Cidade
+											SA1->A1_ESTC										,;		// [5]Estado
+											SA1->A1_CEPC										,;		// [6]CEP
+											SA1->A1_CGC											,;		// [7]CGC
+											SA1->A1_PESSOA										}		// [8]PESSOA
 						EndIf
-					Else
-						// Aqui defino parte do nosso numero. Sao 8 digitos para identificar o titulo.
-						// Abaixo apenas uma sugestao
-						cNroDoc	:= Strzero(Val(Alltrim(SE1->E1_NUM)),6)+StrZERO(Val(Alltrim(SE1->E1_PARCELA)),2)
-						cNroDoc	:= STRZERO(Val(cNroDoc),11)
-					EndIf
+						
+						// Soma abatimentos do título
+						nVlrAbat:=  0
+						SumAbatRec(SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,SE1->E1_MOEDA,"V",,@nVlrAbat)
+						nVlrAbat   +=  SE1->E1_DECRESC
+						
+						IF SEE->EE_CODIGO == "237"
+							// Nosso Numero + Digito Verificador
+							If FindFunction("U_MyCalcNoNu")
+								cNroDoc := U_MyCalcNoNu(SEE->EE_CODCART)
+							Else
+								cNroDoc := CalcNoNu(SEE->EE_CODCART)
+							EndIf
+						Else
+							// Aqui defino parte do nosso numero. Sao 8 digitos para identificar o titulo.
+							// Abaixo apenas uma sugestao
+							cNroDoc	:= Strzero(Val(Alltrim(SE1->E1_NUM)),6)+StrZERO(Val(Alltrim(SE1->E1_PARCELA)),2)
+							cNroDoc	:= STRZERO(Val(cNroDoc),11)
+						EndIf
 
-					nVlrBol := E1_SALDO - nVlrAbat
-					nVlrBol += SE1->E1_ACRESC
+						nVlrBol := E1_SALDO - nVlrAbat
+						nVlrBol += SE1->E1_ACRESC
 
-					dVencRea := SE1->E1_VENCREA
+						dVencRea := SE1->E1_VENCREA
 
-					If SA6->A6_COD == "237"
-						// Monta codigo de barras e calcula o nosso numero com digito verificador
-						aCB_RN_NN := Ret_cB(Subs(aDadosBanco[1],1,3), aDadosBanco[3], aDadosBanco[4], cNroDoc, nVlrBol ,dVencRea/*U_GetNewVFI2('*1',E1_VENCREA)*/)
-					Else
-						// Monta codigo de barras
-						aCB_RN_NN := Ret_cBarra(aDadosBanco[3], nVlrBol, SEE->EE_CODCART, "9")
-					EndIf
-
-					DbSelectArea("SE1")
-					aDadosTit	:= {AllTrim(E1_NUM)+AllTrim(E1_PARCELA)	,;  // [1] Número do título
-					E1_EMISSAO                              				,;	// [2] Data da emissão do título
-					dDataBase                    							,;	// [3] Data da emissão do boleto
-					dVencRea												,;	// [4] Data do vencimento
-					nVlrBol               									,;  // [5] Valor do título
-					aCB_RN_NN[3]                            				,;	// [6] Nosso número (Ver fórmula para calculo)
-					E1_PREFIXO                              				,;	// [7] Prefixo da NF
-					E1_TIPO	                           						,;	// [8] Tipo do Titulo
-					E1_PARCELA}													// [9] Parcela
-
-					// Rotina utilizada para envio de boleto automatico
-					If lJob
-
-						nTotImpEnv++
-						Impress(oPrint,aDadosEmp,aDadosTit,aDadosBanco,aDatSacado,aBolText,aCB_RN_NN, cFilePrint)
-					Else
+						If SA6->A6_COD == "237"
+							// Monta codigo de barras e calcula o nosso numero com digito verificador
+							aCB_RN_NN := Ret_cB(Subs(aDadosBanco[1],1,3), aDadosBanco[3], aDadosBanco[4], cNroDoc, nVlrBol ,dVencRea/*U_GetNewVFI2('*1',E1_VENCREA)*/)
+						Else
+							// Monta codigo de barras
+							aCB_RN_NN := Ret_cBarra(aDadosBanco[3], nVlrBol, SEE->EE_CODCART, "9")
+						EndIf
 
 						DbSelectArea("SE1")
-						If Marked("E1_OK") .AND. nVlrBol > 0
+						aDadosTit	:= {AllTrim(E1_NUM)+AllTrim(E1_PARCELA)	,;  // [1] Número do título
+						E1_EMISSAO                              				,;	// [2] Data da emissão do título
+						dDataBase                    							,;	// [3] Data da emissão do boleto
+						dVencRea												,;	// [4] Data do vencimento
+						nVlrBol               									,;  // [5] Valor do título
+						aCB_RN_NN[3]                            				,;	// [6] Nosso número (Ver fórmula para calculo)
+						E1_PREFIXO                              				,;	// [7] Prefixo da NF
+						E1_TIPO	                           						,;	// [8] Tipo do Titulo
+						E1_PARCELA}													// [9] Parcela
+
+						// Rotina utilizada para envio de boleto automatico
+						If lJob
 
 							nTotImpEnv++
 							Impress(oPrint,aDadosEmp,aDadosTit,aDadosBanco,aDatSacado,aBolText,aCB_RN_NN, cFilePrint)
-						EndIf
-					EndIf
+						Else
 
-					// Grava a data que foi enviada para o cliente
-					GrvHistSE1(aCB_RN_NN, cNroDoc)
+							DbSelectArea("SE1")
+							If Marked("E1_OK") .AND. nVlrBol > 0
+
+								nTotImpEnv++
+								Impress(oPrint,aDadosEmp,aDadosTit,aDadosBanco,aDatSacado,aBolText,aCB_RN_NN, cFilePrint)
+							EndIf
+						EndIf
+
+						// Grava a data que foi enviada para o cliente
+						GrvHistSE1(aCB_RN_NN, cNroDoc)
+					Else
+						GeraMsgErro("Subconta da agência e conta não encontrado no cadastro de parâmetros de bancos: " + xFilial("SEE") + SA6->(A6_COD+A6_AGENCIA+A6_NUMCON),;
+									lJob,;
+									{"&Cancelar"})
+					EndIf
 				Else
-					GeraMsgErro("Subconta da agência e conta não encontrado no cadastro de parâmetros de bancos: " + xFilial("SEE") + SA6->(A6_COD+A6_AGENCIA+A6_NUMCON),;
+					GeraMsgErro("Agência e conta não encontrados no cadastro de banco: " + xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON),;
 								lJob,;
 								{"&Cancelar"})
-				EndIf  
+				EndIf
 			Else
-				GeraMsgErro("Agência e conta não encontrados no cadastro de banco: " + xFilial("SA6") + SEA->(EA_PORTADO+EA_AGEDEP+EA_NUMCON),;
+				GeraMsgErro("Dados de titulos enviados ao banco não encontrados: " + xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_CLIENTE+E1_LOJA),;
 							lJob,;
 							{"&Cancelar"})
-			EndIf  
-		Else
-			GeraMsgErro("Dados de titulos enviados ao banco não encontrados: " + xFilial("SEA") + SE1->(E1_NUMBOR+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO+E1_CLIENTE+E1_LOJA),;
-						lJob,;
-						{"&Cancelar"})
-		EndIf  
+			EndIf
+		EndIf
 		SE1->(DbSkip())
 	EndDo
 Else
@@ -513,31 +516,43 @@ If !Empty(cFilePrint)
 	cFilePrint := FileNoExt(oPrint:cFilePrint) + ".PDF"
 EndIf
 
-// Verifica se deve gerar rotina de impressao de Danfe caso esteja compilada no repositorio
-/*If MV_PAR23 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", ""))
+// Laco para verificar se deve gerar outros documentos: Danfe e/ou XML
+For nX := 1 to Len(aTitulo)
 
-	For nX := 1 to Len(aTitulo)
+	// Verifica se deve gerar rotina de impressao de Danfe caso esteja compilada no repositorio
+	If MV_PAR24 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", ""))
 
-		// U_RFATR01(SF2->F2_DOC, SF2->F2_SERIE, SA1->A1_YLAYDNF, "1", IsBlind()) //TODO: VOLTAR PARA RFATR01
+		// U_RFATR01(SF2->F2_DOC, SF2->F2_SERIE, SA1->A1_YLAYDNF, "1", IsBlind())
 		cArqDanfe := &("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02")),"U_", "") + "('" + aTitulo[nX][2] + "', '" + aTitulo[nX][3] + "', Nil, '1', " + If(lJob, ".T.", ".F.") + ")")
 
 		If File(cArqDanfe)
 			AAdd(aDanfes, cArqDanfe)
 		EndIf
-	Next nX
-EndIf
-*/
+	EndIf
+
+	// Verifica se deve gerar rotina de impressao de Danfe caso esteja compilada no repositorio
+	If MV_PAR25 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNXML",,"RFATR02XML")),"U_", ""))
+
+		// U_RFATR01XML(SF2->F2_DOC, SF2->F2_SERIE, "\boleto\")
+		cArqXML := &("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02XML")),"U_", "") + "('" + aTitulo[nX][2] + "', '" + aTitulo[nX][3] + "', '" + CDIRPDF + "')")
+
+		If File(cArqXML)
+			AAdd(aXML, cArqXML)
+		EndIf
+	EndIf
+Next nX
+
 // Chama rotina de envio de e-mail - RFA01EnvBol se for definido para enviar por e-mail
-If MV_PAR25
+If MV_PAR26
 	RFA01EnvBol(aTitulo, aDanfes, aXML, lJob)
 EndIf
 
 // Se nao for job e parametro de para gravar arquivo na máquina local estiver preenchido,
 // executo para cada documento gerado
-If !lJob .AND. !Empty(MV_PAR26)
-	AEval(aTitulo,{|x| CpyS2T(CDIRPDF + x[1], Alltrim(MV_PAR26)) })
+If !lJob .AND. !Empty(MV_PAR27)
+	AEval(aTitulo,{|x| CpyS2T(CDIRPDF + FileNoExt(x[1]) + ".pdf", Alltrim(MV_PAR27)) })
 	// Excluo documentos apos gravacao em local escolhido por usuario
-	AEval(aTitulo,{|x| FErase(x[1]) })
+	AEval(aTitulo,{|x| FErase(CDIRPDF + FileNoExt(x[1]) + ".pdf") })
 EndIf
 
 //Limpa o Filtro da tabela SE1
@@ -2072,7 +2087,7 @@ If nCont > 0
 			// Exclui documentos enviados
 			For nX := 1 to Len(aFilBol)
 				// Verifica se o parametro para salvar arquivo esta' preenchido para nao apagar arquivo nesse momento
-				If Empty(MV_PAR26)
+				If Empty(MV_PAR27)
 					If FErase(aFilBol[nX]) == -1
 						GeraMsgErro('Falha ao tentar deletar o Arquivo ( FError'+str(ferror(),4)+ ')', lJob)
 					EndIf
@@ -2399,13 +2414,21 @@ AAdd(aPergs,{	1,;
 				.F. })
 // 22
 AAdd(aPergs,{	4,;
+				"Traz Marcados?",;
+				.F.,;
+				"Se sim, marque esta opção",;
+				90,;
+				'',;
+				.F. })
+// 23
+AAdd(aPergs,{	4,;
 				"Gera Boleto?",;
 				.F.,;
 				"Se sim, marque esta opção",;
 				90,;
 				'U_RFIR01VldPar("' + AllTrim(GetMv("ES_FUNBOLE",,"RFINR01")) + '")',;
 				.F. })
-// 23
+// 24
 AAdd(aPergs,{	4,;
 				"Gera Danfe?",;
 				.F.,;
@@ -2413,7 +2436,7 @@ AAdd(aPergs,{	4,;
 				90,;
 				'U_RFIR01VldPar("' + AllTrim(GetMv("ES_FUNDANF",,"RFATR01")) + '")',;
 				.F. })
-// 24
+// 25
 AAdd(aPergs,{	4,;
 				"Gera XML?",;
 				.F.,;
@@ -2422,7 +2445,7 @@ AAdd(aPergs,{	4,;
 				'U_RFIR01VldPar("' + AllTrim(GetMv("ES_FUNXML",,"RFATR01XML")) + '")',;
 				.F. })
 
-// 25
+// 26
 AAdd(aPergs,{	4,;
 				"Envia docs. por e-mail?",;
 				.F.,;
@@ -2431,7 +2454,7 @@ AAdd(aPergs,{	4,;
 				'',;
 				.F. })
 
-// 26
+// 27
 AAdd(aPergs,{	6,;
 				"Salva docs. em?",;
 				Space(230),;
@@ -3281,3 +3304,88 @@ Else
 EndIf
 
 Return cHtml
+
+/*/{Protheus.doc} InverteMarca
+	(Funcao para inverter marcacao de linha)
+	@type Static Function
+	@author Calabro
+	@since 07/12/2022
+	@version version
+	@param oBrw, object, (Objeto Browse de interface de tela)
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function InverteMarca(oBrw as object, oSay1 as object, oSay2 as object)
+
+// Verifico se marcou ou desmarcou para incrementar ou decrementar 
+// quantidade e valores dos titulos selecionados
+If !Marked("E1_OK")
+	nQtdSel++
+	nVlrSel+=SE1->E1_VLCRUZ
+Else
+	nQtdSel--
+	nVlrSel-=SE1->E1_VLCRUZ
+EndIf
+
+// Marco o registro da SE1 com a marcacao ou desmarcacao
+RecLock("SE1",.F.)
+	SE1->E1_OK := If(Marked("E1_OK"), oBrw:CCODMARCA, "")
+MsUnLock()
+
+oBrw:REFRESHLINE()
+
+Return Nil
+
+/*/{Protheus.doc} InvAllMarcas
+	(Funcao para inverter marcacao de todas as linhas)
+	@type Static Function
+	@author Calabro'
+	@since 07/12/2022
+	@version version
+	@param oBrw, object, (Objeto Browse de interface de tela)
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function InvAllMarcas(oBrw as object)
+
+Local aAreas		:= {SE1->(GetArea()), GetArea()} as array
+
+SE1->(dbGoTop())
+While SE1->(!Eof())
+	InverteMarca(@oBrw)
+	SE1->(dbSkip())
+Enddo
+
+AEval(aAreas, {|x| RestArea(x) })
+
+oBrw:oBrowse:REFRESH()
+
+Return Nil
+
+/*/{Protheus.doc} AtuTotalizad
+	(Funcao para atualizar totalizadores de tela)
+	@type Static Function
+	@author Calabro'
+	@since 07/12/2022
+	@version version
+	@param oSay1, object, (Objeto de texto de quantidade de titulos selecionados)
+	@param oSay2, object, (Objeto de texto de valor total dos titulos selecionados)
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function AtuTotalizad(oSay1 as object, oSay2 as object)
+
+// Ajusto textos exibidos na tela
+oSay1:SetText("Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999")))
+oSay2:SetText("Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99")))
+
+Return Nil
