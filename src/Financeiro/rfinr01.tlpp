@@ -191,7 +191,6 @@ If Len(aPergs) > 0 .OR. lJob
 
 	nVlrSel := 0
 	nQtdSel := 0
-	// lPrim 	:= .T.
 
 	//Envio de boleto em tela
 	//Senao sera envio de boleto em job
@@ -202,32 +201,37 @@ If Len(aPergs) > 0 .OR. lJob
 		lBoletoPDF := MV_PAR23
 
 		@ 001,001 TO 400,700 DIALOG oDlg TITLE "Seleção de Titulos"
-		oDlg:lMaximized := .T.
 
-		// Informacoes do Browse
-		@ 001,001 TO 170,350 BROWSE "SE1" MARK "E1_OK" OBJECT oBrw
+			oDlg:lMaximized := .T.
 
-		// Configuro lista com exibicao total da tela
-		oBrw:oBrowse:Align := CONTROL_ALIGN_ALLCLIENT
+			// Informacoes do Browse
+			@ 001,001 TO 170,350 BROWSE "SE1" MARK "E1_OK" OBJECT oBrw
 
-		// Defino funcao ao clicar no cabecalho
-		oBrw:oBrowse:bHeaderClick := {|| InvAllMarcas(@oBrw), AtuTotalizad(oSay1, oSay2) }
+			// Configuro lista com exibicao total da tela
+			oBrw:oBrowse:Align := CONTROL_ALIGN_ALLCLIENT
 
-		// Defino funcao ao efetuar duplo clique na linha
-		oBrw:OBROWSE:BLDBLCLICK := {|| InverteMarca(@oBrw), AtuTotalizad(oSay1, oSay2) }
+			// Defino funcao ao clicar no cabecalho
+			oBrw:oBrowse:bHeaderClick := {|| InvAllMarcas(@oBrw), AtuTotalizad(oSay1, oSay2) }
 
-		// Informacoes do rodape da tela
-		oTPnlRodap := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aDimTela[6] * 0.065,.T.,.F.)
+			// Defino funcao ao efetuar duplo clique na linha
+			oBrw:OBROWSE:BLDBLCLICK := {|| InverteMarca(@oBrw), AtuTotalizad(oSay1, oSay2) }
 
-		// Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
-		oTPnlRodap:Align := CONTROL_ALIGN_BOTTOM
+			// Informacoes do rodape da tela
+			oTPnlRodap := TPanel():New(0,0,"",oDlg,Nil,.T.,.F.,Nil,Nil,0, aDimTela[6] * 0.065,.T.,.F.)
 
-		oSay1 := TSay():New( 010, 010,{|| "Qtd Selec.: " + AllTrim(Transform(nQtdSel,"@R 999999999"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
-		oSay2 := TSay():New( 010, 100,{|| "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
-		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 100 TYPE 01 ENABLE OF oTPnlRodap ACTION (lExec := .T.,Close(oDlg))
-		DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 130 TYPE 02 ENABLE OF oTPnlRodap ACTION (lExec := .F.,Close(oDlg))
+			// Configuro rodape com exibicao total da tela, respeitando o tamanho do rodape
+			oTPnlRodap:Align := CONTROL_ALIGN_BOTTOM
 
-		If MV_PAR22
+			oSay1 := TSay():New( 010, 010,{|| "Qtd Selec.: " + AllTrim(Transform(nQtdSel,"@R 999999999"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
+			oSay2 := TSay():New( 010, 100,{|| "Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99"))}, oTPnlRodap,,oFont,.F.,.F.,.F.,.T.,CLR_HBLUE,CLR_WHITE,120,020)
+			DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 100 TYPE 01 ENABLE OF oTPnlRodap ACTION (lExec := .T.,Close(oDlg))
+			DEFINE SBUTTON FROM 010, oDlg:NCLIENTWIDTH - 130 TYPE 02 ENABLE OF oTPnlRodap ACTION (lExec := .F.,Close(oDlg))
+
+			// Se nao traz registros marcados, limpo campo de MARK
+			If !MV_PAR22
+				LimpaMark(oBrw)
+			EndIf
+
 			SE1->(dbGoTop())
 			While SE1->(!Eof())
 				If Marked("E1_OK")
@@ -237,9 +241,6 @@ If Len(aPergs) > 0 .OR. lJob
 				SE1->(dbSkip())
 			Enddo
 			SE1->(dbGoTop())
-
-			// lPrim := .F.
-		EndIf
 
 		ACTIVATE DIALOG oDlg CENTERED
 
@@ -534,7 +535,8 @@ For nX := 1 to Len(aTitulo)
 	If MV_PAR25 .AND. FindFunction("U_" + StrTran(AllTrim(GetMv("ES_FUNXML",,"RFATR02XML")),"U_", ""))
 
 		// U_RFATR01XML(SF2->F2_DOC, SF2->F2_SERIE, "\boleto\")
-		cArqXML := &("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02XML")),"U_", "") + "('" + aTitulo[nX][2] + "', '" + aTitulo[nX][3] + "', '" + CDIRPDF + "')")
+		cArqXML := &("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02XML")),"U_", "") + "('" + aTitulo[nX][2] + "', '" + aTitulo[nX][3] + "', '" +;
+					CDIRPDF + cFilePrint + "')")
 
 		If File(cArqXML)
 			AAdd(aXML, cArqXML)
@@ -3387,5 +3389,29 @@ Static Function AtuTotalizad(oSay1 as object, oSay2 as object)
 // Ajusto textos exibidos na tela
 oSay1:SetText("Qtd Selec.: "+AllTrim(Transform(nQtdSel,"@R 999999999")))
 oSay2:SetText("Vlr Selec.: "+AllTrim(Transform(nVlrSel,"@R 99,999,999.99")))
+
+Return Nil
+
+/*/{Protheus.doc} LimpaMark
+	(Funcao para limpar todos os registros da SE1 que foram filtrados)
+	@type Static Function
+	@author Calabro'
+	@since 07/12/2022
+	@version version
+	@param oBrw, object, (Objeto Browse de interface de tela)
+	@return Nil, Nulo
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+Static Function LimpaMark(oBrw as object)
+
+SE1->(DBEval(	{|| RecLock("SE1", .F.), SE1->E1_OK := "", SE1->(MsUnlock()), oBrw:REFRESHLINE()},;
+				/*bFirstCondition*/,;
+				{|| SE1->(!EOF())},;
+				/*nCount*/,;
+				/*nRecno*/,;
+				.F.))
 
 Return Nil

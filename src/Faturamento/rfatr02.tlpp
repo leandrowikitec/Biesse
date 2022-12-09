@@ -359,4 +359,4 @@ If !Empty(cXmlRet) .AND. !Empty(cPathXML)
 	MemoWrite(cPathXML, cXmlRet)
 EndIf
 
-Return cXmlRet
+Return cPathXML
