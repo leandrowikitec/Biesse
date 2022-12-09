@@ -536,7 +536,7 @@ For nX := 1 to Len(aTitulo)
 
 		// U_RFATR01XML(SF2->F2_DOC, SF2->F2_SERIE, "\boleto\")
 		cArqXML := &("U_" + StrTran(AllTrim(GetMv("ES_FUNDANF",,"RFATR02XML")),"U_", "") + "('" + aTitulo[nX][2] + "', '" + aTitulo[nX][3] + "', '" +;
-					CDIRPDF + cFilePrint + "')")
+					CDIRPDF + FileNoExt(cFilePrint) + ".xml" + "')")
 
 		If File(cArqXML)
 			AAdd(aXML, cArqXML)
