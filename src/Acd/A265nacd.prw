@@ -8,7 +8,7 @@ Habilita endereçamento via Protheus ou ACD
 /*/
 User Function A265nacd
 
-Local lRet := .T.
+Local lRet := .F.
 MSGINFO("Endereçamento liberado por meio do PE: A265NACD","ACD")
 
 Return lRet
