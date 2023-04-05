@@ -6,9 +6,6 @@ Habilita endereçamento via Protheus ou ACD
 @since 19/05/2022
 @return Logic
 /*/
-User Function A265nacd
-
-Local lRet := .T.
-MSGINFO("Endereçamento liberado por meio do PE: A265NACD","ACD")
-
-Return lRet
+User Function A265NACD()
+Local lRet := .T.// Validações do usuário
+Return lRet
