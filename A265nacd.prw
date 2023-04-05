@@ -10,4 +10,6 @@ User Function A265NACD()
 
 Local lRet := .F.// Validações do usuário
 
+//teste
+
 Return lRet
