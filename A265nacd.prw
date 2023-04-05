@@ -8,6 +8,6 @@ Habilita endereçamento via Protheus ou ACD
 /*/
 User Function A265NACD()
 
-Local lRet := .T.// Validações do usuário
+Local lRet := .F.// Validações do usuário
 
 Return lRet
