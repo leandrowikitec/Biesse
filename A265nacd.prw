@@ -7,5 +7,7 @@ Habilita endereçamento via Protheus ou ACD
 @return Logic
 /*/
 User Function A265NACD()
+
 Local lRet := .T.// Validações do usuário
+
 Return lRet
