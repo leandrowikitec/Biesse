@@ -8,6 +8,6 @@ Habilita endereçamento via Protheus ou ACD
 /*/
 User Function A265NACD()
 
-Local lRet := Aviso("Teste","Retorna V/F",{".T.",".F."}) == 1// Validações do usuário
+Local lRet := .T.// Validações do usuário
 
 Return lRet
