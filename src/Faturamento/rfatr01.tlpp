@@ -423,14 +423,14 @@ Return Nil
 Static Function AdicCabecalho()
 
 nPaginas ++
-oRpt:SayAlign(200	, 520	, AllTrim(SM0->M0_ENDENT)								, oFont12N:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(200	, 520	, AllTrim(SM0->M0_ENDENT)+", "+AllTrim(SM0->M0_BAIRENT)+Transform(SM0->M0_CEPENT, "@R 99999-999"), oFont12N:oFont	, 500, 100,, 0, 0)
 oRpt:SayBitmap(200	, 100	, "\SYSTEM\IMAGENS\INTERMAC.JPG"						, /*Largura*/ 410, /*Altura*/ 160)
 oRpt:SayAlign(210	, 2000	, "Página " + Transform(nPaginas, "@R 99") + " de " + Transform(nTotPaginas, "@R 99")	, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
-oRpt:SayAlign(240	, 520	, AllTrim(SM0->M0_CIDENT)								, oFont12N:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(240	, 520	, AllTrim(SM0->M0_CIDENT)+" - "+AllTrim(SM0->M0_ESTENT)							, oFont12N:oFont	, 500, 100,, 0, 0)
 oRpt:SayAlign(250	, 2000	, DtoC(dDataBase)      		 							, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
 oRpt:SayAlign(260	, 970	, "ORÇAMENTO DE VENDAS"									, oFont18N:oFont	, 800, 100,, 0, 0)
 oRpt:SayAlign(280	, 520	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12N:oFont, 500, 100,, 0, 0)
-oRpt:SayAlign(320	, 520	, "Telefone: " + SM0->M0_TEL        					, oFont12N:oFont	, 500, 100,, 0, 0)
+//oRpt:SayAlign(320	, 520	, "Telefone: " + SM0->M0_TEL        					, oFont12N:oFont	, 500, 100,, 0, 0)
 
 oRpt:Line(400	, 100	, 400	, 2250)		// Linha -- acima do clientes
 oRpt:Line(403	, 100	, 403	, 2250)
@@ -723,7 +723,7 @@ oRpt:Line(2905	, 100	, 2905	, 2250)
 oRpt:SayAlign(2940	, 100	, AllTrim(SM0->M0_ENDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(2940	, 500	, AllTrim(SM0->M0_CIDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(2940	, 1000	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12:oFont	, 500, 100,, 0, 0)
-oRpt:SayAlign(2940	, 1800	, "Telefone: " + SM0->M0_TEL        					, oFont12:oFont		, 500, 100,, 0, 0)
+//oRpt:SayAlign(2940	, 1800	, "Telefone: " + SM0->M0_TEL        					, oFont12:oFont		, 500, 100,, 0, 0)
 
 Return Nil
 
