@@ -424,7 +424,7 @@ Static Function AdicCabecalho()
 
 nPaginas ++
 oRpt:SayAlign(200	, 520	, AllTrim(SM0->M0_ENDENT), oFont12N:oFont	, 500, 100,, 0, 0)
-oRpt:SayAlign(240	, 520	, AllTrim(SM0->M0_BAIRENT)+Transform(SM0->M0_CEPENT, "@R 99999-999"), oFont12N:oFont	, 500, 100,, 0, 0)
+oRpt:SayAlign(240	, 520	, AllTrim(SM0->M0_BAIRENT)+" - "+Transform(SM0->M0_CEPENT, "@R 99999-999"), oFont12N:oFont	, 500, 100,, 0, 0)
 oRpt:SayBitmap(200	, 100	, "\SYSTEM\IMAGENS\INTERMAC.JPG"						, /*Largura*/ 410, /*Altura*/ 160)
 oRpt:SayAlign(210	, 2000	, "Página " + Transform(nPaginas, "@R 99") + " de " + Transform(nTotPaginas, "@R 99")	, oFont12N:oFont	, 300, 100, /* CLR_HRED */	, 0, 0)
 oRpt:SayAlign(280	, 520	, AllTrim(SM0->M0_CIDENT)+" - "+AllTrim(SM0->M0_ESTENT)							, oFont12N:oFont	, 500, 100,, 0, 0)
