@@ -716,12 +716,15 @@ Return Nil
 
 Static Function AdicRodape()
 
+oRpt:SayAlign(2800	, 100	, "ATENÇÃO: Os itens do orçamento não contemplarão garantia e/ou devolução/troca quando não instalado por um técnico autorizado." , oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(2800	, 100	, "Estoque disponível, exceto se vendido."								, oFont12:oFont		, 500, 100,, 0, 0)
+
 oRpt:Line(2900	, 100	, 2900	, 2250)		// Linha -- no final da página para incluir os dados da empresa
 oRpt:Line(2903	, 100	, 2903	, 2250)
 oRpt:Line(2905	, 100	, 2905	, 2250)
 
 
-oRpt:SayAlign(2940	, 100	, AllTrim(SM0->M0_ENDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
+oRpt:SayAlign(2940	, 100	, AllTrim(SM0->M0_ENDENT)+" "+AllTrim(SM0->M0_CIDENT)	, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(2940	, 500	, AllTrim(SM0->M0_CIDENT)								, oFont12:oFont		, 500, 100,, 0, 0)
 oRpt:SayAlign(2940	, 1000	, "CNPJ: " + Transform(SM0->M0_CGC, "@R 99.999.999/9999-99"), oFont12:oFont	, 500, 100,, 0, 0)
 //oRpt:SayAlign(2940	, 1800	, "Telefone: " + SM0->M0_TEL        					, oFont12:oFont		, 500, 100,, 0, 0)
