@@ -5,7 +5,7 @@
 
 #DEFINE NFIMLIN		170
 
-Static cAliasCadGen	:= ""
+Static cAliasCadGen	:= "" as character
 
 Static lBoletoPDF	:= .F. as logical	//Verifica se o tipo de mensagem selecionado [ Imprimir / Envio] caso seja envio gera um arquivo PDF
 // Static lEnvioBol	:= GetMv("ES_MAILBOL",, .F.) as logical	//Verifica se o tipo selecionado na mensagem e envio de [ Boleto ]
