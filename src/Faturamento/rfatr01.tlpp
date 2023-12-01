@@ -221,7 +221,9 @@ While !Eof() .And. !lEnd
 		//      FWMsPrinter():New ( < cFilePrintert >, [ nDevice], [ lAdjustToLegacy], [ cPathInServer], [ lDisabeSetup ], [ lTReport], [ @oPrintSetup], [ cPrinter], [ lServer], [ lPDFAsPNG], [ lRaw], [ lViewPDF], [ nQtdCopy] )
 		oRpt := FWMSPrinter():New(AllTrim(cFile),IMP_PDF/*nDevice*/,/*lAdjustToLegacy*/, "C:\PDF\"/*cPathInServer*/,!lTela/*lDisableSetup*/ ,/*lTReport*/,/*oPrintSetup*/,/*cPrinter*/,/*lServer*/,/*lPDFAsPNG*/,/*lRaw*/,.F./*lViewPDF*/)
 		oRpt:cPathPDF := "C:\PDF\"
-		oRpt:SetPortrait()
+		//oRpt:SetPortrait()
+		oRpt:SetLandscape()
+
 
 		oFont12		:= TFontEx():New(oRpt,"Arial",12,12,.F.,.T.,.F.)
 		oFont12N	:= TFontEx():New(oRpt,"Arial",12,12,.T.,.T.,.F.)
