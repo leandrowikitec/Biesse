@@ -197,7 +197,7 @@ MemoWrite("\QUERYSYS\RFATR01.SQL",cQuery)
 // Define os registros a processar
 If Select("TMP001") > 0
 	dbSelectArea("TMP001")
-	dbCloseArea()
+	dbCloseArea() 
 EndIf
 
 TCQUERY cQuery NEW ALIAS "TMP001"
